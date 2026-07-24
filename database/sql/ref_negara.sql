@@ -1,0 +1,1 @@
+INSERT INTO negara (id, nama, kode, created_at, updated_at) VALUES (1,'Indonesia','ID',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP);

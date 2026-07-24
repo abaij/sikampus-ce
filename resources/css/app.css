@@ -1,0 +1,119 @@
+@import 'tailwindcss';
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+@source '../**/*.blade.php';
+@source '../**/*.js';
+
+@theme {
+    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+        'Segoe UI Symbol', 'Noto Color Emoji';
+}
+
+/*
+ * Override Tom Select (resources/views/components/searchable-select.blade.php) supaya menyatu dengan
+ * gaya input Tailwind yang sudah ada di panel admin (rounded-lg, border-slate-300, focus:ring-indigo-500).
+ * Sengaja tidak import CSS bawaan Tom Select (tom-select/dist/css/*.css) karena akan bentrok dengan reset
+ * Tailwind v4 — override ini menargetkan struktur class stabil Tom Select secara langsung.
+ */
+/* Karena CSS bawaan Tom Select tidak di-import, kelas ini (yang biasanya menyembunyikan <select>
+   asli secara visual tapi tetap accessible) perlu ditulis manual — tanpa ini select aslinya
+   tetap tampil sebagai <select> native di bawah widget Tom Select. */
+.ts-hidden-accessible {
+    position: absolute !important;
+    overflow: hidden !important;
+    clip: rect(0 0 0 0) !important;
+    clip-path: inset(50%) !important;
+    height: 1px !important;
+    width: 1px !important;
+    white-space: nowrap !important;
+}
+
+.ts-wrapper {
+    position: relative; /* containing block untuk .ts-dropdown di bawah */
+    width: 100%;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+}
+
+.ts-wrapper .ts-control {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    align-items: center;
+    width: 100%;
+    min-height: 2.625rem;
+    padding: 0.375rem 0.75rem;
+    background-color: #fff;
+    border: 1px solid #cbd5e1; /* slate-300 */
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    cursor: text;
+}
+
+.ts-wrapper.single .ts-control {
+    min-height: 2.625rem;
+}
+
+.ts-wrapper.focus .ts-control {
+    border-color: #6366f1; /* indigo-500 */
+    box-shadow: 0 0 0 2px rgb(99 102 241 / 0.2);
+}
+
+.ts-wrapper.disabled .ts-control {
+    background-color: #f8fafc; /* slate-50 */
+    color: #94a3b8;
+    cursor: not-allowed;
+}
+
+.ts-control input {
+    color: #0f172a; /* slate-900 */
+    outline: none;
+}
+
+.ts-control input::placeholder {
+    color: #94a3b8; /* slate-400 */
+}
+
+.ts-control .item {
+    color: #0f172a;
+}
+
+.ts-dropdown {
+    position: absolute; /* tanpa ini dropdown ikut alur dokumen & mendorong konten di bawahnya turun */
+    top: 100%;
+    left: 0;
+    right: 0;
+    margin-top: 0.25rem;
+    background-color: #fff;
+    border: 1px solid #e2e8f0; /* slate-200 */
+    border-radius: 0.5rem;
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    overflow: hidden;
+    z-index: 30;
+}
+
+.ts-dropdown .ts-dropdown-content {
+    max-height: 15rem;
+}
+
+.ts-dropdown [data-selectable],
+.ts-dropdown .option {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    color: #475569; /* slate-600 */
+    cursor: pointer;
+}
+
+.ts-dropdown [data-selectable].active,
+.ts-dropdown .option.active {
+    background-color: #eef2ff; /* indigo-50 */
+    color: #4338ca; /* indigo-700 */
+}
+
+.ts-dropdown .no-results,
+.ts-dropdown .optgroup-header {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    color: #94a3b8;
+}
