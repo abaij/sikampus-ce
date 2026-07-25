@@ -121,14 +121,13 @@
                                 </span>
                             </td>
                             <td class="px-4 py-3 text-right">
-                                <button
-                                    type="button"
-                                    wire:click="confirmDelete({{ $mhs->id }})"
-                                    class="inline-flex items-center justify-center rounded-lg p-2 text-rose-500 transition hover:bg-rose-50 hover:text-rose-700"
-                                    title="Hapus"
+                                <a
+                                    href="{{ route('admin.administrasi.mahasiswa.show', $mhs->id) }}"
+                                    class="inline-flex items-center justify-center rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
+                                    title="Lihat Detail"
                                 >
-                                    <i data-lucide="trash-2" class="h-4 w-4" aria-hidden="true"></i>
-                                </button>
+                                    <i data-lucide="eye" class="h-4 w-4" aria-hidden="true"></i>
+                                </a>
                             </td>
                         </tr>
                     @empty
@@ -144,29 +143,4 @@
             {{ $mahasiswaList->links() }}
         </div>
     </div>
-
-    @if ($confirmingDeleteId)
-        <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 px-4">
-            <div class="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl">
-                <h3 class="text-base font-semibold text-slate-900">Hapus mahasiswa?</h3>
-                <p class="mt-2 text-sm text-slate-600">Tindakan ini tidak dapat dibatalkan.</p>
-                <div class="mt-6 flex justify-end gap-2">
-                    <button
-                        type="button"
-                        wire:click="cancelDelete"
-                        class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
-                    >
-                        Batal
-                    </button>
-                    <button
-                        type="button"
-                        wire:click="delete"
-                        class="rounded-lg bg-rose-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-rose-700"
-                    >
-                        Hapus
-                    </button>
-                </div>
-            </div>
-        </div>
-    @endif
 </div>

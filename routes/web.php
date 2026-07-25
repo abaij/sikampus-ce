@@ -13,11 +13,17 @@ use App\Livewire\Admin\JalurMasuk\Form as JalurMasukForm;
 use App\Livewire\Admin\JalurMasuk\Index as JalurMasukIndex;
 use App\Livewire\Admin\Jenjang\Form as JenjangForm;
 use App\Livewire\Admin\Jenjang\Index as JenjangIndex;
-use App\Livewire\Admin\KelompokKelas\Form as KelompokKelasForm;
 use App\Livewire\Admin\KelompokKelas\Index as KelompokKelasIndex;
+use App\Livewire\Admin\Mahasiswa\Form as MahasiswaForm;
 use App\Livewire\Admin\Mahasiswa\Index as MahasiswaIndex;
+use App\Livewire\Admin\Mahasiswa\Show as MahasiswaShow;
+use App\Livewire\Admin\Matkul\Form as MatkulForm;
+use App\Livewire\Admin\Matkul\Index as MatkulIndex;
+use App\Livewire\Admin\Matkul\Show as MatkulShow;
 use App\Livewire\Admin\Prodi\Form as ProdiForm;
 use App\Livewire\Admin\Prodi\Index as ProdiIndex;
+use App\Livewire\Admin\Semester\Form as SemesterForm;
+use App\Livewire\Admin\Semester\Index as SemesterIndex;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -59,8 +65,13 @@ Route::prefix('admin')->name('admin.')->group(function (): void {
     Route::middleware(['auth', 'role.admin.web'])->group(function (): void {
         Route::get('/dashboard', [AdminWebLoginController::class, 'dashboard'])->name('dashboard');
 
+        // Menu Akademik
+        Route::livewire('akademik/matkul', MatkulIndex::class)->name('akademik.matkul');
+        Route::livewire('akademik/matkul/create', MatkulForm::class)->name('akademik.matkul.create');
+        Route::livewire('akademik/matkul/{id}/edit', MatkulForm::class)->name('akademik.matkul.edit');
+        Route::livewire('akademik/matkul/{id}', MatkulShow::class)->name('akademik.matkul.show');
+
         // Menu Akademik — link dummy dulu, modulnya menyusul.
-        Route::view('akademik/matkul', 'admin.coming-soon', ['title' => 'Mata Kuliah'])->name('akademik.matkul');
         Route::view('akademik/kurikulum', 'admin.coming-soon', ['title' => 'Kurikulum'])->name('akademik.kurikulum');
         Route::view('akademik/krs', 'admin.coming-soon', ['title' => 'KRS'])->name('akademik.krs');
         Route::view('akademik/nilai', 'admin.coming-soon', ['title' => 'Nilai'])->name('akademik.nilai');
@@ -72,6 +83,8 @@ Route::prefix('admin')->name('admin.')->group(function (): void {
         Route::livewire('administrasi/dosen/{id}', DosenShow::class)->name('administrasi.dosen.show');
 
         Route::livewire('administrasi/mahasiswa', MahasiswaIndex::class)->name('administrasi.mahasiswa');
+        Route::livewire('administrasi/mahasiswa/{id}/edit', MahasiswaForm::class)->name('administrasi.mahasiswa.edit');
+        Route::livewire('administrasi/mahasiswa/{id}', MahasiswaShow::class)->name('administrasi.mahasiswa.show');
 
         Route::livewire('administrasi/kelas-mahasiswa', KelompokKelasIndex::class)->name('administrasi.kelas-mahasiswa');
         Route::livewire('administrasi/kelas-mahasiswa/create', KelompokKelasForm::class)->name('administrasi.kelas-mahasiswa.create');
@@ -92,5 +105,9 @@ Route::prefix('admin')->name('admin.')->group(function (): void {
         Route::livewire('jalur-masuk', JalurMasukIndex::class)->name('jalur-masuk.index');
         Route::livewire('jalur-masuk/create', JalurMasukForm::class)->name('jalur-masuk.create');
         Route::livewire('jalur-masuk/{id}/edit', JalurMasukForm::class)->name('jalur-masuk.edit');
+
+        Route::livewire('semester', SemesterIndex::class)->name('semester.index');
+        Route::livewire('semester/create', SemesterForm::class)->name('semester.create');
+        Route::livewire('semester/{id}/edit', SemesterForm::class)->name('semester.edit');
     });
 });

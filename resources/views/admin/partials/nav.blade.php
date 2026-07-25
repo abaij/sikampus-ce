@@ -27,6 +27,7 @@
                 ['route' => 'admin.prodi.index', 'label' => 'Prodi'],
                 ['route' => 'admin.jenjang.index', 'label' => 'Jenjang'],
                 ['route' => 'admin.jalur-masuk.index', 'label' => 'Jalur Masuk'],
+                ['route' => 'admin.semester.index', 'label' => 'Semester'],
             ],
         ],
     ];

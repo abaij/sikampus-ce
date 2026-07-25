@@ -28,8 +28,6 @@ class Index extends Component
 
     public int $perPage = 10;
 
-    public ?int $confirmingDeleteId = null;
-
     public function mount(): void
     {
         // Default filter status akademik "Aktif" — sama dengan perilaku MahasiswaPage di frontend.
@@ -64,42 +62,6 @@ class Index extends Component
 
     public function updatingFilterStatusAkademik(): void
     {
-        $this->resetPage();
-    }
-
-    public function confirmDelete(int $id): void
-    {
-        $this->confirmingDeleteId = $id;
-    }
-
-    public function cancelDelete(): void
-    {
-        $this->confirmingDeleteId = null;
-    }
-
-    /**
-     * Sama seperti MahasiswaController::destroy — scope-filter dicek ulang di sini
-     * supaya admin yang di-scope ke prodi tertentu tidak bisa hapus lewat id langsung.
-     */
-    public function delete(): void
-    {
-        if (! $this->confirmingDeleteId) {
-            return;
-        }
-
-        $mahasiswa = Mahasiswa::findOrFail($this->confirmingDeleteId);
-
-        $user = Auth::user();
-        if ($user && $user->hasScopeRestriction()) {
-            $allowedProdiIds = $user->getAllowedProdiIds();
-            if ($allowedProdiIds !== null && ! in_array((int) $mahasiswa->id_prodi, $allowedProdiIds, true)) {
-                abort(403, 'Anda tidak memiliki akses ke mahasiswa ini.');
-            }
-        }
-
-        $mahasiswa->delete();
-
-        $this->confirmingDeleteId = null;
         $this->resetPage();
     }
 

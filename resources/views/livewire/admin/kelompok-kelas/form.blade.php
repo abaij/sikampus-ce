@@ -88,21 +88,21 @@
             <div class="mb-4 grid gap-4 sm:grid-cols-2">
                 <div>
                     <label class="mb-1 block text-xs font-semibold text-slate-700">Program Studi</label>
-                    <select wire:model.live="mhsFilterProdi" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20">
-                        <option value="">Semua prodi</option>
-                        @foreach ($this->prodiFilterOptions as $opt)
-                            <option value="{{ $opt->id }}">{{ $opt->nama }}</option>
-                        @endforeach
-                    </select>
+                    <x-searchable-select
+                        model="mhsFilterProdi"
+                        :live="true"
+                        :options="$this->prodiFilterOptions"
+                        placeholder="Semua prodi"
+                    />
                 </div>
                 <div>
                     <label class="mb-1 block text-xs font-semibold text-slate-700">Semester Masuk</label>
-                    <select wire:model.live="mhsFilterSemester" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20">
-                        <option value="">Semua semester masuk</option>
-                        @foreach ($this->semesterFilterOptions as $opt)
-                            <option value="{{ $opt->id }}">{{ $opt->nama }}</option>
-                        @endforeach
-                    </select>
+                    <x-searchable-select
+                        model="mhsFilterSemester"
+                        :live="true"
+                        :options="$this->semesterFilterOptions"
+                        placeholder="Semua semester masuk"
+                    />
                 </div>
             </div>
 
