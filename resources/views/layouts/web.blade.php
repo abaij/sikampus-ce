@@ -1,11 +1,17 @@
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+{{-- $namaPerguruanTinggi & $logoPerguruanTinggiSrc dipasok oleh View Composer di
+     AppServiceProvider::boot() (dishare ke view ini & auth/login.blade.php sekaligus). --}}
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <title>@yield('title', config('app.name', 'SIAK'))</title>
+
+    @if ($logoPerguruanTinggiSrc)
+        <link rel="icon" href="{{ $logoPerguruanTinggiSrc }}">
+    @endif
 
     @if (file_exists(public_path('build/manifest.json')) || file_exists(public_path('hot')))
         @vite(['resources/css/app.css', 'resources/js/app.js'])
@@ -21,17 +27,6 @@
 </head>
 <body class="min-h-screen bg-white text-neutral-900 antialiased">
 @php
-    // Sekali query untuk dipakai di brand mark header maupun footer — hindari query dobel per request.
-    $univSettings = \App\Models\Setting::whereIn('key', ['app_univ_name', 'app_univ_logo'])->pluck('value', 'key');
-    $namaPerguruanTinggi = trim((string) $univSettings->get('app_univ_name'));
-    $logoPerguruanTinggi = trim((string) $univSettings->get('app_univ_logo'));
-    $logoPerguruanTinggiSrc = null;
-    if ($logoPerguruanTinggi !== '') {
-        $logoPerguruanTinggiSrc = str_starts_with($logoPerguruanTinggi, 'http') || str_starts_with($logoPerguruanTinggi, 'data:image')
-            ? $logoPerguruanTinggi
-            : asset(ltrim($logoPerguruanTinggi, '/'));
-    }
-
     // Panel admin (Livewire) punya dashboard & logout sendiri; dosen/mahasiswa masing-masing
     // punya dashboard sendiri tapi berbagi mekanisme logout generik dengan panel maintenance
     // superadmin ("dashboard"/"logout").

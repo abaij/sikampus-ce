@@ -6,10 +6,19 @@
 <div class="flex min-h-screen flex-col items-center justify-center px-4 py-12">
     <div class="w-full max-w-md">
         <div class="mb-8 flex flex-col items-center text-center">
-            <div class="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-neutral-900 text-white shadow-lg shadow-neutral-900/10">
-                <i data-lucide="graduation-cap" class="h-8 w-8" aria-hidden="true"></i>
-            </div>
-            <h1 class="text-2xl font-semibold tracking-tight text-neutral-900">Masuk</h1>
+            @if ($logoPerguruanTinggiSrc)
+                <img
+                    src="{{ $logoPerguruanTinggiSrc }}"
+                    alt="{{ $namaPerguruanTinggi !== '' ? $namaPerguruanTinggi : config('app.name') }}"
+                    class="mb-4 h-14 w-14 rounded-2xl bg-white object-contain shadow-border"
+                />
+            @else
+                <div class="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-neutral-900 text-white shadow-lg shadow-neutral-900/10">
+                    <i data-lucide="graduation-cap" class="h-8 w-8" aria-hidden="true"></i>
+                </div>
+            @endif
+            <p class="text-sm font-medium text-neutral-500">{{ $namaPerguruanTinggi !== '' ? $namaPerguruanTinggi : config('app.name') }}</p>
+            <h1 class="mt-1 text-2xl font-semibold tracking-tight text-neutral-900">Masuk</h1>
             <p class="mt-2 text-sm text-neutral-600">Masuk dengan akun admin, dosen, atau mahasiswa Anda.</p>
         </div>
 
