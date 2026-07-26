@@ -3,10 +3,13 @@
         [
             'label' => 'Akademik',
             'items' => [
-                ['route' => 'admin.akademik.matkul', 'label' => 'Mata Kuliah'],
-                ['route' => 'admin.akademik.kurikulum', 'label' => 'Kurikulum'],
+                ['label' => 'Kurikulum', 'children' => [
+                    ['route' => 'admin.akademik.kurikulum', 'label' => 'Kurikulum'],
+                    ['route' => 'admin.akademik.matkul', 'label' => 'Mata Kuliah'],
+                ]],
                 ['route' => 'admin.akademik.krs', 'label' => 'KRS'],
                 ['route' => 'admin.akademik.nilai', 'label' => 'Nilai'],
+                ['route' => 'admin.akademik.jenis-penilaian', 'label' => 'Jenis Penilaian'],
             ],
         ],
         [

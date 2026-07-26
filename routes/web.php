@@ -16,6 +16,8 @@ use App\Livewire\Admin\JalurMasuk\Form as JalurMasukForm;
 use App\Livewire\Admin\JalurMasuk\Index as JalurMasukIndex;
 use App\Livewire\Admin\JenisDaftar\Form as JenisDaftarForm;
 use App\Livewire\Admin\JenisDaftar\Index as JenisDaftarIndex;
+use App\Livewire\Admin\JenisPenilaian\Form as JenisPenilaianForm;
+use App\Livewire\Admin\JenisPenilaian\Index as JenisPenilaianIndex;
 use App\Livewire\Admin\Jenjang\Form as JenjangForm;
 use App\Livewire\Admin\Jenjang\Index as JenjangIndex;
 use App\Livewire\Admin\KelompokKelas\Index as KelompokKelasIndex;
@@ -95,6 +97,10 @@ Route::prefix('admin')->name('admin.')->group(function (): void {
         Route::livewire('akademik/matkul/create', MatkulForm::class)->name('akademik.matkul.create');
         Route::livewire('akademik/matkul/{id}/edit', MatkulForm::class)->name('akademik.matkul.edit');
         Route::livewire('akademik/matkul/{id}', MatkulShow::class)->name('akademik.matkul.show');
+
+        Route::livewire('akademik/jenis-penilaian', JenisPenilaianIndex::class)->name('akademik.jenis-penilaian');
+        Route::livewire('akademik/jenis-penilaian/create', JenisPenilaianForm::class)->name('akademik.jenis-penilaian.create');
+        Route::livewire('akademik/jenis-penilaian/{id}/edit', JenisPenilaianForm::class)->name('akademik.jenis-penilaian.edit');
 
         // Menu Akademik — link dummy dulu, modulnya menyusul.
         Route::view('akademik/kurikulum', 'admin.coming-soon', ['title' => 'Kurikulum'])->name('akademik.kurikulum');
