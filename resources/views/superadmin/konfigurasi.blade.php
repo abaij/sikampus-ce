@@ -11,7 +11,7 @@
         @csrf
         <button
             type="submit"
-            class="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+            class="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-medium text-neutral-700 shadow-border transition hover:bg-neutral-50 focus:outline-none focus:ring-2 focus:ring-neutral-900 focus:ring-offset-2"
         >
             <i data-lucide="log-out" class="h-4 w-4" aria-hidden="true"></i>
             Keluar
@@ -20,11 +20,11 @@
 @endsection
 
 @section('content')
-    <div class="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
+    <div class="rounded-2xl bg-white p-8 shadow-border">
         <div class="mb-6">
-            <h2 class="text-xl font-semibold text-slate-900">File .env</h2>
-            <p class="mt-2 text-sm leading-relaxed text-slate-600">
-                Edit isi <code class="rounded bg-slate-100 px-1.5 py-0.5 text-sm text-slate-800">.env</code> di root aplikasi. Simpan hanya jika Anda memahami dampaknya terhadap lingkungan produksi.
+            <h2 class="text-xl font-semibold tracking-tight text-neutral-900">File .env</h2>
+            <p class="mt-2 text-sm leading-relaxed text-neutral-600">
+                Edit isi <code class="rounded bg-neutral-100 px-1.5 py-0.5 text-sm text-neutral-800">.env</code> di root aplikasi. Simpan hanya jika Anda memahami dampaknya terhadap lingkungan produksi.
             </p>
         </div>
 
@@ -66,10 +66,10 @@
 
         @if (! $envExists)
             <div
-                class="mb-6 flex gap-3 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700"
+                class="mb-6 flex gap-3 rounded-lg bg-neutral-50 px-4 py-3 text-sm text-neutral-700 shadow-border"
                 role="status"
             >
-                <i data-lucide="file-question" class="h-5 w-5 shrink-0 text-slate-500" aria-hidden="true"></i>
+                <i data-lucide="file-question" class="h-5 w-5 shrink-0 text-neutral-500" aria-hidden="true"></i>
                 <span>File .env belum ada. Menyimpan formulir akan membuat berkas baru.</span>
             </div>
         @endif
@@ -79,13 +79,13 @@
             @method('PUT')
 
             <div class="mb-3">
-                <label for="env_content" class="mb-2 block text-sm font-medium text-slate-700">Isi .env</label>
+                <label for="env_content" class="mb-2 block text-sm font-medium text-neutral-700">Isi .env</label>
                 <textarea
                     id="env_content"
                     name="env_content"
                     rows="24"
                     spellcheck="false"
-                    class="block w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2.5 font-mono text-sm leading-relaxed text-slate-900 shadow-sm outline-none ring-indigo-500 transition placeholder:text-slate-400 focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 @error('env_content') border-red-500 focus:border-red-500 focus:ring-red-500/20 @enderror"
+                    class="block w-full rounded-lg bg-neutral-50 px-3 py-2.5 font-mono text-sm leading-relaxed text-neutral-900 shadow-border outline-none ring-neutral-900 transition placeholder:text-neutral-400 focus:border-neutral-900 focus:bg-white focus:ring-2 focus:ring-neutral-900/10 @error('env_content') ring-2 ring-red-500 @enderror"
                     @if (! $envWritable) disabled @endif
                 >{{ old('env_content', $envContent) }}</textarea>
                 @error('env_content')
@@ -99,7 +99,7 @@
             <div class="flex flex-wrap items-center gap-3 mt-3">
                 <button
                     type="submit"
-                    class="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    class="inline-flex items-center gap-2 rounded-lg bg-neutral-900 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-neutral-900 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                     @if (! $envWritable) disabled @endif
                 >
                     <i data-lucide="save" class="h-4 w-4" aria-hidden="true"></i>

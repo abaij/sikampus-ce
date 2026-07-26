@@ -257,5 +257,5 @@ it('admin dengan scope prodi tidak bisa membuka detail matkul di luar scope-nya'
 });
 
 it('redirects unauthenticated users to the admin login page', function () {
-    $this->get(route('admin.akademik.matkul'))->assertRedirect(route('admin.login'));
+    $this->get(route('admin.akademik.matkul'))->assertRedirect(route('login'));
 });

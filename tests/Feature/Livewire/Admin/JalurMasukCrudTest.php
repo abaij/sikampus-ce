@@ -43,5 +43,5 @@ it('creates, updates, and deletes a jalur masuk', function () {
 });
 
 it('redirects unauthenticated users to the admin login page', function () {
-    $this->get(route('admin.jalur-masuk.index'))->assertRedirect(route('admin.login'));
+    $this->get(route('admin.jalur-masuk.index'))->assertRedirect(route('login'));
 });

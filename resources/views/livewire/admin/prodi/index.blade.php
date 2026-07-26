@@ -17,7 +17,7 @@
 @section('page_actions')
     <a
         href="{{ route('admin.prodi.create') }}"
-        class="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-700"
+        class="inline-flex items-center gap-2 rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-neutral-800"
     >
         <i data-lucide="plus" class="h-4 w-4" aria-hidden="true"></i>
         Tambah Prodi
@@ -32,15 +32,15 @@
         </div>
     @endif
 
-    <div class="rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div class="flex flex-wrap items-center gap-3 border-b border-slate-200 p-4">
+    <div class="rounded-2xl bg-white shadow-border">
+        <div class="flex flex-wrap items-center gap-3 border-b border-neutral-200 p-4">
             <div class="relative flex-1 min-w-[200px]">
-                <i data-lucide="search" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" aria-hidden="true"></i>
+                <i data-lucide="search" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" aria-hidden="true"></i>
                 <input
                     type="text"
                     wire:model.live.debounce.400ms="search"
                     placeholder="Cari nama atau kode prodi..."
-                    class="w-full rounded-lg border border-slate-300 py-2 pl-9 pr-3 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                    class="w-full rounded-lg py-2 pl-9 pr-3 text-sm outline-none focus:border-neutral-900 focus:ring-2 focus:ring-neutral-900/10 shadow-border"
                 />
             </div>
             <div class="w-56">
@@ -55,7 +55,7 @@
 
         <div class="overflow-x-auto">
             <table class="w-full text-left text-sm">
-                <thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <thead class="bg-neutral-50 text-xs font-semibold uppercase tracking-wide text-neutral-500">
                     <tr>
                         <th class="px-4 py-3">Nama</th>
                         <th class="px-4 py-3">Kode</th>
@@ -65,15 +65,15 @@
                         <th class="px-4 py-3 text-right">Aksi</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-slate-100">
+                <tbody class="divide-y divide-neutral-100">
                     @forelse ($prodiList as $prodi)
                         <tr wire:key="prodi-{{ $prodi->id }}">
-                            <td class="px-4 py-3 font-medium text-slate-900">{{ $prodi->nama }}</td>
-                            <td class="px-4 py-3 text-slate-600">{{ $prodi->kode ?? '—' }}</td>
-                            <td class="px-4 py-3 text-slate-600">{{ $prodi->fakultas?->nama ?? '—' }}</td>
-                            <td class="px-4 py-3 text-slate-600">{{ $prodi->jenjang?->nama ?? '—' }}</td>
+                            <td class="px-4 py-3 font-medium text-neutral-900">{{ $prodi->nama }}</td>
+                            <td class="px-4 py-3 text-neutral-600">{{ $prodi->kode ?? '—' }}</td>
+                            <td class="px-4 py-3 text-neutral-600">{{ $prodi->fakultas?->nama ?? '—' }}</td>
+                            <td class="px-4 py-3 text-neutral-600">{{ $prodi->jenjang?->nama ?? '—' }}</td>
                             <td class="px-4 py-3">
-                                <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {{ $prodi->status === 'inactive' ? 'bg-slate-100 text-slate-600' : 'bg-emerald-50 text-emerald-700' }}">
+                                <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {{ $prodi->status === 'inactive' ? 'bg-neutral-100 text-neutral-600' : 'bg-emerald-50 text-emerald-700' }}">
                                     {{ $prodi->status === 'inactive' ? 'Nonaktif' : 'Aktif' }}
                                 </span>
                             </td>
@@ -81,7 +81,7 @@
                                 <div class="inline-flex items-center gap-1">
                                     <a
                                         href="{{ route('admin.prodi.edit', $prodi->id) }}"
-                                        class="inline-flex items-center justify-center rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
+                                        class="inline-flex items-center justify-center rounded-lg p-2 text-neutral-500 transition hover:bg-neutral-100 hover:text-neutral-900"
                                         title="Ubah"
                                     >
                                         <i data-lucide="pencil" class="h-4 w-4" aria-hidden="true"></i>
@@ -99,28 +99,28 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" class="px-4 py-10 text-center text-slate-500">Belum ada data program studi.</td>
+                            <td colspan="6" class="px-4 py-10 text-center text-neutral-500">Belum ada data program studi.</td>
                         </tr>
                     @endforelse
                 </tbody>
             </table>
         </div>
 
-        <div class="border-t border-slate-200 p-4">
+        <div class="border-t border-neutral-200 p-4">
             {{ $prodiList->links() }}
         </div>
     </div>
 
     @if ($confirmingDeleteId)
-        <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 px-4">
-            <div class="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl">
-                <h3 class="text-base font-semibold text-slate-900">Hapus program studi?</h3>
-                <p class="mt-2 text-sm text-slate-600">Tindakan ini tidak dapat dibatalkan.</p>
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-neutral-900/40 px-4">
+            <div class="w-full max-w-sm rounded-2xl bg-white p-6 shadow-border-lg">
+                <h3 class="text-base font-semibold text-neutral-900">Hapus program studi?</h3>
+                <p class="mt-2 text-sm text-neutral-600">Tindakan ini tidak dapat dibatalkan.</p>
                 <div class="mt-6 flex justify-end gap-2">
                     <button
                         type="button"
                         wire:click="cancelDelete"
-                        class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                        class="rounded-lg px-4 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-50 shadow-border"
                     >
                         Batal
                     </button>

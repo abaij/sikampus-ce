@@ -3,6 +3,7 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -13,7 +14,7 @@ use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
+    /** @use HasFactory<UserFactory> */
     use HasApiTokens, HasFactory, HasRoles, Notifiable, SoftDeletes;
 
     /**
@@ -301,10 +302,28 @@ class User extends Authenticatable
         $allowed = $prodiIds;
 
         if (! empty($fakultasIds)) {
-            $prodiFromFakultas = \App\Models\Prodi::whereIn('id_fakultas', $fakultasIds)->pluck('id')->map(fn ($id) => (int) $id)->toArray();
+            $prodiFromFakultas = Prodi::whereIn('id_fakultas', $fakultasIds)->pluck('id')->map(fn ($id) => (int) $id)->toArray();
             $allowed = array_values(array_unique(array_merge($allowed, $prodiFromFakultas)));
         }
 
         return $allowed;
+    }
+
+    /**
+     * Nama route dashboard web (sesi Blade) yang cocok untuk user ini, dipakai oleh
+     * login gabungan di "/" untuk menentukan tujuan redirect setelah autentikasi.
+     * Null berarti akun ini tidak punya panel web yang bisa dituju.
+     */
+    public function webDashboardRouteName(): ?string
+    {
+        if ($this->hasAnyRole(['superadmin', 'akademik', 'keuangan', 'Superadmin', 'Akademik', 'Keuangan'])) {
+            return 'admin.dashboard';
+        }
+
+        return match ($this->role) {
+            'dosen' => 'dosen.dashboard',
+            'mahasiswa' => 'mahasiswa.dashboard',
+            default => null,
+        };
     }
 }

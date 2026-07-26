@@ -1,6 +1,9 @@
 <?php
 
 use App\Http\Controllers\Web\AdminWebLoginController;
+use App\Http\Controllers\Web\DosenDashboardController;
+use App\Http\Controllers\Web\LoginController;
+use App\Http\Controllers\Web\MahasiswaDashboardController;
 use App\Http\Controllers\Web\SuperadminEnvConfigController;
 use App\Http\Controllers\Web\SuperadminTestUploadController;
 use App\Http\Controllers\Web\SuperadminWebLoginController;
@@ -11,6 +14,8 @@ use App\Livewire\Admin\Fakultas\Form as FakultasForm;
 use App\Livewire\Admin\Fakultas\Index as FakultasIndex;
 use App\Livewire\Admin\JalurMasuk\Form as JalurMasukForm;
 use App\Livewire\Admin\JalurMasuk\Index as JalurMasukIndex;
+use App\Livewire\Admin\JenisDaftar\Form as JenisDaftarForm;
+use App\Livewire\Admin\JenisDaftar\Index as JenisDaftarIndex;
 use App\Livewire\Admin\Jenjang\Form as JenjangForm;
 use App\Livewire\Admin\Jenjang\Index as JenjangIndex;
 use App\Livewire\Admin\KelompokKelas\Index as KelompokKelasIndex;
@@ -20,22 +25,32 @@ use App\Livewire\Admin\Mahasiswa\Show as MahasiswaShow;
 use App\Livewire\Admin\Matkul\Form as MatkulForm;
 use App\Livewire\Admin\Matkul\Index as MatkulIndex;
 use App\Livewire\Admin\Matkul\Show as MatkulShow;
+use App\Livewire\Admin\Pengguna\Form as PenggunaForm;
+use App\Livewire\Admin\Pengguna\Index as PenggunaIndex;
+use App\Livewire\Admin\Pengguna\Show as PenggunaShow;
+use App\Livewire\Admin\PerguruanTinggi as AdminPerguruanTinggi;
+use App\Livewire\Admin\Permission\Form as PermissionForm;
+use App\Livewire\Admin\Permission\Index as PermissionIndex;
 use App\Livewire\Admin\Prodi\Form as ProdiForm;
 use App\Livewire\Admin\Prodi\Index as ProdiIndex;
+use App\Livewire\Admin\Profil as AdminProfil;
+use App\Livewire\Admin\Role\Form as RoleForm;
+use App\Livewire\Admin\Role\Index as RoleIndex;
 use App\Livewire\Admin\Semester\Form as SemesterForm;
 use App\Livewire\Admin\Semester\Index as SemesterIndex;
+use App\Livewire\Admin\StatusAkademik\Form as StatusAkademikForm;
+use App\Livewire\Admin\StatusAkademik\Index as StatusAkademikIndex;
+use App\Livewire\Dosen\Profil as DosenProfil;
+use App\Livewire\Mahasiswa\Profil as MahasiswaProfil;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function () {
-    return view('welcome');
-});
+// Login gabungan — satu pintu masuk untuk semua tipe akun (admin/akademik/keuangan, dosen,
+// mahasiswa), user dikenali lewat email atau username. Tujuan redirect ditentukan oleh
+// User::webDashboardRouteName().
+Route::get('/', [LoginController::class, 'create'])->name('login');
+Route::post('/', [LoginController::class, 'store']);
 
-Route::middleware('guest')->group(function () {
-    Route::get('/login', [SuperadminWebLoginController::class, 'create'])->name('login');
-    Route::post('/login', [SuperadminWebLoginController::class, 'store']);
-});
-
-Route::post('/logout', [SuperadminWebLoginController::class, 'destroy'])
+Route::post('/logout', [LoginController::class, 'destroy'])
     ->middleware('auth')
     ->name('logout');
 
@@ -51,13 +66,21 @@ Route::middleware(['auth', 'superadmin.web'])->group(function (): void {
     Route::post('/test-upload', [SuperadminTestUploadController::class, 'store'])->name('superadmin.test-upload.store');
 });
 
-// Panel admin (Livewire) — superadmin/akademik/keuangan, terpisah dari login superadmin di atas.
-Route::prefix('admin')->name('admin.')->group(function (): void {
-    Route::middleware('guest')->group(function (): void {
-        Route::get('/login', [AdminWebLoginController::class, 'create'])->name('login');
-        Route::post('/login', [AdminWebLoginController::class, 'store']);
-    });
+// Dashboard dosen — placeholder, modulnya menyusul.
+Route::middleware(['auth', 'role.dosen.web'])->group(function (): void {
+    Route::get('/dosen/dashboard', [DosenDashboardController::class, 'index'])->name('dosen.dashboard');
+    Route::livewire('/dosen/profil', DosenProfil::class)->name('dosen.profil');
+});
 
+// Dashboard mahasiswa — placeholder, modulnya menyusul.
+Route::middleware(['auth', 'role.mahasiswa.web'])->group(function (): void {
+    Route::get('/mahasiswa/dashboard', [MahasiswaDashboardController::class, 'index'])->name('mahasiswa.dashboard');
+    Route::livewire('/mahasiswa/profil', MahasiswaProfil::class)->name('mahasiswa.profil');
+});
+
+// Panel admin (Livewire) — superadmin/akademik/keuangan. Login-nya sendiri sudah disatukan
+// di atas; grup ini menyisakan logout dan halaman-halaman panel.
+Route::prefix('admin')->name('admin.')->group(function (): void {
     Route::post('/logout', [AdminWebLoginController::class, 'destroy'])
         ->middleware('auth')
         ->name('logout');
@@ -98,6 +121,8 @@ Route::prefix('admin')->name('admin.')->group(function (): void {
         Route::livewire('prodi/create', ProdiForm::class)->name('prodi.create');
         Route::livewire('prodi/{id}/edit', ProdiForm::class)->name('prodi.edit');
 
+        Route::livewire('perguruan-tinggi', AdminPerguruanTinggi::class)->name('perguruan-tinggi');
+
         Route::livewire('jenjang', JenjangIndex::class)->name('jenjang.index');
         Route::livewire('jenjang/create', JenjangForm::class)->name('jenjang.create');
         Route::livewire('jenjang/{id}/edit', JenjangForm::class)->name('jenjang.edit');
@@ -109,5 +134,31 @@ Route::prefix('admin')->name('admin.')->group(function (): void {
         Route::livewire('semester', SemesterIndex::class)->name('semester.index');
         Route::livewire('semester/create', SemesterForm::class)->name('semester.create');
         Route::livewire('semester/{id}/edit', SemesterForm::class)->name('semester.edit');
+
+        Route::livewire('jenis-daftar', JenisDaftarIndex::class)->name('jenis-daftar.index');
+        Route::livewire('jenis-daftar/create', JenisDaftarForm::class)->name('jenis-daftar.create');
+        Route::livewire('jenis-daftar/{id}/edit', JenisDaftarForm::class)->name('jenis-daftar.edit');
+
+        Route::livewire('status-akademik', StatusAkademikIndex::class)->name('status-akademik.index');
+        Route::livewire('status-akademik/create', StatusAkademikForm::class)->name('status-akademik.create');
+        Route::livewire('status-akademik/{id}/edit', StatusAkademikForm::class)->name('status-akademik.edit');
+
+        // Menu Pengguna — rute literal (create/role/permission) harus didaftarkan sebelum
+        // 'pengguna/{id}' supaya tidak tertangkap sebagai id (lihat catatan di skill siak-livewire-module).
+        Route::livewire('pengguna', PenggunaIndex::class)->name('pengguna.index');
+        Route::livewire('pengguna/create', PenggunaForm::class)->name('pengguna.create');
+
+        Route::livewire('pengguna/role', RoleIndex::class)->name('pengguna.role.index');
+        Route::livewire('pengguna/role/create', RoleForm::class)->name('pengguna.role.create');
+        Route::livewire('pengguna/role/{id}/edit', RoleForm::class)->name('pengguna.role.edit');
+
+        Route::livewire('pengguna/permission', PermissionIndex::class)->name('pengguna.permission.index');
+        Route::livewire('pengguna/permission/create', PermissionForm::class)->name('pengguna.permission.create');
+        Route::livewire('pengguna/permission/{id}/edit', PermissionForm::class)->name('pengguna.permission.edit');
+
+        Route::livewire('pengguna/{id}/edit', PenggunaForm::class)->name('pengguna.edit');
+        Route::livewire('pengguna/{id}', PenggunaShow::class)->name('pengguna.show');
+
+        Route::livewire('profil', AdminProfil::class)->name('profil');
     });
 });

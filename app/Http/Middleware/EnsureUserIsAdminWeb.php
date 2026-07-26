@@ -23,7 +23,7 @@ class EnsureUserIsAdminWeb
         $user = $request->user();
 
         if (! $user instanceof User) {
-            return redirect()->route('admin.login');
+            return redirect()->route('login');
         }
 
         $hasAdminRole = $user->hasAnyRole(['superadmin', 'akademik', 'keuangan', 'Superadmin', 'Akademik', 'Keuangan']);

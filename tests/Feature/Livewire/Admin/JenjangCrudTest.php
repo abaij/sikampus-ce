@@ -41,5 +41,5 @@ it('creates, updates, and deletes a jenjang', function () {
 });
 
 it('redirects unauthenticated users to the admin login page', function () {
-    $this->get(route('admin.jenjang.index'))->assertRedirect(route('admin.login'));
+    $this->get(route('admin.jenjang.index'))->assertRedirect(route('login'));
 });

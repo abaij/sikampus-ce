@@ -1,8 +1,21 @@
 <?php
 
+use App\Http\Middleware\EnsurePartnerApiKey;
+use App\Http\Middleware\EnsureUserHasKeuanganAccess;
+use App\Http\Middleware\EnsureUserIsAdmin;
+use App\Http\Middleware\EnsureUserIsAdminProdi;
+use App\Http\Middleware\EnsureUserIsAdminWeb;
+use App\Http\Middleware\EnsureUserIsDosen;
+use App\Http\Middleware\EnsureUserIsDosenWeb;
+use App\Http\Middleware\EnsureUserIsMahasiswa;
+use App\Http\Middleware\EnsureUserIsMahasiswaWeb;
+use App\Http\Middleware\EnsureUserIsSuperadmin;
+use App\Http\Middleware\EnsureUserIsSuperadminWeb;
+use Illuminate\Auth\Middleware\RedirectIfAuthenticated;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Middleware\HandleCors;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -20,10 +33,6 @@ return Application::configure(basePath: dirname(__DIR__))
                 return null;
             }
 
-            if ($request->is('admin/*')) {
-                return route('admin.login');
-            }
-
             return route('login');
         });
 
@@ -38,26 +47,28 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // Aktifkan CORS middleware untuk API routes
         $middleware->api(prepend: [
-            \Illuminate\Http\Middleware\HandleCors::class,
+            HandleCors::class,
         ]);
 
         // Aktifkan CORS middleware untuk web routes juga (untuk preflight requests)
         $middleware->web(append: [
-            \Illuminate\Http\Middleware\HandleCors::class,
+            HandleCors::class,
         ]);
 
         // Daftarkan alias untuk middleware role-based
         $middleware->alias([
-            'guest' => \Illuminate\Auth\Middleware\RedirectIfAuthenticated::class,
-            'role.admin' => \App\Http\Middleware\EnsureUserIsAdmin::class,
-            'role.admin.web' => \App\Http\Middleware\EnsureUserIsAdminWeb::class,
-            'role.superadmin' => \App\Http\Middleware\EnsureUserIsSuperadmin::class,
-            'role.admin.keuangan' => \App\Http\Middleware\EnsureUserHasKeuanganAccess::class,
-            'role.admin.prodi' => \App\Http\Middleware\EnsureUserIsAdminProdi::class,
-            'role.mahasiswa' => \App\Http\Middleware\EnsureUserIsMahasiswa::class,
-            'role.dosen' => \App\Http\Middleware\EnsureUserIsDosen::class,
-            'partner.api.key' => \App\Http\Middleware\EnsurePartnerApiKey::class,
-            'superadmin.web' => \App\Http\Middleware\EnsureUserIsSuperadminWeb::class,
+            'guest' => RedirectIfAuthenticated::class,
+            'role.admin' => EnsureUserIsAdmin::class,
+            'role.admin.web' => EnsureUserIsAdminWeb::class,
+            'role.superadmin' => EnsureUserIsSuperadmin::class,
+            'role.admin.keuangan' => EnsureUserHasKeuanganAccess::class,
+            'role.admin.prodi' => EnsureUserIsAdminProdi::class,
+            'role.mahasiswa' => EnsureUserIsMahasiswa::class,
+            'role.dosen' => EnsureUserIsDosen::class,
+            'role.mahasiswa.web' => EnsureUserIsMahasiswaWeb::class,
+            'role.dosen.web' => EnsureUserIsDosenWeb::class,
+            'partner.api.key' => EnsurePartnerApiKey::class,
+            'superadmin.web' => EnsureUserIsSuperadminWeb::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

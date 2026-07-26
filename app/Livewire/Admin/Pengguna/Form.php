@@ -1,0 +1,297 @@
+<?php
+
+namespace App\Livewire\Admin\Pengguna;
+
+use App\Models\Dosen;
+use App\Models\Mahasiswa;
+use App\Models\User;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
+use Livewire\Attributes\Computed;
+use Livewire\Component;
+
+class Form extends Component
+{
+    public ?int $penggunaId = null;
+
+    public string $name = '';
+
+    public string $email = '';
+
+    public string $password = '';
+
+    public ?string $role = null;
+
+    public string $status = 'active';
+
+    public string $phone = '';
+
+    public string $address = '';
+
+    public string $city = '';
+
+    public string $state = '';
+
+    public string $zip = '';
+
+    public string $country = '';
+
+    // Hanya dipakai saat create — lihat catatan di UserController::store soal role mahasiswa/dosen.
+    public ?int $id_mahasiswa = null;
+
+    public ?int $id_dosen = null;
+
+    public string $mahasiswaSearch = '';
+
+    public function mount(?int $id = null): void
+    {
+        $this->penggunaId = $id;
+
+        if ($id === null) {
+            return;
+        }
+
+        $pengguna = User::findOrFail($id);
+
+        $this->name = $pengguna->name;
+        $this->email = $pengguna->email;
+        $this->role = $pengguna->role;
+        $this->status = $pengguna->status ?? 'active';
+        $this->phone = (string) $pengguna->phone;
+        $this->address = (string) $pengguna->address;
+        $this->city = (string) $pengguna->city;
+        $this->state = (string) $pengguna->state;
+        $this->zip = (string) $pengguna->zip;
+        $this->country = (string) $pengguna->country;
+    }
+
+    public function updatedRole(): void
+    {
+        $this->id_mahasiswa = null;
+        $this->id_dosen = null;
+        $this->mahasiswaSearch = '';
+    }
+
+    #[Computed]
+    public function mahasiswaResults()
+    {
+        if ($this->mahasiswaSearch === '') {
+            return collect();
+        }
+
+        return Mahasiswa::query()
+            ->whereNull('id_user')
+            ->where(function ($q) {
+                $q->where('nama', 'like', "%{$this->mahasiswaSearch}%")
+                    ->orWhere('nim', 'like', "%{$this->mahasiswaSearch}%");
+            })
+            ->orderBy('nama')
+            ->limit(20)
+            ->get(['id', 'nama', 'nim']);
+    }
+
+    #[Computed]
+    public function selectedMahasiswa(): ?Mahasiswa
+    {
+        return $this->id_mahasiswa ? Mahasiswa::find($this->id_mahasiswa) : null;
+    }
+
+    #[Computed]
+    public function dosenOptions()
+    {
+        return Dosen::whereNull('id_user')->orderBy('nama')->get(['id', 'nama', 'kode_dosen']);
+    }
+
+    public function selectMahasiswa(int $id): void
+    {
+        $mahasiswa = Mahasiswa::whereNull('id_user')->findOrFail($id);
+
+        $this->id_mahasiswa = $mahasiswa->id;
+        $this->mahasiswaSearch = '';
+        $this->name = $mahasiswa->nama ?: $this->name;
+        $this->email = $mahasiswa->email ?: $this->email;
+        $this->phone = $mahasiswa->handphone ?: $this->phone;
+        $this->address = $mahasiswa->alamat ?: $this->address;
+        $this->zip = $mahasiswa->kode_pos ?: $this->zip;
+    }
+
+    public function clearMahasiswa(): void
+    {
+        $this->id_mahasiswa = null;
+    }
+
+    public function updatedIdDosen(): void
+    {
+        if (! $this->id_dosen) {
+            return;
+        }
+
+        $dosen = Dosen::whereNull('id_user')->find($this->id_dosen);
+
+        if (! $dosen) {
+            return;
+        }
+
+        $this->name = $dosen->nama ?: $this->name;
+        $this->email = $dosen->email ?: $this->email;
+        $this->phone = $dosen->no_hp ?: $this->phone;
+        $this->address = $dosen->alamat ?: $this->address;
+        $this->zip = $dosen->kode_pos ?: $this->zip;
+    }
+
+    /**
+     * Rule sama persis dengan UserController::store/update.
+     */
+    protected function rules(): array
+    {
+        $uniqueEmail = Rule::unique('users', 'email');
+
+        if ($this->penggunaId) {
+            $uniqueEmail = $uniqueEmail->ignore($this->penggunaId);
+        }
+
+        $rules = [
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'string', 'email', 'max:255', $uniqueEmail],
+            'role' => ['required', 'string', Rule::in(['admin', 'dosen', 'mahasiswa'])],
+            'status' => ['nullable', 'string', Rule::in(['active', 'inactive'])],
+            'phone' => ['nullable', 'string', 'max:50'],
+            'address' => ['nullable', 'string'],
+            'city' => ['nullable', 'string', 'max:100'],
+            'state' => ['nullable', 'string', 'max:100'],
+            'zip' => ['nullable', 'string', 'max:20'],
+            'country' => ['nullable', 'string', 'max:100'],
+        ];
+
+        if ($this->penggunaId) {
+            $rules['password'] = ['nullable', 'string', 'min:8'];
+
+            return $rules;
+        }
+
+        $rules['password'] = ['required', 'string', 'min:8'];
+        $rules['id_mahasiswa'] = ['nullable', 'integer', 'exists:mahasiswa,id'];
+        $rules['id_dosen'] = ['nullable', 'integer', 'exists:dosen,id'];
+
+        return $rules;
+    }
+
+    public function save()
+    {
+        $validated = $this->validate();
+
+        foreach (['phone', 'address', 'city', 'state', 'zip', 'country'] as $field) {
+            if ($validated[$field] === '') {
+                $validated[$field] = null;
+            }
+        }
+
+        if ($this->penggunaId) {
+            if (empty($validated['password'])) {
+                unset($validated['password']);
+            } else {
+                $validated['password'] = Hash::make($validated['password']);
+            }
+
+            unset($validated['id_mahasiswa'], $validated['id_dosen']);
+
+            User::findOrFail($this->penggunaId)->update($validated);
+
+            session()->flash('status', 'Data pengguna berhasil diperbarui.');
+
+            return redirect()->route('admin.pengguna.show', $this->penggunaId);
+        }
+
+        if ($validated['role'] === 'mahasiswa' && ! $this->id_mahasiswa) {
+            $this->addError('id_mahasiswa', 'Pilih mahasiswa terlebih dahulu.');
+
+            return;
+        }
+
+        if ($validated['role'] === 'dosen' && ! $this->id_dosen) {
+            $this->addError('id_dosen', 'Pilih dosen terlebih dahulu.');
+
+            return;
+        }
+
+        if ($this->id_mahasiswa) {
+            $mahasiswa = Mahasiswa::find($this->id_mahasiswa);
+            if (! $mahasiswa || $mahasiswa->id_user) {
+                $this->addError('id_mahasiswa', 'Mahasiswa ini sudah memiliki user.');
+
+                return;
+            }
+
+            if ($validated['role'] === 'mahasiswa') {
+                if (! $mahasiswa->nim) {
+                    $this->addError('id_mahasiswa', 'NIM mahasiswa tidak ditemukan, username tidak dapat dibuat.');
+
+                    return;
+                }
+                if (User::where('username', $mahasiswa->nim)->exists()) {
+                    $this->addError('id_mahasiswa', 'Username dari NIM mahasiswa sudah digunakan.');
+
+                    return;
+                }
+                $validated['username'] = $mahasiswa->nim;
+            }
+        }
+
+        if ($this->id_dosen) {
+            $dosen = Dosen::find($this->id_dosen);
+            if (! $dosen || $dosen->id_user) {
+                $this->addError('id_dosen', 'Dosen ini sudah memiliki user.');
+
+                return;
+            }
+
+            if ($validated['role'] === 'dosen') {
+                if (! $dosen->kode_dosen) {
+                    $this->addError('id_dosen', 'Kode dosen tidak ditemukan, username tidak dapat dibuat.');
+
+                    return;
+                }
+                if (User::where('username', $dosen->kode_dosen)->exists()) {
+                    $this->addError('id_dosen', 'Username dari kode dosen sudah digunakan.');
+
+                    return;
+                }
+                $validated['username'] = $dosen->kode_dosen;
+            }
+        }
+
+        $validated['password'] = Hash::make($validated['password']);
+        $validated['status'] = $validated['status'] ?? 'active';
+        $validated['email_verified_at'] = now();
+        unset($validated['id_mahasiswa'], $validated['id_dosen']);
+
+        DB::beginTransaction();
+        try {
+            $pengguna = User::create($validated);
+
+            if ($validated['role'] === 'mahasiswa' && $this->id_mahasiswa) {
+                Mahasiswa::find($this->id_mahasiswa)?->update(['id_user' => $pengguna->id]);
+            }
+
+            if ($validated['role'] === 'dosen' && $this->id_dosen) {
+                Dosen::find($this->id_dosen)?->update(['id_user' => $pengguna->id]);
+            }
+
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            throw $e;
+        }
+
+        session()->flash('status', 'Data pengguna berhasil dibuat.');
+
+        return redirect()->route('admin.pengguna.show', $pengguna->id);
+    }
+
+    public function render()
+    {
+        // ->extends() (bukan #[Layout] attribute) — lihat catatan di App\Livewire\Admin\Fakultas\Index::render()
+        return view('livewire.admin.pengguna.form')->extends('layouts.web');
+    }
+}

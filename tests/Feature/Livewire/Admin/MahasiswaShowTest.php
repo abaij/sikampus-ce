@@ -87,5 +87,5 @@ it('redirects unauthenticated users to the admin login page', function () {
     $mahasiswa = Mahasiswa::factory()->create();
 
     $this->get(route('admin.administrasi.mahasiswa.show', $mahasiswa->id))
-        ->assertRedirect(route('admin.login'));
+        ->assertRedirect(route('login'));
 });

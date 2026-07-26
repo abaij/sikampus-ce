@@ -42,5 +42,5 @@ it('deletes a dosen after confirmation', function () {
 
 it('redirects unauthenticated users to the admin login page', function () {
     $this->get(route('admin.administrasi.dosen'))
-        ->assertRedirect(route('admin.login'));
+        ->assertRedirect(route('login'));
 });

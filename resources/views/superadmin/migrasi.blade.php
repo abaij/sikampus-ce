@@ -11,7 +11,7 @@
         @csrf
         <button
             type="submit"
-            class="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+            class="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-medium text-neutral-700 shadow-border transition hover:bg-neutral-50 focus:outline-none focus:ring-2 focus:ring-neutral-900 focus:ring-offset-2"
         >
             <i data-lucide="log-out" class="h-4 w-4" aria-hidden="true"></i>
             Keluar
@@ -20,9 +20,9 @@
 @endsection
 
 @section('content')
-    <div class="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
-        <h2 class="text-xl font-semibold text-slate-900">Migrasi</h2>
-        <p class="mt-2 text-sm leading-relaxed text-slate-600">
+    <div class="rounded-2xl bg-white p-8 shadow-border">
+        <h2 class="text-xl font-semibold tracking-tight text-neutral-900">Migrasi</h2>
+        <p class="mt-2 text-sm leading-relaxed text-neutral-600">
             Halaman ini dapat Anda isi dengan alat atau daftar migrasi. Sementara belum ada konten.
         </p>
     </div>

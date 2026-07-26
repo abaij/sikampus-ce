@@ -17,7 +17,7 @@
 @section('page_actions')
     <a
         href="{{ route('admin.semester.create') }}"
-        class="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-700"
+        class="inline-flex items-center gap-2 rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-neutral-800"
     >
         <i data-lucide="plus" class="h-4 w-4" aria-hidden="true"></i>
         Tambah Semester
@@ -32,22 +32,22 @@
         </div>
     @endif
 
-    <div class="rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div class="flex flex-wrap items-center gap-3 border-b border-slate-200 p-4">
+    <div class="rounded-2xl bg-white shadow-border">
+        <div class="flex flex-wrap items-center gap-3 border-b border-neutral-200 p-4">
             <div class="relative flex-1 min-w-[200px]">
-                <i data-lucide="search" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" aria-hidden="true"></i>
+                <i data-lucide="search" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" aria-hidden="true"></i>
                 <input
                     type="text"
                     wire:model.live.debounce.400ms="search"
                     placeholder="Cari kode atau nama semester..."
-                    class="w-full rounded-lg border border-slate-300 py-2 pl-9 pr-3 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                    class="w-full rounded-lg py-2 pl-9 pr-3 text-sm outline-none focus:border-neutral-900 focus:ring-2 focus:ring-neutral-900/10 shadow-border"
                 />
             </div>
         </div>
 
         <div class="overflow-x-auto">
             <table class="w-full text-left text-sm">
-                <thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <thead class="bg-neutral-50 text-xs font-semibold uppercase tracking-wide text-neutral-500">
                     <tr>
                         <th class="px-4 py-3">Kode</th>
                         <th class="px-4 py-3">Nama</th>
@@ -56,19 +56,19 @@
                         <th class="px-4 py-3 text-right">Aksi</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-slate-100">
+                <tbody class="divide-y divide-neutral-100">
                     @forelse ($semesterList as $semester)
                         <tr wire:key="semester-{{ $semester->id }}">
-                            <td class="px-4 py-3 font-mono font-medium text-slate-900">{{ $semester->kode }}</td>
-                            <td class="px-4 py-3 font-medium text-slate-900">{{ $semester->nama }}</td>
+                            <td class="px-4 py-3 font-mono font-medium text-neutral-900">{{ $semester->kode }}</td>
+                            <td class="px-4 py-3 font-medium text-neutral-900">{{ $semester->nama }}</td>
                             <td class="px-4 py-3">
                                 @if ($semester->is_active)
                                     <span class="inline-flex rounded-full bg-emerald-100 px-2 py-1 text-xs font-semibold text-emerald-700">Aktif</span>
                                 @else
-                                    <span class="inline-flex rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-700">Tidak Aktif</span>
+                                    <span class="inline-flex rounded-full bg-neutral-100 px-2 py-1 text-xs font-semibold text-neutral-700">Tidak Aktif</span>
                                 @endif
                             </td>
-                            <td class="px-4 py-3 text-slate-600">
+                            <td class="px-4 py-3 text-neutral-600">
                                 {{ $semester->tanggal_mulai?->translatedFormat('j M Y') ?? '-' }}
                                 &ndash;
                                 {{ $semester->tanggal_selesai?->translatedFormat('j M Y') ?? '-' }}
@@ -77,7 +77,7 @@
                                 <div class="inline-flex items-center gap-1">
                                     <a
                                         href="{{ route('admin.semester.edit', $semester->id) }}"
-                                        class="inline-flex items-center justify-center rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
+                                        class="inline-flex items-center justify-center rounded-lg p-2 text-neutral-500 transition hover:bg-neutral-100 hover:text-neutral-900"
                                         title="Ubah"
                                     >
                                         <i data-lucide="pencil" class="h-4 w-4" aria-hidden="true"></i>
@@ -95,28 +95,28 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="5" class="px-4 py-10 text-center text-slate-500">Belum ada data semester.</td>
+                            <td colspan="5" class="px-4 py-10 text-center text-neutral-500">Belum ada data semester.</td>
                         </tr>
                     @endforelse
                 </tbody>
             </table>
         </div>
 
-        <div class="border-t border-slate-200 p-4">
+        <div class="border-t border-neutral-200 p-4">
             {{ $semesterList->links() }}
         </div>
     </div>
 
     @if ($confirmingDeleteId)
-        <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 px-4">
-            <div class="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl">
-                <h3 class="text-base font-semibold text-slate-900">Hapus semester?</h3>
-                <p class="mt-2 text-sm text-slate-600">Tindakan ini tidak dapat dibatalkan.</p>
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-neutral-900/40 px-4">
+            <div class="w-full max-w-sm rounded-2xl bg-white p-6 shadow-border-lg">
+                <h3 class="text-base font-semibold text-neutral-900">Hapus semester?</h3>
+                <p class="mt-2 text-sm text-neutral-600">Tindakan ini tidak dapat dibatalkan.</p>
                 <div class="mt-6 flex justify-end gap-2">
                     <button
                         type="button"
                         wire:click="cancelDelete"
-                        class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                        class="rounded-lg px-4 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-50 shadow-border"
                     >
                         Batal
                     </button>

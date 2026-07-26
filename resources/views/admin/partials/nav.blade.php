@@ -17,17 +17,26 @@
                     ['route' => 'admin.administrasi.mahasiswa', 'label' => 'Mahasiswa'],
                     ['route' => 'admin.administrasi.kelas-mahasiswa', 'label' => 'Kelas Mahasiswa'],
                 ]],
-                //['route' => 'admin.administrasi.ruangan', 'label' => 'Ruangan'],
+                ['label' => 'Institusi', 'children' => [
+                    ['route' => 'admin.fakultas.index', 'label' => 'Fakultas'],
+                    ['route' => 'admin.prodi.index', 'label' => 'Prodi'],
+                    ['route' => 'admin.perguruan-tinggi', 'label' => 'Perguruan Tinggi'],
+                ]],
+                ['route' => 'admin.jenjang.index', 'label' => 'Jenjang'],
             ],
         ],
         [
             'label' => 'Pengaturan',
             'items' => [
-                ['route' => 'admin.fakultas.index', 'label' => 'Fakultas'],
-                ['route' => 'admin.prodi.index', 'label' => 'Prodi'],
-                ['route' => 'admin.jenjang.index', 'label' => 'Jenjang'],
                 ['route' => 'admin.jalur-masuk.index', 'label' => 'Jalur Masuk'],
                 ['route' => 'admin.semester.index', 'label' => 'Semester'],
+                ['route' => 'admin.jenis-daftar.index', 'label' => 'Jenis Daftar'],
+                ['route' => 'admin.status-akademik.index', 'label' => 'Status Akademik'],
+                ['label' => 'Pengguna', 'children' => [
+                    ['route' => 'admin.pengguna.index', 'label' => 'Pengguna'],
+                    ['route' => 'admin.pengguna.role.index', 'label' => 'Role'],
+                    ['route' => 'admin.pengguna.permission.index', 'label' => 'Permission'],
+                ]],
             ],
         ],
     ];
@@ -44,7 +53,7 @@
 
 <a
     href="{{ route('admin.dashboard') }}"
-    class="inline-flex items-center rounded-lg px-3 py-2 text-sm font-medium transition {{ request()->routeIs('admin.dashboard') ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900' }}"
+    class="inline-flex items-center rounded-lg px-3 py-2 text-sm font-medium transition {{ request()->routeIs('admin.dashboard') ? 'bg-neutral-100 text-neutral-800' : 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900' }}"
 >
     Dashboard
 </a>
@@ -61,30 +70,30 @@
     <div class="group/l1 relative">
         <button
             type="button"
-            class="inline-flex items-center gap-1 rounded-lg px-3 py-2 text-sm font-medium transition {{ $groupActive ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900' }}"
+            class="inline-flex items-center gap-1 rounded-lg px-3 py-2 text-sm font-medium transition {{ $groupActive ? 'bg-neutral-100 text-neutral-800' : 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900' }}"
         >
             {{ $group['label'] }}
             <i data-lucide="chevron-down" class="h-3.5 w-3.5" aria-hidden="true"></i>
         </button>
         <div class="invisible absolute left-0 top-full z-20 w-52 pt-1 opacity-0 transition-opacity duration-100 group-hover/l1:visible group-hover/l1:opacity-100">
-            <div class="rounded-lg border border-slate-200 bg-white py-1 shadow-lg">
+            <div class="rounded-lg bg-white py-1 shadow-border-lg">
                 @foreach ($group['items'] as $item)
                     @if (isset($item['children']))
                         @php $itemActive = $isItemActive($item); @endphp
                         <div class="group/l2 relative">
                             <button
                                 type="button"
-                                class="flex w-full items-center justify-between px-3 py-2 text-left text-sm transition {{ $itemActive ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900' }}"
+                                class="flex w-full items-center justify-between px-3 py-2 text-left text-sm transition {{ $itemActive ? 'bg-neutral-100 text-neutral-800' : 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900' }}"
                             >
                                 {{ $item['label'] }}
                                 <i data-lucide="chevron-right" class="h-3.5 w-3.5" aria-hidden="true"></i>
                             </button>
                             <div class="invisible absolute left-full top-0 z-30 w-52 pl-1 opacity-0 transition-opacity duration-100 group-hover/l2:visible group-hover/l2:opacity-100">
-                                <div class="rounded-lg border border-slate-200 bg-white py-1 shadow-lg">
+                                <div class="rounded-lg bg-white py-1 shadow-border-lg">
                                     @foreach ($item['children'] as $child)
                                         <a
                                             href="{{ route($child['route']) }}"
-                                            class="block px-3 py-2 text-sm transition {{ request()->routeIs($child['route'].'*') ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900' }}"
+                                            class="block px-3 py-2 text-sm transition {{ request()->routeIs($child['route'].'*') ? 'bg-neutral-100 text-neutral-800' : 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900' }}"
                                         >
                                             {{ $child['label'] }}
                                         </a>
@@ -95,7 +104,7 @@
                     @else
                         <a
                             href="{{ route($item['route']) }}"
-                            class="block px-3 py-2 text-sm transition {{ request()->routeIs($item['route'].'*') ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900' }}"
+                            class="block px-3 py-2 text-sm transition {{ request()->routeIs($item['route'].'*') ? 'bg-neutral-100 text-neutral-800' : 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900' }}"
                         >
                             {{ $item['label'] }}
                         </a>

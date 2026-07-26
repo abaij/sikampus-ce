@@ -58,5 +58,5 @@ it('deactivates the previously active semester when a new one is marked active',
 });
 
 it('redirects unauthenticated users to the admin login page', function () {
-    $this->get(route('admin.semester.index'))->assertRedirect(route('admin.login'));
+    $this->get(route('admin.semester.index'))->assertRedirect(route('login'));
 });

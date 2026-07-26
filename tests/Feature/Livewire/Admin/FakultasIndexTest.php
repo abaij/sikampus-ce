@@ -72,7 +72,7 @@ it('admin dengan scope fakultas tidak bisa menghapus fakultas di luar scope-nya'
 
 it('redirects unauthenticated users to the admin login page', function () {
     $this->get(route('admin.fakultas.index'))
-        ->assertRedirect(route('admin.login'));
+        ->assertRedirect(route('login'));
 });
 
 it('shows a 403 page for an authenticated user without an admin role', function () {

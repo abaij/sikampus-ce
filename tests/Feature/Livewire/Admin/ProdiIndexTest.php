@@ -74,5 +74,5 @@ it('admin dengan scope prodi tidak bisa menghapus prodi di luar scope-nya', func
 
 it('redirects unauthenticated users to the admin login page', function () {
     $this->get(route('admin.prodi.index'))
-        ->assertRedirect(route('admin.login'));
+        ->assertRedirect(route('login'));
 });
