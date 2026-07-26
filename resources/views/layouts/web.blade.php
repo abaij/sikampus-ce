@@ -227,8 +227,12 @@
     // Baris baru yang muncul lewat update AJAX (mis. klik pagination, search reaktif)
     // tidak pernah ter-render jadi ikon sampai halaman di-refresh manual — perbaiki
     // dengan menjalankan ulang createIcons() setiap kali Livewire selesai morph DOM.
+    // morph.updated saja tidak cukup: elemen yang sama sekali baru (mis. modal yang baru
+    // pertama kali muncul karena suatu properti berubah dari null) memicu morph.added,
+    // bukan morph.updated — tanpa hook ini ikonnya baru muncul di render berikutnya.
     document.addEventListener('livewire:init', function () {
         Livewire.hook('morph.updated', renderLucideIcons);
+        Livewire.hook('morph.added', renderLucideIcons);
     });
 
     document.addEventListener('livewire:navigated', renderLucideIcons);
