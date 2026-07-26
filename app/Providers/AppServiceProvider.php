@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Models\Semester;
 use App\Models\Setting;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Support\Facades\View;
@@ -48,6 +49,14 @@ class AppServiceProvider extends ServiceProvider
             }
 
             $view->with(compact('namaPerguruanTinggi', 'logoPerguruanTinggiSrc'));
+        });
+
+        // Hanya untuk navbar panel (layouts.web), bukan halaman login — semester aktif tidak relevan
+        // sebelum user masuk.
+        View::composer('layouts.web', function ($view): void {
+            $semesterAktif = Semester::where('is_active', true)->whereNull('deleted_at')->value('nama');
+
+            $view->with('semesterAktif', $semesterAktif);
         });
     }
 }

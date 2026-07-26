@@ -55,7 +55,7 @@
 @endphp
 @hasSection('header_title')
 <div class="min-h-screen">
-    <header class="border-b border-neutral-200 bg-white shadow-sm">
+    <header class="print:hidden border-b border-neutral-200 bg-white shadow-sm">
         <div class="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-x-4 gap-y-3 px-4 py-4 sm:px-6">
             <a
                 href="{{ route($dashboardRouteName) }}"
@@ -73,9 +73,14 @@
                         <i data-lucide="graduation-cap" class="h-5 w-5" aria-hidden="true"></i>
                     </div>
                 @endif
-                <span class="truncate text-sm font-semibold tracking-tight text-neutral-900">
-                    {{ $namaPerguruanTinggi !== '' ? $namaPerguruanTinggi : 'Sikampus' }}
-                </span>
+                <div class="min-w-0">
+                    <span class="block truncate text-sm font-semibold tracking-tight text-neutral-900">
+                        {{ $namaPerguruanTinggi !== '' ? $namaPerguruanTinggi : 'Sikampus' }}
+                    </span>
+                    @if ($semesterAktif)
+                        <span class="block truncate text-xs text-neutral-500">{{ $semesterAktif }}</span>
+                    @endif
+                </div>
             </a>
             <nav class="flex flex-wrap items-center gap-1 sm:gap-2" aria-label="Utama">
                 @if (request()->routeIs('dosen.*') || request()->routeIs('mahasiswa.*'))
@@ -207,7 +212,7 @@
 @yield('content')
 @endif
 
-<footer class="border-t border-neutral-100 px-4 py-6 text-center text-xs text-neutral-500 sm:px-6">
+<footer class="print:hidden border-t border-neutral-100 px-4 py-6 text-center text-xs text-neutral-500 sm:px-6">
     &copy; {{ date('Y') }} {{ config('app.name') }}
     @if ($namaPerguruanTinggi)
         &middot; {{ $namaPerguruanTinggi }}

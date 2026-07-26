@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Web\AdminWebLoginController;
 use App\Http\Controllers\Web\DosenDashboardController;
+use App\Http\Controllers\Web\KrsCetakController;
 use App\Http\Controllers\Web\LoginController;
 use App\Http\Controllers\Web\MahasiswaDashboardController;
 use App\Http\Controllers\Web\SuperadminEnvConfigController;
@@ -21,6 +22,9 @@ use App\Livewire\Admin\JenisPenilaian\Index as JenisPenilaianIndex;
 use App\Livewire\Admin\Jenjang\Form as JenjangForm;
 use App\Livewire\Admin\Jenjang\Index as JenjangIndex;
 use App\Livewire\Admin\KelompokKelas\Index as KelompokKelasIndex;
+use App\Livewire\Admin\Krs\Form as KrsForm;
+use App\Livewire\Admin\Krs\Index as KrsIndex;
+use App\Livewire\Admin\Krs\Show as KrsShow;
 use App\Livewire\Admin\Kurikulum\Form as KurikulumForm;
 use App\Livewire\Admin\Kurikulum\Index as KurikulumIndex;
 use App\Livewire\Admin\Kurikulum\Show as KurikulumShow;
@@ -110,8 +114,13 @@ Route::prefix('admin')->name('admin.')->group(function (): void {
         Route::livewire('akademik/kurikulum/{id}/edit', KurikulumForm::class)->name('akademik.kurikulum.edit');
         Route::livewire('akademik/kurikulum/{id}', KurikulumShow::class)->name('akademik.kurikulum.show');
 
+        Route::livewire('akademik/krs', KrsIndex::class)->name('akademik.krs');
+        Route::livewire('akademik/krs/create', KrsForm::class)->name('akademik.krs.create');
+        Route::livewire('akademik/krs/{id}/edit', KrsForm::class)->name('akademik.krs.edit');
+        Route::get('akademik/krs/{id}/cetak', [KrsCetakController::class, 'show'])->name('akademik.krs.cetak');
+        Route::livewire('akademik/krs/{id}', KrsShow::class)->name('akademik.krs.show');
+
         // Menu Akademik — link dummy dulu, modulnya menyusul.
-        Route::view('akademik/krs', 'admin.coming-soon', ['title' => 'KRS'])->name('akademik.krs');
         Route::view('akademik/nilai', 'admin.coming-soon', ['title' => 'Nilai'])->name('akademik.nilai');
 
         // Menu Administrasi
