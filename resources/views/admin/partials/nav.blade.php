@@ -23,6 +23,7 @@
                     ['route' => 'admin.perguruan-tinggi', 'label' => 'Perguruan Tinggi'],
                 ]],
                 ['route' => 'admin.jenjang.index', 'label' => 'Jenjang'],
+                ['route' => 'admin.administrasi.ruangan', 'label' => 'Ruangan'],
             ],
         ],
         [

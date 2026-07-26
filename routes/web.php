@@ -36,6 +36,8 @@ use App\Livewire\Admin\Prodi\Index as ProdiIndex;
 use App\Livewire\Admin\Profil as AdminProfil;
 use App\Livewire\Admin\Role\Form as RoleForm;
 use App\Livewire\Admin\Role\Index as RoleIndex;
+use App\Livewire\Admin\Ruangan\Form as RuanganForm;
+use App\Livewire\Admin\Ruangan\Index as RuanganIndex;
 use App\Livewire\Admin\Semester\Form as SemesterForm;
 use App\Livewire\Admin\Semester\Index as SemesterIndex;
 use App\Livewire\Admin\StatusAkademik\Form as StatusAkademikForm;
@@ -112,6 +114,10 @@ Route::prefix('admin')->name('admin.')->group(function (): void {
         Route::livewire('administrasi/kelas-mahasiswa', KelompokKelasIndex::class)->name('administrasi.kelas-mahasiswa');
         Route::livewire('administrasi/kelas-mahasiswa/create', KelompokKelasForm::class)->name('administrasi.kelas-mahasiswa.create');
         Route::livewire('administrasi/kelas-mahasiswa/{id}/edit', KelompokKelasForm::class)->name('administrasi.kelas-mahasiswa.edit');
+
+        Route::livewire('administrasi/ruangan', RuanganIndex::class)->name('administrasi.ruangan');
+        Route::livewire('administrasi/ruangan/create', RuanganForm::class)->name('administrasi.ruangan.create');
+        Route::livewire('administrasi/ruangan/{id}/edit', RuanganForm::class)->name('administrasi.ruangan.edit');
 
         Route::livewire('fakultas', FakultasIndex::class)->name('fakultas.index');
         Route::livewire('fakultas/create', FakultasForm::class)->name('fakultas.create');
