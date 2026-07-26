@@ -11,9 +11,6 @@ class Provinsi extends Model
     use HasFactory, SoftDeletes;
 
     protected $table = 'provinsi';
-    protected $primaryKey = 'id';
-    public $incrementing = false;
-    protected $keyType = 'string';
     protected $fillable = ['nama', 'kode', 'id_negara'];
     protected $hidden = ['created_at', 'updated_at', 'deleted_at'];
 
