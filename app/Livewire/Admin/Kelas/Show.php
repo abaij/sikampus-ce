@@ -1,0 +1,141 @@
+<?php
+
+namespace App\Livewire\Admin\Kelas;
+
+use App\Livewire\Admin\Kelas\Concerns\ForwardsIndexState;
+use App\Models\Jadwal;
+use App\Models\Kelas;
+use App\Models\Krs;
+use App\Models\Perkuliahan;
+use App\Models\Semester;
+use Illuminate\Support\Facades\Auth;
+use Livewire\Attributes\Computed;
+use Livewire\Component;
+
+class Show extends Component
+{
+    use ForwardsIndexState;
+
+    public int $kelasId;
+
+    public bool $confirmingDelete = false;
+
+    public function mount(int $id): void
+    {
+        $this->kelasId = $id;
+        $this->resolveBackUrl();
+
+        $kelas = Kelas::findOrFail($id);
+        $this->ensureAccess($kelas);
+    }
+
+    /**
+     * Sama persis dengan KelasController::show/edit/destroy — pengecekan scope prodi.
+     */
+    private function ensureAccess(Kelas $kelas): void
+    {
+        $user = Auth::user();
+        if ($user && $user->hasScopeRestriction()) {
+            $allowedProdiIds = $user->getAllowedProdiIds();
+            if ($allowedProdiIds !== null && ! in_array((int) $kelas->id_prodi, $allowedProdiIds, true)) {
+                abort(403, 'Anda tidak memiliki akses ke kelas ini.');
+            }
+        }
+    }
+
+    /**
+     * Sama persis dengan KelasController::getDetailWithJadwal.
+     */
+    #[Computed]
+    public function kelas(): Kelas
+    {
+        $kelas = Kelas::with([
+            'kurikulumMatkul.matkul',
+            'kurikulumMatkul.kurikulum',
+            'prodi.jenjang',
+            'semester',
+            'angkatan',
+            'dosenPic',
+            'kelompokKelas',
+            'kelasDosen' => function ($q) {
+                $q->whereNull('deleted_at');
+            },
+            'kelasDosen.dosen',
+        ])->findOrFail($this->kelasId);
+
+        $map = [];
+        $ordered = Semester::withTrashed()->orderBy('kode')->pluck('id')->values();
+        foreach ($ordered as $i => $semId) {
+            $map[(int) $semId] = $i;
+        }
+        $idxS = $map[(int) $kelas->id_semester] ?? null;
+        $idxA = $map[(int) $kelas->id_angkatan] ?? null;
+        $kelas->setAttribute(
+            'semester_kuliah_ke',
+            ($idxS === null || $idxA === null || $idxS < $idxA) ? null : $idxS - $idxA + 1
+        );
+
+        return $kelas;
+    }
+
+    #[Computed]
+    public function jadwalList()
+    {
+        return Jadwal::with(['jenisKuliah', 'ruangan', 'dosen.dosen'])
+            ->where('id_kelas', $this->kelasId)
+            ->orderBy('hari')
+            ->orderBy('jam_mulai')
+            ->get();
+    }
+
+    #[Computed]
+    public function jumlahMahasiswa(): int
+    {
+        return (int) Krs::where('id_kelas', $this->kelasId)
+            ->whereNull('deleted_at')
+            ->selectRaw('COUNT(DISTINCT id_mahasiswa) as count')
+            ->value('count');
+    }
+
+    #[Computed]
+    public function jumlahPerkuliahan(): int
+    {
+        $jadwalIds = $this->jadwalList->pluck('id');
+
+        if ($jadwalIds->isEmpty()) {
+            return 0;
+        }
+
+        return Perkuliahan::whereIn('id_jadwal', $jadwalIds)->count();
+    }
+
+    public function confirmDelete(): void
+    {
+        $this->confirmingDelete = true;
+    }
+
+    public function cancelDelete(): void
+    {
+        $this->confirmingDelete = false;
+    }
+
+    /**
+     * Sama persis dengan KelasController::destroy.
+     */
+    public function delete()
+    {
+        $kelas = Kelas::findOrFail($this->kelasId);
+        $this->ensureAccess($kelas);
+
+        $kelas->delete();
+
+        session()->flash('status', 'Kelas dihapus.');
+
+        return redirect()->route('admin.akademik.kelas');
+    }
+
+    public function render()
+    {
+        return view('livewire.admin.kelas.show')->extends('layouts.web');
+    }
+}

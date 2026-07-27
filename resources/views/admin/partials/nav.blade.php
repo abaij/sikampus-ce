@@ -7,6 +7,7 @@
                     ['route' => 'admin.akademik.kurikulum', 'label' => 'Kurikulum'],
                     ['route' => 'admin.akademik.matkul', 'label' => 'Mata Kuliah'],
                 ]],
+                ['route' => 'admin.akademik.kelas', 'label' => 'Kelas'],
                 ['route' => 'admin.akademik.krs', 'label' => 'KRS'],
                 ['label' => 'Nilai', 'children' => [
                     ['route' => 'admin.akademik.nilai', 'label' => 'Nilai'],

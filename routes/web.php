@@ -22,6 +22,10 @@ use App\Livewire\Admin\JenisPenilaian\Form as JenisPenilaianForm;
 use App\Livewire\Admin\JenisPenilaian\Index as JenisPenilaianIndex;
 use App\Livewire\Admin\Jenjang\Form as JenjangForm;
 use App\Livewire\Admin\Jenjang\Index as JenjangIndex;
+use App\Livewire\Admin\Kelas\Form as KelasForm;
+use App\Livewire\Admin\Kelas\Index as KelasIndex;
+use App\Livewire\Admin\Kelas\Show as KelasShow;
+use App\Livewire\Admin\KelompokKelas\Form as KelompokKelasForm;
 use App\Livewire\Admin\KelompokKelas\Index as KelompokKelasIndex;
 use App\Livewire\Admin\KonversiNilai\Form as KonversiNilaiForm;
 use App\Livewire\Admin\KonversiNilai\Index as KonversiNilaiIndex;
@@ -142,6 +146,13 @@ Route::prefix('admin')->name('admin.')->group(function (): void {
         Route::livewire('akademik/konversi-nilai', KonversiNilaiIndex::class)->name('akademik.konversi-nilai');
         Route::livewire('akademik/konversi-nilai/create', KonversiNilaiForm::class)->name('akademik.konversi-nilai.create');
         Route::livewire('akademik/konversi-nilai/{id}', KonversiNilaiShow::class)->name('akademik.konversi-nilai.show');
+
+        // Rute literal (create) harus didaftarkan sebelum 'akademik/kelas/{id}' supaya tidak
+        // tertangkap sebagai id (lihat catatan di skill siak-livewire-module).
+        Route::livewire('akademik/kelas', KelasIndex::class)->name('akademik.kelas');
+        Route::livewire('akademik/kelas/create', KelasForm::class)->name('akademik.kelas.create');
+        Route::livewire('akademik/kelas/{id}/edit', KelasForm::class)->name('akademik.kelas.edit');
+        Route::livewire('akademik/kelas/{id}', KelasShow::class)->name('akademik.kelas.show');
 
         // Menu Administrasi
         Route::livewire('administrasi/dosen', DosenIndex::class)->name('administrasi.dosen');
