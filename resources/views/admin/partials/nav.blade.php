@@ -8,8 +8,12 @@
                     ['route' => 'admin.akademik.matkul', 'label' => 'Mata Kuliah'],
                 ]],
                 ['route' => 'admin.akademik.krs', 'label' => 'KRS'],
-                ['route' => 'admin.akademik.nilai', 'label' => 'Nilai'],
-                ['route' => 'admin.akademik.jenis-penilaian', 'label' => 'Jenis Penilaian'],
+                ['label' => 'Nilai', 'children' => [
+                    ['route' => 'admin.akademik.nilai', 'label' => 'Nilai'],
+                    ['route' => 'admin.akademik.konversi-nilai', 'label' => 'Konversi Nilai'],
+                    ['route' => 'admin.akademik.jenis-penilaian', 'label' => 'Jenis Penilaian'],
+                    ['route' => 'admin.akademik.rentang-nilai', 'label' => 'Rentang Nilai'],
+                ]],
             ],
         ],
         [

@@ -5,6 +5,7 @@ use App\Http\Controllers\Web\DosenDashboardController;
 use App\Http\Controllers\Web\KrsCetakController;
 use App\Http\Controllers\Web\LoginController;
 use App\Http\Controllers\Web\MahasiswaDashboardController;
+use App\Http\Controllers\Web\NilaiExportController;
 use App\Http\Controllers\Web\SuperadminEnvConfigController;
 use App\Http\Controllers\Web\SuperadminTestUploadController;
 use App\Http\Controllers\Web\SuperadminWebLoginController;
@@ -22,6 +23,9 @@ use App\Livewire\Admin\JenisPenilaian\Index as JenisPenilaianIndex;
 use App\Livewire\Admin\Jenjang\Form as JenjangForm;
 use App\Livewire\Admin\Jenjang\Index as JenjangIndex;
 use App\Livewire\Admin\KelompokKelas\Index as KelompokKelasIndex;
+use App\Livewire\Admin\KonversiNilai\Form as KonversiNilaiForm;
+use App\Livewire\Admin\KonversiNilai\Index as KonversiNilaiIndex;
+use App\Livewire\Admin\KonversiNilai\Show as KonversiNilaiShow;
 use App\Livewire\Admin\Krs\Form as KrsForm;
 use App\Livewire\Admin\Krs\Index as KrsIndex;
 use App\Livewire\Admin\Krs\Show as KrsShow;
@@ -34,6 +38,9 @@ use App\Livewire\Admin\Mahasiswa\Show as MahasiswaShow;
 use App\Livewire\Admin\Matkul\Form as MatkulForm;
 use App\Livewire\Admin\Matkul\Index as MatkulIndex;
 use App\Livewire\Admin\Matkul\Show as MatkulShow;
+use App\Livewire\Admin\Nilai\Form as NilaiForm;
+use App\Livewire\Admin\Nilai\Index as NilaiIndex;
+use App\Livewire\Admin\Nilai\Show as NilaiShow;
 use App\Livewire\Admin\Pengguna\Form as PenggunaForm;
 use App\Livewire\Admin\Pengguna\Index as PenggunaIndex;
 use App\Livewire\Admin\Pengguna\Show as PenggunaShow;
@@ -43,6 +50,8 @@ use App\Livewire\Admin\Permission\Index as PermissionIndex;
 use App\Livewire\Admin\Prodi\Form as ProdiForm;
 use App\Livewire\Admin\Prodi\Index as ProdiIndex;
 use App\Livewire\Admin\Profil as AdminProfil;
+use App\Livewire\Admin\RentangNilai\Form as RentangNilaiForm;
+use App\Livewire\Admin\RentangNilai\Index as RentangNilaiIndex;
 use App\Livewire\Admin\Role\Form as RoleForm;
 use App\Livewire\Admin\Role\Index as RoleIndex;
 use App\Livewire\Admin\Ruangan\Form as RuanganForm;
@@ -120,8 +129,19 @@ Route::prefix('admin')->name('admin.')->group(function (): void {
         Route::get('akademik/krs/{id}/cetak', [KrsCetakController::class, 'show'])->name('akademik.krs.cetak');
         Route::livewire('akademik/krs/{id}', KrsShow::class)->name('akademik.krs.show');
 
-        // Menu Akademik — link dummy dulu, modulnya menyusul.
-        Route::view('akademik/nilai', 'admin.coming-soon', ['title' => 'Nilai'])->name('akademik.nilai');
+        Route::livewire('akademik/nilai', NilaiIndex::class)->name('akademik.nilai');
+        Route::get('akademik/nilai/{id}/export', [NilaiExportController::class, 'excel'])->name('akademik.nilai.export');
+        Route::get('akademik/nilai/{id}/cetak', [NilaiExportController::class, 'pdf'])->name('akademik.nilai.cetak');
+        Route::livewire('akademik/nilai/{id}/{idKrs}/edit', NilaiForm::class)->name('akademik.nilai.edit');
+        Route::livewire('akademik/nilai/{id}', NilaiShow::class)->name('akademik.nilai.show');
+
+        Route::livewire('akademik/rentang-nilai', RentangNilaiIndex::class)->name('akademik.rentang-nilai');
+        Route::livewire('akademik/rentang-nilai/create', RentangNilaiForm::class)->name('akademik.rentang-nilai.create');
+        Route::livewire('akademik/rentang-nilai/{id}/edit', RentangNilaiForm::class)->name('akademik.rentang-nilai.edit');
+
+        Route::livewire('akademik/konversi-nilai', KonversiNilaiIndex::class)->name('akademik.konversi-nilai');
+        Route::livewire('akademik/konversi-nilai/create', KonversiNilaiForm::class)->name('akademik.konversi-nilai.create');
+        Route::livewire('akademik/konversi-nilai/{id}', KonversiNilaiShow::class)->name('akademik.konversi-nilai.show');
 
         // Menu Administrasi
         Route::livewire('administrasi/dosen', DosenIndex::class)->name('administrasi.dosen');
