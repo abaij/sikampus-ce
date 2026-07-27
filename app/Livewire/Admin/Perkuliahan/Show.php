@@ -4,12 +4,14 @@ namespace App\Livewire\Admin\Perkuliahan;
 
 use App\Livewire\Admin\Perkuliahan\Concerns\ForwardsIndexState;
 use App\Models\Jadwal;
+use App\Models\JenisPenilaian;
 use App\Models\Kehadiran;
 use App\Models\Kelas;
 use App\Models\Krs;
 use App\Models\Perkuliahan;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
@@ -27,6 +29,10 @@ class Show extends Component
     public array $openJadwal = [];
 
     public bool $showRekapModal = false;
+
+    public ?array $kalkulasiResult = null;
+
+    public ?string $kalkulasiError = null;
 
     public function mount(int $id): void
     {
@@ -140,6 +146,107 @@ class Show extends Component
     public function closeRekap(): void
     {
         $this->showRekapModal = false;
+    }
+
+    /**
+     * Sama persis dengan NilaiController::kalkulasiNilaiKehadiran, disederhanakan untuk konteks
+     * admin — id_dosen selalu diambil dari dosen PIC kelas (bukan dari sesi login "dosen"),
+     * karena rute ini hanya bisa diakses lewat panel admin.
+     */
+    public function kalkulasiNilaiKehadiran(): void
+    {
+        $this->kalkulasiResult = null;
+        $this->kalkulasiError = null;
+
+        $kelas = $this->kelas;
+
+        $jenisPenilaianKehadiran = JenisPenilaian::whereNull('deleted_at')
+            ->where(function ($q) {
+                $q->where('kode', 'PRESENSI')
+                    ->orWhere('nama', 'like', '%presensi%')
+                    ->orWhere('nama', 'like', '%kehadiran%');
+            })
+            ->first();
+
+        if (! $jenisPenilaianKehadiran) {
+            $this->kalkulasiError = 'Jenis penilaian untuk kehadiran tidak ditemukan. Pastikan ada jenis penilaian dengan kode PRESENSI atau nama mengandung "kehadiran".';
+
+            return;
+        }
+
+        $idDosen = $kelas->id_dosen_pic;
+        if (! $idDosen) {
+            $this->kalkulasiError = 'Tidak dapat menentukan dosen untuk menyimpan nilai. Pastikan kelas memiliki dosen penanggung jawab.';
+
+            return;
+        }
+
+        $jadwalIds = $this->jadwalList->pluck('id')->all();
+        if ($jadwalIds === []) {
+            $this->kalkulasiError = 'Belum ada jadwal untuk kelas ini.';
+
+            return;
+        }
+
+        $perkuliahanIds = Perkuliahan::whereIn('id_jadwal', $jadwalIds)->whereNull('deleted_at')->pluck('id');
+        if ($perkuliahanIds->isEmpty()) {
+            $this->kalkulasiError = 'Belum ada perkuliahan yang dilaksanakan untuk kelas ini.';
+
+            return;
+        }
+        $jumlahPerkuliahan = $perkuliahanIds->count();
+
+        $krsList = Krs::where('id_kelas', $this->kelasId)->whereNull('deleted_at')->get();
+        if ($krsList->isEmpty()) {
+            $this->kalkulasiError = 'Belum ada mahasiswa yang mengambil kelas ini.';
+
+            return;
+        }
+
+        $kehadiranByMahasiswa = Kehadiran::whereIn('id_perkuliahan', $perkuliahanIds)
+            ->whereNull('deleted_at')
+            ->get()
+            ->groupBy('id_mhs')
+            ->map(fn ($items) => $items->where('status', 'hadir')->count());
+
+        $berhasil = 0;
+
+        DB::transaction(function () use ($krsList, $kehadiranByMahasiswa, $jumlahPerkuliahan, $jenisPenilaianKehadiran, $idDosen, &$berhasil) {
+            foreach ($krsList as $krs) {
+                $jumlahHadir = $kehadiranByMahasiswa[$krs->id_mahasiswa] ?? 0;
+                $persentase = $jumlahPerkuliahan > 0 ? round(($jumlahHadir / $jumlahPerkuliahan) * 100, 2) : 0;
+
+                $existing = DB::table('nilai_komponen')
+                    ->where('id_krs', $krs->id)
+                    ->where('id_jenis_penilaian', $jenisPenilaianKehadiran->id)
+                    ->whereNull('deleted_at')
+                    ->first();
+
+                if ($existing) {
+                    DB::table('nilai_komponen')->where('id', $existing->id)->update([
+                        'nilai' => $persentase,
+                        'updated_at' => now(),
+                    ]);
+                } else {
+                    DB::table('nilai_komponen')->insert([
+                        'id_krs' => $krs->id,
+                        'id_jenis_penilaian' => $jenisPenilaianKehadiran->id,
+                        'nilai' => $persentase,
+                        'id_dosen' => $idDosen,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                }
+
+                $berhasil++;
+            }
+        });
+
+        $this->kalkulasiResult = [
+            'jumlah_mahasiswa' => $krsList->count(),
+            'jumlah_perkuliahan' => $jumlahPerkuliahan,
+            'berhasil' => $berhasil,
+        ];
     }
 
     /**

@@ -22,16 +22,42 @@
 @endsection
 
 @section('page_actions')
-    <a
-        href="{{ $backUrl }}"
-        class="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-medium text-neutral-700 shadow-border transition hover:bg-neutral-50"
-    >
-        <i data-lucide="arrow-left" class="h-4 w-4" aria-hidden="true"></i>
-        Kembali
-    </a>
+    <div class="flex items-center gap-2">
+        <a
+            href="{{ $backUrl }}"
+            class="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-medium text-neutral-700 shadow-border transition hover:bg-neutral-50"
+        >
+            <i data-lucide="arrow-left" class="h-4 w-4" aria-hidden="true"></i>
+            Kembali
+        </a>
+        <a
+            href="{{ route('admin.akademik.perkuliahan.nilai', $kelasId) }}"
+            class="inline-flex items-center gap-2 rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-neutral-800"
+        >
+            <i data-lucide="clipboard-list" class="h-4 w-4" aria-hidden="true"></i>
+            Nilai
+        </a>
+    </div>
 @endsection
 
 <div class="space-y-6">
+    @if ($kalkulasiResult)
+        <div class="flex gap-3 rounded-lg border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+            <i data-lucide="check-circle" class="h-5 w-5 shrink-0 text-emerald-600" aria-hidden="true"></i>
+            <span>
+                Kalkulasi nilai kehadiran berhasil — {{ $kalkulasiResult['berhasil'] }} dari {{ $kalkulasiResult['jumlah_mahasiswa'] }} mahasiswa diproses
+                berdasarkan {{ $kalkulasiResult['jumlah_perkuliahan'] }} pertemuan.
+            </span>
+        </div>
+    @endif
+
+    @if ($kalkulasiError)
+        <div class="flex gap-3 rounded-lg border border-rose-100 bg-rose-50 px-4 py-3 text-sm text-rose-800">
+            <i data-lucide="alert-circle" class="h-5 w-5 shrink-0 text-rose-600" aria-hidden="true"></i>
+            <span>{{ $kalkulasiError }}</span>
+        </div>
+    @endif
+
     <div class="rounded-2xl bg-white p-6 shadow-border">
         <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
             <h2 class="text-base font-semibold text-neutral-900">Informasi Kelas</h2>
@@ -58,6 +84,15 @@
                         <i data-lucide="loader-2" class="h-4 w-4 animate-spin" aria-hidden="true"></i>
                         Menyiapkan...
                     </span>
+                </button>
+                <button
+                    type="button"
+                    wire:click="kalkulasiNilaiKehadiran"
+                    wire:confirm="Kalkulasi ulang nilai kehadiran untuk seluruh mahasiswa di kelas ini?"
+                    class="inline-flex items-center gap-2 rounded-lg bg-emerald-50 px-4 py-2 text-sm font-medium text-emerald-700 shadow-border transition hover:bg-emerald-100"
+                >
+                    <i data-lucide="calculator" class="h-4 w-4" aria-hidden="true"></i>
+                    Kalkulasi Nilai Kehadiran
                 </button>
             </div>
         </div>

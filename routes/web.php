@@ -53,6 +53,7 @@ use App\Livewire\Admin\Pengguna\Index as PenggunaIndex;
 use App\Livewire\Admin\Pengguna\Show as PenggunaShow;
 use App\Livewire\Admin\PerguruanTinggi as AdminPerguruanTinggi;
 use App\Livewire\Admin\Perkuliahan\Index as PerkuliahanIndex;
+use App\Livewire\Admin\Perkuliahan\Nilai as PerkuliahanNilai;
 use App\Livewire\Admin\Perkuliahan\Show as PerkuliahanShow;
 use App\Livewire\Admin\Permission\Form as PermissionForm;
 use App\Livewire\Admin\Permission\Index as PermissionIndex;
@@ -69,6 +70,9 @@ use App\Livewire\Admin\Semester\Form as SemesterForm;
 use App\Livewire\Admin\Semester\Index as SemesterIndex;
 use App\Livewire\Admin\StatusAkademik\Form as StatusAkademikForm;
 use App\Livewire\Admin\StatusAkademik\Index as StatusAkademikIndex;
+use App\Livewire\Admin\TugasAkhir\Index as TugasAkhirIndex;
+use App\Livewire\Admin\TugasAkhir\Show as TugasAkhirShow;
+use App\Livewire\Admin\TugasAkhir\UjianSidangShow;
 use App\Livewire\Dosen\Profil as DosenProfil;
 use App\Livewire\Mahasiswa\Profil as MahasiswaProfil;
 use Illuminate\Support\Facades\Route;
@@ -167,7 +171,12 @@ Route::prefix('admin')->name('admin.')->group(function (): void {
         // Modul monitoring, tanpa create/edit — cermin dari halaman admin/perkuliahan di frontend
         // (daftar kelas + detail sesi & rekap kehadiran per kelas).
         Route::livewire('akademik/perkuliahan', PerkuliahanIndex::class)->name('akademik.perkuliahan');
+        Route::livewire('akademik/perkuliahan/nilai/{id}', PerkuliahanNilai::class)->name('akademik.perkuliahan.nilai');
         Route::livewire('akademik/perkuliahan/{id}', PerkuliahanShow::class)->name('akademik.perkuliahan.show');
+
+        Route::livewire('akademik/tugas-akhir', TugasAkhirIndex::class)->name('akademik.tugas-akhir');
+        Route::livewire('akademik/tugas-akhir/{id}/ujian-sidang/{sidangId}', UjianSidangShow::class)->name('akademik.tugas-akhir.ujian-sidang');
+        Route::livewire('akademik/tugas-akhir/{id}', TugasAkhirShow::class)->name('akademik.tugas-akhir.show');
 
         // Menu Administrasi
         Route::livewire('administrasi/dosen', DosenIndex::class)->name('administrasi.dosen');

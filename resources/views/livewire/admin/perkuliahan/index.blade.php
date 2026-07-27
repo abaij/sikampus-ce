@@ -76,13 +76,22 @@
                             <td class="px-4 py-3 text-center tabular-nums text-neutral-900">{{ $kelas->jadwal_count }}</td>
                             <td class="px-4 py-3 text-neutral-900">{{ $kelas->dosenPic?->nama ?? '—' }}</td>
                             <td class="px-4 py-3 text-right">
-                                <a
-                                    href="{{ route('admin.akademik.perkuliahan.show', $kelas->id) }}{{ $returnQuery ? '?' . $returnQuery : '' }}"
-                                    class="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-neutral-700 shadow-border transition hover:bg-neutral-50"
-                                >
-                                    <i data-lucide="calendar-days" class="h-4 w-4" aria-hidden="true"></i>
-                                    Kehadiran
-                                </a>
+                                <div class="inline-flex items-center gap-2">
+                                    <a
+                                        href="{{ route('admin.akademik.perkuliahan.show', $kelas->id) }}{{ $returnQuery ? '?' . $returnQuery : '' }}"
+                                        class="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-neutral-700 shadow-border transition hover:bg-neutral-50"
+                                    >
+                                        <i data-lucide="calendar-days" class="h-4 w-4" aria-hidden="true"></i>
+                                        Kehadiran
+                                    </a>
+                                    <a
+                                        href="{{ route('admin.akademik.perkuliahan.nilai', $kelas->id) }}{{ $returnQuery ? '?' . $returnQuery : '' }}"
+                                        class="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-neutral-700 shadow-border transition hover:bg-neutral-50"
+                                    >
+                                        <i data-lucide="clipboard-list" class="h-4 w-4" aria-hidden="true"></i>
+                                        Nilai
+                                    </a>
+                                </div>
                             </td>
                         </tr>
                     @empty
