@@ -14,6 +14,9 @@ use App\Livewire\Admin\Dosen\Index as DosenIndex;
 use App\Livewire\Admin\Dosen\Show as DosenShow;
 use App\Livewire\Admin\Fakultas\Form as FakultasForm;
 use App\Livewire\Admin\Fakultas\Index as FakultasIndex;
+use App\Livewire\Admin\Jadwal\Form as JadwalForm;
+use App\Livewire\Admin\Jadwal\Index as JadwalIndex;
+use App\Livewire\Admin\Jadwal\Show as JadwalShow;
 use App\Livewire\Admin\JalurMasuk\Form as JalurMasukForm;
 use App\Livewire\Admin\JalurMasuk\Index as JalurMasukIndex;
 use App\Livewire\Admin\JenisDaftar\Form as JenisDaftarForm;
@@ -49,6 +52,8 @@ use App\Livewire\Admin\Pengguna\Form as PenggunaForm;
 use App\Livewire\Admin\Pengguna\Index as PenggunaIndex;
 use App\Livewire\Admin\Pengguna\Show as PenggunaShow;
 use App\Livewire\Admin\PerguruanTinggi as AdminPerguruanTinggi;
+use App\Livewire\Admin\Perkuliahan\Index as PerkuliahanIndex;
+use App\Livewire\Admin\Perkuliahan\Show as PerkuliahanShow;
 use App\Livewire\Admin\Permission\Form as PermissionForm;
 use App\Livewire\Admin\Permission\Index as PermissionIndex;
 use App\Livewire\Admin\Prodi\Form as ProdiForm;
@@ -153,6 +158,16 @@ Route::prefix('admin')->name('admin.')->group(function (): void {
         Route::livewire('akademik/kelas/create', KelasForm::class)->name('akademik.kelas.create');
         Route::livewire('akademik/kelas/{id}/edit', KelasForm::class)->name('akademik.kelas.edit');
         Route::livewire('akademik/kelas/{id}', KelasShow::class)->name('akademik.kelas.show');
+
+        Route::livewire('akademik/jadwal', JadwalIndex::class)->name('akademik.jadwal');
+        Route::livewire('akademik/jadwal/create', JadwalForm::class)->name('akademik.jadwal.create');
+        Route::livewire('akademik/jadwal/{id}/edit', JadwalForm::class)->name('akademik.jadwal.edit');
+        Route::livewire('akademik/jadwal/{id}', JadwalShow::class)->name('akademik.jadwal.show');
+
+        // Modul monitoring, tanpa create/edit — cermin dari halaman admin/perkuliahan di frontend
+        // (daftar kelas + detail sesi & rekap kehadiran per kelas).
+        Route::livewire('akademik/perkuliahan', PerkuliahanIndex::class)->name('akademik.perkuliahan');
+        Route::livewire('akademik/perkuliahan/{id}', PerkuliahanShow::class)->name('akademik.perkuliahan.show');
 
         // Menu Administrasi
         Route::livewire('administrasi/dosen', DosenIndex::class)->name('administrasi.dosen');

@@ -8,6 +8,8 @@
                     ['route' => 'admin.akademik.matkul', 'label' => 'Mata Kuliah'],
                 ]],
                 ['route' => 'admin.akademik.kelas', 'label' => 'Kelas'],
+                ['route' => 'admin.akademik.jadwal', 'label' => 'Jadwal'],
+                ['route' => 'admin.akademik.perkuliahan', 'label' => 'Perkuliahan'],
                 ['route' => 'admin.akademik.krs', 'label' => 'KRS'],
                 ['label' => 'Nilai', 'children' => [
                     ['route' => 'admin.akademik.nilai', 'label' => 'Nilai'],
@@ -37,10 +39,12 @@
         [
             'label' => 'Pengaturan',
             'items' => [
-                ['route' => 'admin.jalur-masuk.index', 'label' => 'Jalur Masuk'],
-                ['route' => 'admin.semester.index', 'label' => 'Semester'],
-                ['route' => 'admin.jenis-daftar.index', 'label' => 'Jenis Daftar'],
-                ['route' => 'admin.status-akademik.index', 'label' => 'Status Akademik'],
+                ['label' => 'Akademik', 'children' => [
+                    ['route' => 'admin.semester.index', 'label' => 'Semester'],
+                    ['route' => 'admin.jalur-masuk.index', 'label' => 'Jalur Masuk'],
+                    ['route' => 'admin.jenis-daftar.index', 'label' => 'Jenis Daftar'],
+                    ['route' => 'admin.status-akademik.index', 'label' => 'Status Akademik'],
+                ]],
                 ['label' => 'Pengguna', 'children' => [
                     ['route' => 'admin.pengguna.index', 'label' => 'Pengguna'],
                     ['route' => 'admin.pengguna.role.index', 'label' => 'Role'],
