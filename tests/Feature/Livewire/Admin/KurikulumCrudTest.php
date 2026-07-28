@@ -453,3 +453,16 @@ it('admin dengan scope prodi tidak bisa membuat kurikulum di luar scope-nya', fu
 it('redirects unauthenticated users to the admin login page', function () {
     $this->get(route('admin.akademik.kurikulum'))->assertRedirect(route('login'));
 });
+
+// Regression: layouts.web me-render @section('page_actions') di luar root <div> komponen, jadi
+// tombol wire:click yang diletakkan di sana tidak pernah terikat Livewire dan diam saja saat diklik.
+it('keeps the delete button inside the livewire root so wire:click stays bound', function () {
+    $admin = adminUser();
+    $kurikulum = Kurikulum::factory()->create();
+
+    $html = $this->actingAs($admin)->get(route('admin.akademik.kurikulum.show', $kurikulum->id))->getContent();
+
+    $rootStart = strpos($html, 'wire:id=');
+    expect($rootStart)->not->toBeFalse();
+    expect(strpos($html, 'wire:click="confirmDeleteKurikulum"'))->toBeGreaterThan($rootStart);
+});

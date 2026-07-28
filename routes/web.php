@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\DosenWaliController;
 use App\Http\Controllers\Web\AdminWebLoginController;
 use App\Http\Controllers\Web\DosenDashboardController;
 use App\Http\Controllers\Web\KrsCetakController;
@@ -12,6 +13,9 @@ use App\Http\Controllers\Web\SuperadminWebLoginController;
 use App\Livewire\Admin\Dosen\Form as DosenForm;
 use App\Livewire\Admin\Dosen\Index as DosenIndex;
 use App\Livewire\Admin\Dosen\Show as DosenShow;
+use App\Livewire\Admin\DosenWali\Index as DosenWaliIndex;
+use App\Livewire\Admin\DosenWali\Riwayat as DosenWaliRiwayat;
+use App\Livewire\Admin\DosenWali\Show as DosenWaliShow;
 use App\Livewire\Admin\Fakultas\Form as FakultasForm;
 use App\Livewire\Admin\Fakultas\Index as FakultasIndex;
 use App\Livewire\Admin\Jadwal\Form as JadwalForm;
@@ -73,6 +77,12 @@ use App\Livewire\Admin\StatusAkademik\Index as StatusAkademikIndex;
 use App\Livewire\Admin\TugasAkhir\Index as TugasAkhirIndex;
 use App\Livewire\Admin\TugasAkhir\Show as TugasAkhirShow;
 use App\Livewire\Admin\TugasAkhir\UjianSidangShow;
+use App\Livewire\Admin\Wisuda\Form as WisudaForm;
+use App\Livewire\Admin\Wisuda\Index as WisudaIndex;
+use App\Livewire\Admin\Wisuda\Show as WisudaShow;
+use App\Livewire\Admin\Yudisium\Form as YudisiumForm;
+use App\Livewire\Admin\Yudisium\Index as YudisiumIndex;
+use App\Livewire\Admin\Yudisium\Show as YudisiumShow;
 use App\Livewire\Dosen\Profil as DosenProfil;
 use App\Livewire\Mahasiswa\Profil as MahasiswaProfil;
 use Illuminate\Support\Facades\Route;
@@ -178,11 +188,27 @@ Route::prefix('admin')->name('admin.')->group(function (): void {
         Route::livewire('akademik/tugas-akhir/{id}/ujian-sidang/{sidangId}', UjianSidangShow::class)->name('akademik.tugas-akhir.ujian-sidang');
         Route::livewire('akademik/tugas-akhir/{id}', TugasAkhirShow::class)->name('akademik.tugas-akhir.show');
 
+        Route::livewire('akademik/yudisium', YudisiumIndex::class)->name('akademik.yudisium');
+        Route::livewire('akademik/yudisium/create', YudisiumForm::class)->name('akademik.yudisium.create');
+        Route::livewire('akademik/yudisium/{id}', YudisiumShow::class)->name('akademik.yudisium.show');
+
+        Route::livewire('akademik/wisuda', WisudaIndex::class)->name('akademik.wisuda');
+        Route::livewire('akademik/wisuda/create', WisudaForm::class)->name('akademik.wisuda.create');
+        Route::livewire('akademik/wisuda/{id}/edit', WisudaForm::class)->name('akademik.wisuda.edit');
+        Route::livewire('akademik/wisuda/{id}', WisudaShow::class)->name('akademik.wisuda.show');
+
         // Menu Administrasi
         Route::livewire('administrasi/dosen', DosenIndex::class)->name('administrasi.dosen');
         Route::livewire('administrasi/dosen/create', DosenForm::class)->name('administrasi.dosen.create');
         Route::livewire('administrasi/dosen/{id}/edit', DosenForm::class)->name('administrasi.dosen.edit');
         Route::livewire('administrasi/dosen/{id}', DosenShow::class)->name('administrasi.dosen.show');
+
+        // Rute literal (template/download) harus didaftarkan sebelum 'administrasi/dosen-wali/{id}'
+        // supaya tidak tertangkap sebagai id (lihat catatan di skill siak-livewire-module).
+        Route::livewire('administrasi/dosen-wali', DosenWaliIndex::class)->name('administrasi.dosen-wali');
+        Route::get('administrasi/dosen-wali/template/download', [DosenWaliController::class, 'downloadTemplate'])->name('administrasi.dosen-wali.template');
+        Route::livewire('administrasi/dosen-wali/{id}/bimbingan/{dosenWaliId}', DosenWaliRiwayat::class)->name('administrasi.dosen-wali.riwayat');
+        Route::livewire('administrasi/dosen-wali/{id}', DosenWaliShow::class)->name('administrasi.dosen-wali.show');
 
         Route::livewire('administrasi/mahasiswa', MahasiswaIndex::class)->name('administrasi.mahasiswa');
         Route::livewire('administrasi/mahasiswa/{id}/edit', MahasiswaForm::class)->name('administrasi.mahasiswa.edit');

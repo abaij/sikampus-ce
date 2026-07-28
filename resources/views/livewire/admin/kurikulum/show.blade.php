@@ -15,8 +15,11 @@
     ]])
 @endsection
 
-@section('page_actions')
-    <div class="flex items-center gap-2">
+{{-- Tombol aksi sengaja berada di dalam badan komponen, bukan di section page_actions:
+     layouts.web me-render page_actions di luar root <div> komponen, sehingga wire:click di sana
+     tidak pernah terikat Livewire (tombol tampil tapi diam saat diklik). --}}
+<div>
+    <div class="mb-4 flex flex-wrap items-center justify-end gap-2">
         <a
             href="{{ $backUrl }}"
             class="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-medium text-neutral-700 shadow-border transition hover:bg-neutral-50"
@@ -40,9 +43,7 @@
             Hapus
         </button>
     </div>
-@endsection
 
-<div>
     @if (session('status'))
         <div class="mb-4 flex gap-3 rounded-lg border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
             <i data-lucide="check-circle" class="h-5 w-5 shrink-0 text-emerald-600" aria-hidden="true"></i>

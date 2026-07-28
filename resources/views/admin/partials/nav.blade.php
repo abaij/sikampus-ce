@@ -9,7 +9,7 @@
                 ]],
                 ['label' => 'Perkuliahan', 'children' => [
                     ['route' => 'admin.akademik.kelas', 'label' => 'Kelas'],
-                    ['route' => 'admin.akademik.jadwal', 'label' => 'Jadwal'],
+                    ['route' => 'admin.akademik.jadwal', 'label' => 'Jadwal Kuliah'],
                     ['route' => 'admin.akademik.perkuliahan', 'label' => 'Perkuliahan'],
                 ]],
                 ['label' => 'Nilai', 'children' => [
@@ -21,15 +21,18 @@
                 ['route' => 'admin.akademik.krs', 'label' => 'KRS'],
                 ['label' => 'Akhir Studi', 'children' => [
                     ['route' => 'admin.akademik.tugas-akhir', 'label' => 'Tugas Akhir'],
-                    ['route' => 'admin.akademik.tugas-akhir', 'label' => 'Yudisium'],
-                    ['route' => 'admin.akademik.tugas-akhir', 'label' => 'Wisuda'],
+                    ['route' => 'admin.akademik.yudisium', 'label' => 'Yudisium'],
+                    ['route' => 'admin.akademik.wisuda', 'label' => 'Wisuda'],
                 ]],
             ],
         ],
         [
             'label' => 'Administrasi',
             'items' => [
-                ['route' => 'admin.administrasi.dosen', 'label' => 'Dosen'],
+                ['label' => 'Dosen', 'children' => [
+                    ['route' => 'admin.administrasi.dosen', 'label' => 'Dosen'],
+                    ['route' => 'admin.administrasi.dosen-wali', 'label' => 'Dosen Wali'],
+                ]],
                 ['label' => 'Mahasiswa', 'children' => [
                     ['route' => 'admin.administrasi.mahasiswa', 'label' => 'Mahasiswa'],
                     ['route' => 'admin.administrasi.kelas-mahasiswa', 'label' => 'Kelas Mahasiswa'],

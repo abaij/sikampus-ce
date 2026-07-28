@@ -56,7 +56,7 @@
 @hasSection('header_title')
 <div class="min-h-screen">
     <header class="print:hidden border-b border-neutral-200 bg-white shadow-sm">
-        <div class="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-x-4 gap-y-3 px-4 py-4 sm:px-6">
+        <div class="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-x-4 gap-y-3 px-4 py-4 sm:px-6">
             <a
                 href="{{ route($dashboardRouteName) }}"
                 class="flex min-w-0 shrink-0 items-center gap-3"
@@ -179,7 +179,7 @@
             </div>
         </div>
     </dialog>
-    <main class="mx-auto max-w-5xl px-4 py-10 sm:px-6">
+    <main class="mx-auto max-w-7xl px-4 py-10 sm:px-6">
         @hasSection('breadcrumb')
             <div class="mb-4">
                 @yield('breadcrumb')

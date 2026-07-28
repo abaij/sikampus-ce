@@ -48,40 +48,41 @@
             <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 <div>
                     <label class="mb-1 block text-xs font-semibold text-neutral-700">Prodi</label>
-                    <select wire:model.live="filterProdi" class="w-full rounded-lg px-3 py-2 text-sm outline-none focus:border-neutral-900 focus:ring-2 focus:ring-neutral-900/10 shadow-border">
-                        <option value="">Semua Prodi</option>
-                        @foreach ($prodiOptions as $opt)
-                            <option value="{{ $opt->id }}">{{ $opt->nama }}</option>
-                        @endforeach
-                    </select>
+                    <x-searchable-select
+                        model="filterProdi"
+                        :live="true"
+                        :options="$prodiOptions"
+                        optionLabel="label"
+                        placeholder="Semua Prodi"
+                    />
                 </div>
                 <div>
                     <label class="mb-1 block text-xs font-semibold text-neutral-700">Semester</label>
-                    <select wire:model.live="filterSemester" class="w-full rounded-lg px-3 py-2 text-sm outline-none focus:border-neutral-900 focus:ring-2 focus:ring-neutral-900/10 shadow-border">
-                        <option value="">Semua Semester</option>
-                        @foreach ($semesterOptions as $opt)
-                            <option value="{{ $opt->id }}">{{ $opt->nama }} ({{ $opt->kode }}){{ $opt->is_active ? ' — aktif' : '' }}</option>
-                        @endforeach
-                    </select>
+                    <x-searchable-select
+                        model="filterSemester"
+                        :live="true"
+                        :options="$semesterOptions"
+                        optionLabel="label"
+                        placeholder="Semua Semester"
+                    />
                 </div>
                 <div>
                     <label class="mb-1 block text-xs font-semibold text-neutral-700">Status</label>
-                    <select wire:model.live="filterStatus" class="w-full rounded-lg px-3 py-2 text-sm outline-none focus:border-neutral-900 focus:ring-2 focus:ring-neutral-900/10 shadow-border">
-                        <option value="">Semua Status</option>
-                        <option value="draft">Draft</option>
-                        <option value="submitted">Terkirim</option>
-                        <option value="approved">Disetujui</option>
-                        <option value="rejected">Ditolak</option>
-                        <option value="returned">Dikembalikan</option>
-                    </select>
+                    <x-searchable-select
+                        model="filterStatus"
+                        :live="true"
+                        :options="$this->statusOptions()"
+                        placeholder="Semua Status"
+                    />
                 </div>
                 <div>
                     <label class="mb-1 block text-xs font-semibold text-neutral-700">Jenis</label>
-                    <select wire:model.live="filterJenis" class="w-full rounded-lg px-3 py-2 text-sm outline-none focus:border-neutral-900 focus:ring-2 focus:ring-neutral-900/10 shadow-border">
-                        <option value="">Semua Jenis</option>
-                        <option value="proposal">Proposal</option>
-                        <option value="akhir">Skripsi / Tesis / TA</option>
-                    </select>
+                    <x-searchable-select
+                        model="filterJenis"
+                        :live="true"
+                        :options="$this->jenisOptions()"
+                        placeholder="Semua Jenis"
+                    />
                 </div>
             </div>
         </div>

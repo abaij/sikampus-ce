@@ -29,6 +29,25 @@ class Index extends Component
 
     private const STATUSES = ['draft', 'submitted', 'approved', 'rejected', 'returned'];
 
+    public function statusOptions(): array
+    {
+        return [
+            'draft' => 'Draft',
+            'submitted' => 'Terkirim',
+            'approved' => 'Disetujui',
+            'rejected' => 'Ditolak',
+            'returned' => 'Dikembalikan',
+        ];
+    }
+
+    public function jenisOptions(): array
+    {
+        return [
+            'proposal' => 'Proposal',
+            'akhir' => 'Skripsi / Tesis / TA',
+        ];
+    }
+
     public function mount(): void
     {
         $aktif = Semester::query()->where('is_active', true)->orderByDesc('id')->first();
@@ -119,8 +138,13 @@ class Index extends Component
 
         return view('livewire.admin.tugas-akhir.index', [
             'tugasAkhirList' => $tugasAkhirList,
-            'prodiOptions' => $prodiQuery->orderBy('nama')->get(['id', 'nama']),
-            'semesterOptions' => Semester::orderByDesc('kode')->get(['id', 'kode', 'nama', 'is_active']),
+            'prodiOptions' => $prodiQuery->orderBy('nama')->get(['id', 'nama'])
+                ->map(fn (Prodi $p) => (object) ['id' => $p->id, 'label' => $p->nama]),
+            'semesterOptions' => Semester::orderByDesc('kode')->get(['id', 'kode', 'nama', 'is_active'])
+                ->map(fn (Semester $s) => (object) [
+                    'id' => $s->id,
+                    'label' => $s->nama.' ('.$s->kode.')'.($s->is_active ? ' — aktif' : ''),
+                ]),
         ])->extends('layouts.web');
     }
 }
