@@ -11,6 +11,7 @@ use App\Http\Controllers\Web\NilaiExportController;
 use App\Http\Controllers\Web\SuperadminEnvConfigController;
 use App\Http\Controllers\Web\SuperadminTestUploadController;
 use App\Http\Controllers\Web\SuperadminWebLoginController;
+use App\Livewire\Admin\Dashboard as AdminDashboard;
 use App\Livewire\Admin\Dosen\Form as DosenForm;
 use App\Livewire\Admin\Dosen\Index as DosenIndex;
 use App\Livewire\Admin\Dosen\Show as DosenShow;
@@ -29,15 +30,24 @@ use App\Livewire\Admin\JalurMasuk\Form as JalurMasukForm;
 use App\Livewire\Admin\JalurMasuk\Index as JalurMasukIndex;
 use App\Livewire\Admin\JenisDaftar\Form as JenisDaftarForm;
 use App\Livewire\Admin\JenisDaftar\Index as JenisDaftarIndex;
+use App\Livewire\Admin\JenisKeringananBiaya\Form as JenisKeringananBiayaForm;
+use App\Livewire\Admin\JenisKeringananBiaya\Index as JenisKeringananBiayaIndex;
 use App\Livewire\Admin\JenisPenilaian\Form as JenisPenilaianForm;
 use App\Livewire\Admin\JenisPenilaian\Index as JenisPenilaianIndex;
 use App\Livewire\Admin\Jenjang\Form as JenjangForm;
 use App\Livewire\Admin\Jenjang\Index as JenjangIndex;
+use App\Livewire\Admin\KategoriBiaya\Form as KategoriBiayaForm;
+use App\Livewire\Admin\KategoriBiaya\Index as KategoriBiayaIndex;
+use App\Livewire\Admin\KategoriBiaya\Show as KategoriBiayaShow;
 use App\Livewire\Admin\Kelas\Form as KelasForm;
 use App\Livewire\Admin\Kelas\Index as KelasIndex;
 use App\Livewire\Admin\Kelas\Show as KelasShow;
 use App\Livewire\Admin\KelompokKelas\Form as KelompokKelasForm;
 use App\Livewire\Admin\KelompokKelas\Index as KelompokKelasIndex;
+use App\Livewire\Admin\KeringananBiaya\Form as KeringananBiayaForm;
+use App\Livewire\Admin\KeringananBiaya\Index as KeringananBiayaIndex;
+use App\Livewire\Admin\KomponenBiaya\Form as KomponenBiayaForm;
+use App\Livewire\Admin\KomponenBiaya\Index as KomponenBiayaIndex;
 use App\Livewire\Admin\KonversiNilai\Form as KonversiNilaiForm;
 use App\Livewire\Admin\KonversiNilai\Index as KonversiNilaiIndex;
 use App\Livewire\Admin\KonversiNilai\Show as KonversiNilaiShow;
@@ -56,6 +66,10 @@ use App\Livewire\Admin\Matkul\Show as MatkulShow;
 use App\Livewire\Admin\Nilai\Form as NilaiForm;
 use App\Livewire\Admin\Nilai\Index as NilaiIndex;
 use App\Livewire\Admin\Nilai\Show as NilaiShow;
+use App\Livewire\Admin\Pembayaran\Form as PembayaranForm;
+use App\Livewire\Admin\Pembayaran\Index as PembayaranIndex;
+use App\Livewire\Admin\Pembayaran\LaporanPelunasan as PembayaranLaporanPelunasan;
+use App\Livewire\Admin\Pembayaran\Show as PembayaranShow;
 use App\Livewire\Admin\Pengguna\Form as PenggunaForm;
 use App\Livewire\Admin\Pengguna\Index as PenggunaIndex;
 use App\Livewire\Admin\Pengguna\Show as PenggunaShow;
@@ -80,9 +94,15 @@ use App\Livewire\Admin\Semester\Form as SemesterForm;
 use App\Livewire\Admin\Semester\Index as SemesterIndex;
 use App\Livewire\Admin\StatusAkademik\Form as StatusAkademikForm;
 use App\Livewire\Admin\StatusAkademik\Index as StatusAkademikIndex;
+use App\Livewire\Admin\StrukturBiaya\Form as StrukturBiayaForm;
+use App\Livewire\Admin\StrukturBiaya\Index as StrukturBiayaIndex;
 use App\Livewire\Admin\Survey\Form as SurveyForm;
 use App\Livewire\Admin\Survey\Index as SurveyIndex;
 use App\Livewire\Admin\Survey\Show as SurveyShow;
+use App\Livewire\Admin\Tagihan\Form as TagihanForm;
+use App\Livewire\Admin\Tagihan\Generate as TagihanGenerate;
+use App\Livewire\Admin\Tagihan\Index as TagihanIndex;
+use App\Livewire\Admin\Tagihan\Show as TagihanShow;
 use App\Livewire\Admin\TugasAkhir\Index as TugasAkhirIndex;
 use App\Livewire\Admin\TugasAkhir\Show as TugasAkhirShow;
 use App\Livewire\Admin\TugasAkhir\UjianSidangShow;
@@ -138,7 +158,7 @@ Route::prefix('admin')->name('admin.')->group(function (): void {
         ->name('logout');
 
     Route::middleware(['auth', 'role.admin.web'])->group(function (): void {
-        Route::get('/dashboard', [AdminWebLoginController::class, 'dashboard'])->name('dashboard');
+        Route::livewire('/dashboard', AdminDashboard::class)->name('dashboard');
 
         // Menu Akademik
         Route::livewire('akademik/matkul', MatkulIndex::class)->name('akademik.matkul');
@@ -245,6 +265,55 @@ Route::prefix('admin')->name('admin.')->group(function (): void {
         Route::livewire('administrasi/pengumuman', PengumumanIndex::class)->name('administrasi.pengumuman');
         Route::livewire('administrasi/pengumuman/create', PengumumanForm::class)->name('administrasi.pengumuman.create');
         Route::livewire('administrasi/pengumuman/{id}/edit', PengumumanForm::class)->name('administrasi.pengumuman.edit');
+
+        // Menu Keuangan — modulnya besar, diporting bertahap. Sampai masing-masing komponen
+        // Livewire-nya dibuat, setiap rute mengarah ke halaman generik "sedang dalam
+        // pengembangan" supaya menu & submenu yang sudah dipasang di nav tidak 404.
+        Route::view('keuangan/dashboard', 'admin.coming-soon', ['title' => 'Dashboard Keuangan', 'group' => 'Keuangan'])->name('keuangan.dashboard');
+        // Rute literal (create, generate) harus didaftarkan sebelum 'keuangan/tagihan/{id}'
+        // supaya tidak tertangkap sebagai id (lihat catatan di skill siak-livewire-module).
+        Route::livewire('keuangan/tagihan', TagihanIndex::class)->name('keuangan.tagihan');
+        Route::livewire('keuangan/tagihan/create', TagihanForm::class)->name('keuangan.tagihan.create');
+        Route::livewire('keuangan/tagihan/{id}/edit', TagihanForm::class)->name('keuangan.tagihan.edit');
+
+        Route::livewire('keuangan/tagihan/generate', TagihanGenerate::class)->name('keuangan.tagihan.generate');
+
+        Route::livewire('keuangan/tagihan/{id}', TagihanShow::class)->name('keuangan.tagihan.show');
+        // Rute literal (create, laporan-pelunasan) harus didaftarkan sebelum
+        // 'keuangan/pembayaran/{id}' supaya tidak tertangkap sebagai id (lihat catatan di skill
+        // siak-livewire-module).
+        Route::livewire('keuangan/pembayaran', PembayaranIndex::class)->name('keuangan.pembayaran');
+        Route::livewire('keuangan/pembayaran/create', PembayaranForm::class)->name('keuangan.pembayaran.create');
+
+        Route::livewire('keuangan/pembayaran/laporan-pelunasan', PembayaranLaporanPelunasan::class)->name('keuangan.pembayaran.laporan-pelunasan');
+
+        Route::livewire('keuangan/pembayaran/{id}/edit', PembayaranForm::class)->name('keuangan.pembayaran.edit');
+        Route::livewire('keuangan/pembayaran/{id}', PembayaranShow::class)->name('keuangan.pembayaran.show');
+        // Rute literal (create) harus didaftarkan sebelum '{id}/edit' dan '{id}' supaya tidak
+        // tertangkap sebagai id (lihat catatan di skill siak-livewire-module).
+        Route::livewire('keuangan/keringanan-biaya', KeringananBiayaIndex::class)->name('keuangan.keringanan-biaya');
+        Route::livewire('keuangan/keringanan-biaya/create', KeringananBiayaForm::class)->name('keuangan.keringanan-biaya.create');
+        Route::livewire('keuangan/keringanan-biaya/{id}/edit', KeringananBiayaForm::class)->name('keuangan.keringanan-biaya.edit');
+
+        Route::livewire('keuangan/jenis-keringanan-biaya', JenisKeringananBiayaIndex::class)->name('keuangan.jenis-keringanan-biaya');
+        Route::livewire('keuangan/jenis-keringanan-biaya/create', JenisKeringananBiayaForm::class)->name('keuangan.jenis-keringanan-biaya.create');
+        Route::livewire('keuangan/jenis-keringanan-biaya/{id}/edit', JenisKeringananBiayaForm::class)->name('keuangan.jenis-keringanan-biaya.edit');
+        // Rute literal (create) harus didaftarkan sebelum 'keuangan/struktur-biaya/{id}/edit'
+        // supaya konsisten dengan modul lain (lihat catatan di skill siak-livewire-module).
+        Route::livewire('keuangan/struktur-biaya', StrukturBiayaIndex::class)->name('keuangan.struktur-biaya');
+        Route::livewire('keuangan/struktur-biaya/create', StrukturBiayaForm::class)->name('keuangan.struktur-biaya.create');
+        Route::livewire('keuangan/struktur-biaya/{id}/edit', StrukturBiayaForm::class)->name('keuangan.struktur-biaya.edit');
+
+        Route::livewire('keuangan/komponen-biaya', KomponenBiayaIndex::class)->name('keuangan.komponen-biaya');
+        Route::livewire('keuangan/komponen-biaya/create', KomponenBiayaForm::class)->name('keuangan.komponen-biaya.create');
+        Route::livewire('keuangan/komponen-biaya/{id}/edit', KomponenBiayaForm::class)->name('keuangan.komponen-biaya.edit');
+
+        // Rute literal (create) harus didaftarkan sebelum 'keuangan/kategori-biaya/{id}' supaya
+        // tidak tertangkap sebagai id (lihat catatan di skill siak-livewire-module).
+        Route::livewire('keuangan/kategori-biaya', KategoriBiayaIndex::class)->name('keuangan.kategori-biaya');
+        Route::livewire('keuangan/kategori-biaya/create', KategoriBiayaForm::class)->name('keuangan.kategori-biaya.create');
+        Route::livewire('keuangan/kategori-biaya/{id}/edit', KategoriBiayaForm::class)->name('keuangan.kategori-biaya.edit');
+        Route::livewire('keuangan/kategori-biaya/{id}', KategoriBiayaShow::class)->name('keuangan.kategori-biaya.show');
 
         Route::livewire('fakultas', FakultasIndex::class)->name('fakultas.index');
         Route::livewire('fakultas/create', FakultasForm::class)->name('fakultas.create');

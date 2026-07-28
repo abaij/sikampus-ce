@@ -1,8 +1,10 @@
 @extends('layouts.web')
 
+@php $group = $group ?? 'Akademik'; @endphp
+
 @section('title', $title . ' — ' . config('app.name'))
 @section('header_title', $title)
-@section('header_subtitle', 'Modul akademik')
+@section('header_subtitle', 'Modul ' . strtolower($group))
 @section('header_icon', 'hammer')
 
 @section('nav')
@@ -11,7 +13,7 @@
 
 @section('breadcrumb')
     @include('admin.partials.breadcrumb', ['items' => [
-        ['label' => 'Akademik'],
+        ['label' => $group],
         ['label' => $title],
     ]])
 @endsection

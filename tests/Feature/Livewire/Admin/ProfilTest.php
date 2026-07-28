@@ -55,30 +55,30 @@ it('rejects an email already used by another user', function () {
 
 it('changes the password when the current password is correct', function () {
     $admin = adminUser();
-    $admin->update(['password' => Hash::make('password-lama')]);
+    $admin->update(['password' => Hash::make('SangUhB4s1')]);
 
     Livewire::actingAs($admin)
         ->test(Profil::class)
-        ->set('current_password', 'password-lama')
-        ->set('new_password', 'password-baru')
-        ->set('new_password_confirmation', 'password-baru')
+        ->set('current_password', 'SangUhB4s1')
+        ->set('new_password', 'SangUhAn3ut')
+        ->set('new_password_confirmation', 'SangUhAn3ut')
         ->call('savePassword')
         ->assertHasNoErrors();
 
-    expect(Hash::check('password-baru', $admin->fresh()->password))->toBeTrue();
+    expect(Hash::check('SangUhAn3ut', $admin->fresh()->password))->toBeTrue();
 });
 
 it('rejects the password change when the current password is wrong', function () {
     $admin = adminUser();
-    $admin->update(['password' => Hash::make('password-lama')]);
+    $admin->update(['password' => Hash::make('SangUhB4s1')]);
 
     Livewire::actingAs($admin)
         ->test(Profil::class)
-        ->set('current_password', 'salah')
-        ->set('new_password', 'password-baru')
-        ->set('new_password_confirmation', 'password-baru')
+        ->set('current_password', 'SangUhAn3ut')
+        ->set('new_password', 'SangUhAn3ut')
+        ->set('new_password_confirmation', 'SangUhAn3ut')
         ->call('savePassword')
         ->assertHasErrors(['current_password']);
 
-    expect(Hash::check('password-lama', $admin->fresh()->password))->toBeTrue();
+    expect(Hash::check('SangUhB4s1', $admin->fresh()->password))->toBeTrue();
 });

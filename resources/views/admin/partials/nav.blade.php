@@ -50,6 +50,27 @@
             ],
         ],
         [
+            'label' => 'Keuangan',
+            'items' => [
+                ['route' => 'admin.keuangan.dashboard', 'label' => 'Dashboard'],
+                ['label' => 'Tagihan', 'children' => [
+                    ['route' => 'admin.keuangan.tagihan', 'label' => 'Tagihan'],
+                    ['route' => 'admin.keuangan.tagihan.generate', 'label' => 'Generate Tagihan'],
+                ]],
+                ['label' => 'Pembayaran', 'children' => [
+                    ['route' => 'admin.keuangan.pembayaran', 'label' => 'Pembayaran'],
+                    ['route' => 'admin.keuangan.pembayaran.laporan-pelunasan', 'label' => 'Laporan Pelunasan'],
+                ]],
+                ['label' => 'Keringanan Biaya', 'children' => [
+                    ['route' => 'admin.keuangan.keringanan-biaya', 'label' => 'Keringanan Biaya'],
+                    ['route' => 'admin.keuangan.jenis-keringanan-biaya', 'label' => 'Jenis Keringanan Biaya'],
+                ]],
+                ['route' => 'admin.keuangan.struktur-biaya', 'label' => 'Struktur Biaya'],
+                ['route' => 'admin.keuangan.komponen-biaya', 'label' => 'Komponen Biaya'],
+                ['route' => 'admin.keuangan.kategori-biaya', 'label' => 'Kategori Biaya'],
+            ],
+        ],
+        [
             'label' => 'Pengaturan',
             'items' => [
                 ['label' => 'Akademik', 'children' => [
