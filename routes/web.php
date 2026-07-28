@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\DosenWaliController;
+use App\Http\Controllers\SurveyController;
 use App\Http\Controllers\Web\AdminWebLoginController;
 use App\Http\Controllers\Web\DosenDashboardController;
 use App\Http\Controllers\Web\KrsCetakController;
@@ -77,6 +78,9 @@ use App\Livewire\Admin\Semester\Form as SemesterForm;
 use App\Livewire\Admin\Semester\Index as SemesterIndex;
 use App\Livewire\Admin\StatusAkademik\Form as StatusAkademikForm;
 use App\Livewire\Admin\StatusAkademik\Index as StatusAkademikIndex;
+use App\Livewire\Admin\Survey\Form as SurveyForm;
+use App\Livewire\Admin\Survey\Index as SurveyIndex;
+use App\Livewire\Admin\Survey\Show as SurveyShow;
 use App\Livewire\Admin\TugasAkhir\Index as TugasAkhirIndex;
 use App\Livewire\Admin\TugasAkhir\Show as TugasAkhirShow;
 use App\Livewire\Admin\TugasAkhir\UjianSidangShow;
@@ -229,6 +233,12 @@ Route::prefix('admin')->name('admin.')->group(function (): void {
         Route::livewire('administrasi/ruangan', RuanganIndex::class)->name('administrasi.ruangan');
         Route::livewire('administrasi/ruangan/create', RuanganForm::class)->name('administrasi.ruangan.create');
         Route::livewire('administrasi/ruangan/{id}/edit', RuanganForm::class)->name('administrasi.ruangan.edit');
+
+        Route::livewire('administrasi/survey', SurveyIndex::class)->name('administrasi.survey');
+        Route::livewire('administrasi/survey/create', SurveyForm::class)->name('administrasi.survey.create');
+        Route::livewire('administrasi/survey/{id}/edit', SurveyForm::class)->name('administrasi.survey.edit');
+        Route::get('administrasi/survey/{survey}/statistik/export', [SurveyController::class, 'exportStatistik'])->name('administrasi.survey.statistik.export');
+        Route::livewire('administrasi/survey/{id}', SurveyShow::class)->name('administrasi.survey.show');
 
         Route::livewire('fakultas', FakultasIndex::class)->name('fakultas.index');
         Route::livewire('fakultas/create', FakultasForm::class)->name('fakultas.create');

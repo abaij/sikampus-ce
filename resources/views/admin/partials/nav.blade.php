@@ -45,6 +45,7 @@
                 ]],
                 ['route' => 'admin.jenjang.index', 'label' => 'Jenjang'],
                 ['route' => 'admin.administrasi.ruangan', 'label' => 'Ruangan'],
+                ['route' => 'admin.administrasi.survey', 'label' => 'Survey'],
             ],
         ],
         [
