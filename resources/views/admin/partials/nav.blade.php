@@ -10,6 +10,7 @@
                 ['label' => 'Perkuliahan', 'children' => [
                     ['route' => 'admin.akademik.kelas', 'label' => 'Kelas'],
                     ['route' => 'admin.akademik.jadwal', 'label' => 'Jadwal Kuliah'],
+                    ['route' => 'admin.akademik.jadwal-ujian', 'label' => 'Jadwal Ujian'],
                     ['route' => 'admin.akademik.perkuliahan', 'label' => 'Perkuliahan'],
                 ]],
                 ['label' => 'Nilai', 'children' => [

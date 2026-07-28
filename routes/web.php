@@ -21,6 +21,9 @@ use App\Livewire\Admin\Fakultas\Index as FakultasIndex;
 use App\Livewire\Admin\Jadwal\Form as JadwalForm;
 use App\Livewire\Admin\Jadwal\Index as JadwalIndex;
 use App\Livewire\Admin\Jadwal\Show as JadwalShow;
+use App\Livewire\Admin\JadwalUjian\Form as JadwalUjianForm;
+use App\Livewire\Admin\JadwalUjian\Index as JadwalUjianIndex;
+use App\Livewire\Admin\JadwalUjian\Show as JadwalUjianShow;
 use App\Livewire\Admin\JalurMasuk\Form as JalurMasukForm;
 use App\Livewire\Admin\JalurMasuk\Index as JalurMasukIndex;
 use App\Livewire\Admin\JenisDaftar\Form as JenisDaftarForm;
@@ -177,6 +180,11 @@ Route::prefix('admin')->name('admin.')->group(function (): void {
         Route::livewire('akademik/jadwal/create', JadwalForm::class)->name('akademik.jadwal.create');
         Route::livewire('akademik/jadwal/{id}/edit', JadwalForm::class)->name('akademik.jadwal.edit');
         Route::livewire('akademik/jadwal/{id}', JadwalShow::class)->name('akademik.jadwal.show');
+
+        Route::livewire('akademik/jadwal-ujian', JadwalUjianIndex::class)->name('akademik.jadwal-ujian');
+        Route::livewire('akademik/jadwal-ujian/create', JadwalUjianForm::class)->name('akademik.jadwal-ujian.create');
+        Route::livewire('akademik/jadwal-ujian/{id}/edit', JadwalUjianForm::class)->name('akademik.jadwal-ujian.edit');
+        Route::livewire('akademik/jadwal-ujian/{id}', JadwalUjianShow::class)->name('akademik.jadwal-ujian.show');
 
         // Modul monitoring, tanpa create/edit — cermin dari halaman admin/perkuliahan di frontend
         // (daftar kelas + detail sesi & rekap kehadiran per kelas).
