@@ -68,6 +68,7 @@
                 ['route' => 'admin.keuangan.struktur-biaya', 'label' => 'Struktur Biaya'],
                 ['route' => 'admin.keuangan.komponen-biaya', 'label' => 'Komponen Biaya'],
                 ['route' => 'admin.keuangan.kategori-biaya', 'label' => 'Kategori Biaya'],
+                ['route' => 'admin.keuangan.aturan-akses-keuangan', 'label' => 'Aturan Akses Keuangan'],
             ],
         ],
         [

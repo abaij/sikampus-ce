@@ -11,6 +11,8 @@ use App\Http\Controllers\Web\NilaiExportController;
 use App\Http\Controllers\Web\SuperadminEnvConfigController;
 use App\Http\Controllers\Web\SuperadminTestUploadController;
 use App\Http\Controllers\Web\SuperadminWebLoginController;
+use App\Livewire\Admin\AturanAksesKeuangan\Form as AturanAksesKeuanganForm;
+use App\Livewire\Admin\AturanAksesKeuangan\Index as AturanAksesKeuanganIndex;
 use App\Livewire\Admin\Dashboard as AdminDashboard;
 use App\Livewire\Admin\Dosen\Form as DosenForm;
 use App\Livewire\Admin\Dosen\Index as DosenIndex;
@@ -298,6 +300,10 @@ Route::prefix('admin')->name('admin.')->group(function (): void {
         Route::livewire('keuangan/jenis-keringanan-biaya', JenisKeringananBiayaIndex::class)->name('keuangan.jenis-keringanan-biaya');
         Route::livewire('keuangan/jenis-keringanan-biaya/create', JenisKeringananBiayaForm::class)->name('keuangan.jenis-keringanan-biaya.create');
         Route::livewire('keuangan/jenis-keringanan-biaya/{id}/edit', JenisKeringananBiayaForm::class)->name('keuangan.jenis-keringanan-biaya.edit');
+
+        Route::livewire('keuangan/aturan-akses-keuangan', AturanAksesKeuanganIndex::class)->name('keuangan.aturan-akses-keuangan');
+        Route::livewire('keuangan/aturan-akses-keuangan/create', AturanAksesKeuanganForm::class)->name('keuangan.aturan-akses-keuangan.create');
+        Route::livewire('keuangan/aturan-akses-keuangan/{id}/edit', AturanAksesKeuanganForm::class)->name('keuangan.aturan-akses-keuangan.edit');
         // Rute literal (create) harus didaftarkan sebelum 'keuangan/struktur-biaya/{id}/edit'
         // supaya konsisten dengan modul lain (lihat catatan di skill siak-livewire-module).
         Route::livewire('keuangan/struktur-biaya', StrukturBiayaIndex::class)->name('keuangan.struktur-biaya');
