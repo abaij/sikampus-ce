@@ -59,6 +59,8 @@ use App\Livewire\Admin\Nilai\Show as NilaiShow;
 use App\Livewire\Admin\Pengguna\Form as PenggunaForm;
 use App\Livewire\Admin\Pengguna\Index as PenggunaIndex;
 use App\Livewire\Admin\Pengguna\Show as PenggunaShow;
+use App\Livewire\Admin\Pengumuman\Form as PengumumanForm;
+use App\Livewire\Admin\Pengumuman\Index as PengumumanIndex;
 use App\Livewire\Admin\PerguruanTinggi as AdminPerguruanTinggi;
 use App\Livewire\Admin\Perkuliahan\Index as PerkuliahanIndex;
 use App\Livewire\Admin\Perkuliahan\Nilai as PerkuliahanNilai;
@@ -239,6 +241,10 @@ Route::prefix('admin')->name('admin.')->group(function (): void {
         Route::livewire('administrasi/survey/{id}/edit', SurveyForm::class)->name('administrasi.survey.edit');
         Route::get('administrasi/survey/{survey}/statistik/export', [SurveyController::class, 'exportStatistik'])->name('administrasi.survey.statistik.export');
         Route::livewire('administrasi/survey/{id}', SurveyShow::class)->name('administrasi.survey.show');
+
+        Route::livewire('administrasi/pengumuman', PengumumanIndex::class)->name('administrasi.pengumuman');
+        Route::livewire('administrasi/pengumuman/create', PengumumanForm::class)->name('administrasi.pengumuman.create');
+        Route::livewire('administrasi/pengumuman/{id}/edit', PengumumanForm::class)->name('administrasi.pengumuman.edit');
 
         Route::livewire('fakultas', FakultasIndex::class)->name('fakultas.index');
         Route::livewire('fakultas/create', FakultasForm::class)->name('fakultas.create');
