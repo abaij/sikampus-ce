@@ -8,10 +8,12 @@ use App\Models\Semester;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Computed;
+use Livewire\Attributes\Locked;
 use Livewire\Component;
 
 class Index extends Component
 {
+    #[Locked]
     public int $dosenId;
 
     public string $filterSemester = '';

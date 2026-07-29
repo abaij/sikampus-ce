@@ -10,13 +10,16 @@ use App\Models\Krs;
 use App\Models\Perkuliahan;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Computed;
+use Livewire\Attributes\Locked;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 
 class Show extends Component
 {
+    #[Locked]
     public int $kelasId;
 
+    #[Locked]
     public int $dosenId;
 
     public bool $isPic = false;

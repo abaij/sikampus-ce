@@ -3,6 +3,7 @@
 use App\Http\Controllers\DosenWaliController;
 use App\Http\Controllers\SurveyController;
 use App\Http\Controllers\Web\AdminWebLoginController;
+use App\Http\Controllers\Web\DosenBimbinganExportController;
 use App\Http\Controllers\Web\KrsCetakController;
 use App\Http\Controllers\Web\LoginController;
 use App\Http\Controllers\Web\MahasiswaDashboardController;
@@ -118,7 +119,19 @@ use App\Livewire\Dosen\Jadwal\Detail as DosenJadwalDetail;
 use App\Livewire\Dosen\Jadwal\Index as DosenJadwalIndex;
 use App\Livewire\Dosen\Jadwal\Show as DosenJadwalShow;
 use App\Livewire\Dosen\Kelas\Index as DosenKelasIndex;
+use App\Livewire\Dosen\Krs\Index as DosenKrsIndex;
+use App\Livewire\Dosen\Nilai\Index as DosenNilaiIndex;
+use App\Livewire\Dosen\Nilai\Input as DosenNilaiInput;
+use App\Livewire\Dosen\Nilai\Rekap as DosenNilaiRekap;
+use App\Livewire\Dosen\Perwalian\Index as DosenPerwalianIndex;
+use App\Livewire\Dosen\Perwalian\Show as DosenPerwalianShow;
 use App\Livewire\Dosen\Profil as DosenProfil;
+use App\Livewire\Dosen\Rps\Index as DosenRpsIndex;
+use App\Livewire\Dosen\Rps\Show as DosenRpsShow;
+use App\Livewire\Dosen\TugasAkhir\Index as DosenTugasAkhirIndex;
+use App\Livewire\Dosen\TugasAkhir\Show as DosenTugasAkhirShow;
+use App\Livewire\Dosen\UjianSidang\Index as DosenUjianSidangIndex;
+use App\Livewire\Dosen\UjianSidang\Show as DosenUjianSidangShow;
 use App\Livewire\Mahasiswa\Profil as MahasiswaProfil;
 use Illuminate\Support\Facades\Route;
 
@@ -159,12 +172,28 @@ Route::middleware(['auth', 'role.dosen.web'])->group(function (): void {
     Route::livewire('/dosen/jadwal/{kelasId}', DosenJadwalShow::class)->name('dosen.jadwal.show');
     Route::livewire('/dosen/jadwal/{kelasId}/{jadwalId}', DosenJadwalDetail::class)->name('dosen.jadwal.detail');
 
-    Route::view('/dosen/nilai', 'dosen.coming-soon', ['title' => 'Nilai'])->name('dosen.nilai');
-    Route::view('/dosen/rps', 'dosen.coming-soon', ['title' => 'RPS'])->name('dosen.rps');
-    Route::view('/dosen/krs', 'dosen.coming-soon', ['title' => 'Persetujuan KRS'])->name('dosen.krs');
-    Route::view('/dosen/perwalian', 'dosen.coming-soon', ['title' => 'Perwalian'])->name('dosen.perwalian');
-    Route::view('/dosen/tugas-akhir', 'dosen.coming-soon', ['title' => 'Tugas Akhir'])->name('dosen.tugas-akhir');
-    Route::view('/dosen/ujian-sidang', 'dosen.coming-soon', ['title' => 'Ujian Sidang'])->name('dosen.ujian-sidang');
+    // Rute literal ('/dosen/nilai') harus di atas rute berparameter ('{kelasId}', '{kelasId}/rekap').
+    Route::livewire('/dosen/nilai', DosenNilaiIndex::class)->name('dosen.nilai');
+    Route::livewire('/dosen/nilai/{kelasId}', DosenNilaiInput::class)->name('dosen.nilai.input');
+    Route::livewire('/dosen/nilai/{kelasId}/rekap', DosenNilaiRekap::class)->name('dosen.nilai.rekap');
+
+    // Rute literal ('/dosen/rps') harus di atas rute berparameter ('{kelasId}').
+    Route::livewire('/dosen/rps', DosenRpsIndex::class)->name('dosen.rps');
+    Route::livewire('/dosen/rps/{kelasId}', DosenRpsShow::class)->name('dosen.rps.show');
+
+    Route::livewire('/dosen/krs', DosenKrsIndex::class)->name('dosen.krs');
+
+    // Rute literal ('/dosen/perwalian') harus di atas rute berparameter ('{idMahasiswa}', '{idMahasiswa}/bimbingan/export').
+    Route::livewire('/dosen/perwalian', DosenPerwalianIndex::class)->name('dosen.perwalian');
+    Route::get('/dosen/perwalian/{idMahasiswa}/bimbingan/export', [DosenBimbinganExportController::class, 'excel'])->name('dosen.perwalian.bimbingan.export');
+    Route::livewire('/dosen/perwalian/{idMahasiswa}', DosenPerwalianShow::class)->name('dosen.perwalian.show');
+
+    // Rute literal ('/dosen/tugas-akhir', '/dosen/ujian-sidang') harus di atas rute berparameter ('{id}').
+    Route::livewire('/dosen/tugas-akhir', DosenTugasAkhirIndex::class)->name('dosen.tugas-akhir');
+    Route::livewire('/dosen/tugas-akhir/{id}', DosenTugasAkhirShow::class)->name('dosen.tugas-akhir.show');
+    Route::livewire('/dosen/ujian-sidang', DosenUjianSidangIndex::class)->name('dosen.ujian-sidang');
+    Route::livewire('/dosen/ujian-sidang/{id}', DosenUjianSidangShow::class)->name('dosen.ujian-sidang.show');
+
     Route::view('/dosen/arsip', 'dosen.coming-soon', ['title' => 'Arsip'])->name('dosen.arsip');
 });
 

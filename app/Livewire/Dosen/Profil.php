@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
+use Livewire\Attributes\Locked;
 use Livewire\Component;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Livewire\WithFileUploads;
@@ -21,6 +22,9 @@ class Profil extends Component
 
     public string $activeTab = 'biodata';
 
+    // Locked: dosenId hanya boleh diisi lewat mount() (dari user login), bukan lewat request
+    // Livewire yang dimanipulasi — properti publik biasa bisa di-override langsung oleh client.
+    #[Locked]
     public int $dosenId;
 
     public string $kode_dosen = '';

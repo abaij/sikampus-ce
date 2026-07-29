@@ -11,10 +11,14 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route as RouteFacade;
 use Livewire\Attributes\Computed;
+use Livewire\Attributes\Locked;
 use Livewire\Component;
 
 class Dashboard extends Component
 {
+    // Locked: dosenId hanya boleh diisi lewat mount() (dari user login), bukan lewat request
+    // Livewire yang dimanipulasi — properti publik biasa bisa di-override langsung oleh client.
+    #[Locked]
     public int $dosenId;
 
     public function mount(): void

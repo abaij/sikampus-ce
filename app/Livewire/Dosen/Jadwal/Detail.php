@@ -11,15 +11,22 @@ use App\Models\Ruangan;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Computed;
+use Livewire\Attributes\Locked;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 
 class Detail extends Component
 {
+    // Locked: saveJadwal()/saveBahasan() memakai jadwalId langsung tanpa mengecek ulang akses
+    // dosen (hanya dicek sekali di mount()) — tanpa ini, jadwalId bisa "disentuh" lewat request
+    // Livewire yang dimanipulasi untuk mengedit jadwal milik kelas lain.
+    #[Locked]
     public int $kelasId;
 
+    #[Locked]
     public int $jadwalId;
 
+    #[Locked]
     public int $dosenId;
 
     #[Url(as: 'id_semester')]
