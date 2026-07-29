@@ -261,13 +261,14 @@ class Show extends Component
             return [collect(), []];
         }
 
+        // Collection::sortBy([$closure, $closure]) memanggil tiap closure sebagai comparator
+        // dua-argumen ($a, $b), bukan sebagai pengambil nilai — closure satu-argumen di sini diam-
+        // diam menghasilkan urutan yang salah. Satu closure yang mengembalikan array kunci majemuk
+        // aman untuk perbandingan array bawaan PHP.
         $list = Perkuliahan::whereIn('id_jadwal', $jadwalIds)
             ->whereNull('deleted_at')
             ->get()
-            ->sortBy([
-                fn (Perkuliahan $p) => $p->waktu_mulai?->getTimestamp() ?? \PHP_INT_MAX,
-                fn (Perkuliahan $p) => $p->id,
-            ])
+            ->sortBy(fn (Perkuliahan $p) => [$p->waktu_mulai?->getTimestamp() ?? \PHP_INT_MAX, $p->id])
             ->values();
 
         $idToCol = [];

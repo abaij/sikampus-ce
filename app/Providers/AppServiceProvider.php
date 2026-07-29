@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Models\Dosen;
+use App\Models\Mahasiswa;
 use App\Models\Semester;
 use App\Models\Setting;
 use Illuminate\Auth\Notifications\ResetPassword;
@@ -37,7 +38,7 @@ class AppServiceProvider extends ServiceProvider
         // variabel @php di parent tidak pernah terlihat oleh section milik anak. Composer men-supply
         // variabel yang sama ke kedua view secara independen, jadi favicon, brand mark header,
         // footer, dan brand mark halaman login semuanya konsisten dari satu sumber.
-        View::composer(['layouts.web', 'layouts.dosen', 'auth.login'], function ($view): void {
+        View::composer(['layouts.web', 'layouts.dosen', 'layouts.mahasiswa', 'auth.login'], function ($view): void {
             $univSettings = Setting::whereIn('key', ['app_univ_name', 'app_univ_logo'])->pluck('value', 'key');
             $namaPerguruanTinggi = trim((string) $univSettings->get('app_univ_name'));
             $logoPerguruanTinggi = trim((string) $univSettings->get('app_univ_logo'));
@@ -74,9 +75,19 @@ class AppServiceProvider extends ServiceProvider
 
             $view->with([
                 'dosenSidebarKodeDosen' => $dosen?->kode_dosen,
+                'dosenSidebarFotoUrl' => $dosen?->foto ? asset('storage/'.ltrim($dosen->foto, '/')) : null,
                 'dosenHasProdiScope' => $user?->hasProdiScope() ?? false,
                 'dosenProdiPortalUrl' => $frontendUrl.'/prodi',
             ]);
+        });
+
+        // Sidebar mahasiswa (layouts.mahasiswa) butuh NIM untuk kartu info user — dibagikan
+        // lewat composer dengan alasan sama seperti layouts.dosen di atas.
+        View::composer('layouts.mahasiswa', function ($view): void {
+            $user = auth()->user();
+            $mahasiswa = $user ? Mahasiswa::where('id_user', $user->id)->first() : null;
+
+            $view->with('mahasiswaSidebarNim', $mahasiswa?->nim);
         });
     }
 }

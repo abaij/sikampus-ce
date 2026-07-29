@@ -106,6 +106,6 @@ class Profil extends Component
 
     public function render()
     {
-        return view('livewire.mahasiswa.profil')->extends('layouts.web');
+        return view('livewire.mahasiswa.profil')->extends('layouts.mahasiswa');
     }
 }

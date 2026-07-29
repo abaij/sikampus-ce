@@ -210,10 +210,35 @@ Route::middleware(['auth', 'role.dosen.web'])->group(function (): void {
     Route::livewire('/dosen/kehadiran/{id}', DosenKehadiranDetail::class)->name('dosen.kehadiran.detail');
 });
 
-// Dashboard mahasiswa — placeholder, modulnya menyusul.
+// Area mahasiswa (sidebar, lihat resources/views/layouts/mahasiswa.blade.php +
+// mahasiswa/partials/sidebar). Dashboard & Profil sudah fungsional (meski dashboard masih
+// placeholder); modul lain masih menunjuk ke 'mahasiswa.coming-soon' sampai masing-masing
+// diport dari siak-frontend (lihat .claude/skills/siak-livewire-module).
 Route::middleware(['auth', 'role.mahasiswa.web'])->group(function (): void {
     Route::get('/mahasiswa/dashboard', [MahasiswaDashboardController::class, 'index'])->name('mahasiswa.dashboard');
     Route::livewire('/mahasiswa/profil', MahasiswaProfil::class)->name('mahasiswa.profil');
+
+    Route::view('/mahasiswa/jadwal', 'mahasiswa.coming-soon', ['title' => 'Jadwal'])->name('mahasiswa.jadwal');
+    Route::view('/mahasiswa/kehadiran', 'mahasiswa.coming-soon', ['title' => 'Kehadiran'])->name('mahasiswa.kehadiran');
+
+    Route::view('/mahasiswa/krs/pengajuan', 'mahasiswa.coming-soon', ['title' => 'Pengajuan KRS'])->name('mahasiswa.krs.pengajuan');
+    Route::view('/mahasiswa/krs', 'mahasiswa.coming-soon', ['title' => 'KRS'])->name('mahasiswa.krs');
+
+    Route::view('/mahasiswa/bimbingan-akademik', 'mahasiswa.coming-soon', ['title' => 'Perwalian'])->name('mahasiswa.bimbingan-akademik');
+
+    Route::view('/mahasiswa/nilai/semester', 'mahasiswa.coming-soon', ['title' => 'Nilai Semester'])->name('mahasiswa.nilai.semester');
+    Route::view('/mahasiswa/nilai/transkrip', 'mahasiswa.coming-soon', ['title' => 'Transkrip'])->name('mahasiswa.nilai.transkrip');
+
+    Route::view('/mahasiswa/akhir-studi/tugas-akhir', 'mahasiswa.coming-soon', ['title' => 'Tugas Akhir'])->name('mahasiswa.akhir-studi.tugas-akhir');
+    Route::view('/mahasiswa/akhir-studi/bimbingan-tugas-akhir', 'mahasiswa.coming-soon', ['title' => 'Bimbingan Tugas Akhir'])->name('mahasiswa.akhir-studi.bimbingan-tugas-akhir');
+    Route::view('/mahasiswa/akhir-studi/ujian-sidang', 'mahasiswa.coming-soon', ['title' => 'Ujian Sidang'])->name('mahasiswa.akhir-studi.ujian-sidang');
+    Route::view('/mahasiswa/akhir-studi/yudisium-wisuda', 'mahasiswa.coming-soon', ['title' => 'Yudisium & Wisuda'])->name('mahasiswa.akhir-studi.yudisium-wisuda');
+
+    Route::view('/mahasiswa/tagihan', 'mahasiswa.coming-soon', ['title' => 'Tagihan'])->name('mahasiswa.tagihan');
+    Route::view('/mahasiswa/pembayaran', 'mahasiswa.coming-soon', ['title' => 'Pembayaran'])->name('mahasiswa.pembayaran');
+    Route::view('/mahasiswa/keringanan-biaya', 'mahasiswa.coming-soon', ['title' => 'Keringanan Biaya'])->name('mahasiswa.keringanan-biaya');
+
+    Route::view('/mahasiswa/survey', 'mahasiswa.coming-soon', ['title' => 'Survey'])->name('mahasiswa.survey');
 });
 
 // Panel admin (Livewire) — superadmin/akademik/keuangan. Login-nya sendiri sudah disatukan

@@ -3,17 +3,20 @@
 namespace App\Http\Controllers;
 
 use App\Models\Dosen;
-use App\Models\JadwalDosen;
 use App\Models\Jadwal;
+use App\Models\JadwalDosen;
+use App\Models\Kehadiran;
 use App\Models\Kelas;
 use App\Models\KelasDosen;
 use App\Models\KelompokKelas;
+use App\Models\Krs;
 use App\Models\KurikulumMatkul;
 use App\Models\MateriPerkuliahan;
 use App\Models\Perkuliahan;
 use App\Models\Ruangan;
 use App\Models\Semester;
 use Carbon\Carbon;
+use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -21,6 +24,8 @@ use Illuminate\Support\Facades\Storage;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Shared\Date as SpreadsheetDate;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -63,7 +68,7 @@ class PerkuliahanController extends Controller
             $hasAccess = true;
         } else {
             // Cek apakah dosen memiliki jadwal di kelas ini
-            $hasJadwal = \App\Models\JadwalDosen::whereHas('jadwal', function ($q) use ($kelasId) {
+            $hasJadwal = JadwalDosen::whereHas('jadwal', function ($q) use ($kelasId) {
                 $q->where('id_kelas', $kelasId);
             })
                 ->where('id_dosen', $dosen->id)
@@ -89,7 +94,7 @@ class PerkuliahanController extends Controller
         }
 
         // Ambil semua jadwal untuk kelas ini
-        $jadwalIds = \App\Models\Jadwal::where('id_kelas', $kelasId)
+        $jadwalIds = Jadwal::where('id_kelas', $kelasId)
             ->whereNull('deleted_at')
             ->pluck('id')
             ->toArray();
@@ -159,7 +164,7 @@ class PerkuliahanController extends Controller
         if ($kelas->id_dosen_pic === $dosen->id) {
             $hasAccess = true;
         } else {
-            $hasJadwal = \App\Models\JadwalDosen::whereHas('jadwal', function ($q) use ($validated) {
+            $hasJadwal = JadwalDosen::whereHas('jadwal', function ($q) use ($validated) {
                 $q->where('id_kelas', $validated['id_kelas']);
             })
                 ->where('id_dosen', $dosen->id)
@@ -274,9 +279,9 @@ class PerkuliahanController extends Controller
 
         if (array_key_exists('waktu_selesai', $validated) && $validated['waktu_selesai'] !== null) {
             $mulai = isset($validated['waktu_mulai'])
-                ? \Carbon\Carbon::parse($validated['waktu_mulai'])
+                ? Carbon::parse($validated['waktu_mulai'])
                 : $perkuliahan->waktu_mulai;
-            if (! $mulai || \Carbon\Carbon::parse($validated['waktu_selesai'])->lte($mulai)) {
+            if (! $mulai || Carbon::parse($validated['waktu_selesai'])->lte($mulai)) {
                 return response()->json([
                     'message' => 'Waktu selesai harus setelah waktu mulai',
                 ], 422);
@@ -417,7 +422,7 @@ class PerkuliahanController extends Controller
             if ($kelas->id_dosen_pic === $dosen->id) {
                 $hasAccess = true;
             } else {
-                $hasJadwal = \App\Models\JadwalDosen::whereHas('jadwal', function ($q) use ($kelasId) {
+                $hasJadwal = JadwalDosen::whereHas('jadwal', function ($q) use ($kelasId) {
                     $q->where('id_kelas', $kelasId);
                 })
                     ->where('id_dosen', $dosen->id)
@@ -435,7 +440,7 @@ class PerkuliahanController extends Controller
         }
 
         // Ambil semua jadwal untuk kelas-kelas yang dapat diakses
-        $jadwalIds = \App\Models\Jadwal::whereIn('id_kelas', $accessibleKelasIds)
+        $jadwalIds = Jadwal::whereIn('id_kelas', $accessibleKelasIds)
             ->whereNull('deleted_at')
             ->pluck('id')
             ->toArray();
@@ -480,7 +485,7 @@ class PerkuliahanController extends Controller
 
         // Jika tidak ada parameter, gunakan semester aktif
         if (! $idSemesterMasuk) {
-            $activeSemester = \App\Models\Semester::where('is_active', true)->first();
+            $activeSemester = Semester::where('is_active', true)->first();
             if ($activeSemester) {
                 $idSemesterMasuk = $activeSemester->id;
             }
@@ -496,7 +501,7 @@ class PerkuliahanController extends Controller
             ->toArray();
 
         // Cara 2: Kelas dimana dosen memiliki jadwal aktif di semester yang dipilih
-        $jadwalDosenQuery = \App\Models\JadwalDosen::where('id_dosen', $dosen->id)
+        $jadwalDosenQuery = JadwalDosen::where('id_dosen', $dosen->id)
             ->where('status', 'active');
 
         if ($idSemesterMasuk) {
@@ -519,9 +524,9 @@ class PerkuliahanController extends Controller
 
         // Jika tidak ada kelas yang sesuai, return empty
         if (empty($kelasIds)) {
-            $activeSemester = \App\Models\Semester::where('is_active', true)->first();
+            $activeSemester = Semester::where('is_active', true)->first();
             $selectedSemester = $idSemesterMasuk
-                ? \App\Models\Semester::find($idSemesterMasuk)
+                ? Semester::find($idSemesterMasuk)
                 : $activeSemester;
 
             return response()->json([
@@ -535,7 +540,7 @@ class PerkuliahanController extends Controller
         }
 
         // Ambil semua jadwal untuk kelas-kelas tersebut
-        $jadwalQuery = \App\Models\Jadwal::whereIn('id_kelas', $kelasIds)
+        $jadwalQuery = Jadwal::whereIn('id_kelas', $kelasIds)
             ->whereNull('deleted_at');
 
         if ($idSemesterMasuk) {
@@ -617,7 +622,7 @@ class PerkuliahanController extends Controller
             ];
 
             // Hitung jumlah mahasiswa untuk kelas ini
-            $jumlahMahasiswa = \App\Models\Krs::where('id_kelas', $kelasId)
+            $jumlahMahasiswa = Krs::where('id_kelas', $kelasId)
                 ->whereNull('deleted_at')
                 ->selectRaw('COUNT(DISTINCT id_mahasiswa) as count')
                 ->value('count') ?? 0;
@@ -628,7 +633,7 @@ class PerkuliahanController extends Controller
             // Hitung jumlah hadir per perkuliahan
             $jumlahHadirPerPerkuliahan = [];
             if (! empty($perkuliahanIds)) {
-                $kehadiranCounts = \App\Models\Kehadiran::whereIn('id_perkuliahan', $perkuliahanIds)
+                $kehadiranCounts = Kehadiran::whereIn('id_perkuliahan', $perkuliahanIds)
                     ->whereNull('deleted_at')
                     ->where('status', 'hadir')
                     ->selectRaw('id_perkuliahan, COUNT(DISTINCT id_mhs) as jumlah_hadir')
@@ -642,11 +647,12 @@ class PerkuliahanController extends Controller
             }
 
             // Format data perkuliahan (tanpa nested jadwal.kelas untuk menghindari duplikasi)
+            // Collection::sortBy([$closure, $closure]) memanggil tiap closure sebagai comparator
+            // dua-argumen ($a, $b), bukan sebagai pengambil nilai — closure satu-argumen di sini
+            // diam-diam menghasilkan urutan yang salah. Satu closure yang mengembalikan array
+            // kunci majemuk aman untuk perbandingan array bawaan PHP.
             $sortedGroup = $perkuliahanGroup
-                ->sortBy([
-                    fn ($item) => $item->waktu_mulai?->getTimestamp() ?? \PHP_INT_MAX,
-                    fn ($item) => $item->id,
-                ])
+                ->sortBy(fn ($item) => [$item->waktu_mulai?->getTimestamp() ?? \PHP_INT_MAX, $item->id])
                 ->values();
 
             $perkuliahanData = $sortedGroup->map(function ($item, $idx) use ($jumlahMahasiswa, $jumlahHadirPerPerkuliahan) {
@@ -675,9 +681,9 @@ class PerkuliahanController extends Controller
         })->values();
 
         // Ambil semester aktif untuk response
-        $activeSemester = \App\Models\Semester::where('is_active', true)->first();
+        $activeSemester = Semester::where('is_active', true)->first();
         $selectedSemester = $idSemesterMasuk
-            ? \App\Models\Semester::find($idSemesterMasuk)
+            ? Semester::find($idSemesterMasuk)
             : $activeSemester;
 
         return response()->json([
@@ -729,10 +735,10 @@ class PerkuliahanController extends Controller
         $headerStyle = [
             'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
             'fill' => [
-                'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                'fillType' => Fill::FILL_SOLID,
                 'startColor' => ['rgb' => '4472C4'],
             ],
-            'alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER],
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
         ];
         $sheet->getStyle('A1:L1')->applyFromArray($headerStyle);
 
@@ -1173,7 +1179,7 @@ class PerkuliahanController extends Controller
     /**
      * Nama dosen lengkap (gelar + nama) untuk kolom created_by / updated_by.
      */
-    private function namaLengkapDosen(Dosen $dosen, ?\Illuminate\Contracts\Auth\Authenticatable $user = null): string
+    private function namaLengkapDosen(Dosen $dosen, ?Authenticatable $user = null): string
     {
         $nama = trim(
             ($dosen->gelar_depan ? $dosen->gelar_depan.' ' : '').
@@ -1206,7 +1212,7 @@ class PerkuliahanController extends Controller
             return true;
         }
 
-        return \App\Models\JadwalDosen::where('id_jadwal', $perkuliahan->id_jadwal)
+        return JadwalDosen::where('id_jadwal', $perkuliahan->id_jadwal)
             ->where('id_dosen', $dosen->id)
             ->where('status', 'active')
             ->exists();
@@ -1225,7 +1231,7 @@ class PerkuliahanController extends Controller
             return true;
         }
 
-        return \App\Models\JadwalDosen::where('id_dosen', $dosen->id)
+        return JadwalDosen::where('id_dosen', $dosen->id)
             ->where('id_jadwal', $jadwal->id)
             ->where('status', 'active')
             ->exists();

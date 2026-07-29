@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
-{{-- Layout khusus area dosen (sidebar kiri), terpisah dari layouts.web (navbar atas) yang
-     dipakai panel admin/mahasiswa/superadmin. $namaPerguruanTinggi & $logoPerguruanTinggiSrc
-     dipasok View Composer yang sama di AppServiceProvider::boot(). --}}
+{{-- Layout khusus area mahasiswa (sidebar kiri), meniru struktur layouts.dosen — terpisah dari
+     layouts.web (navbar atas) yang dipakai panel admin/superadmin. $namaPerguruanTinggi &
+     $logoPerguruanTinggiSrc dipasok View Composer yang sama di AppServiceProvider::boot(). --}}
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -38,23 +38,22 @@
 
 {{-- Toggle sidebar mobile lewat checkbox murni (tanpa Alpine) — konsisten dengan filosofi
      layouts.web bahwa navigasi persisten tidak boleh bergantung pada Livewire/Alpine, karena
-     tidak semua halaman dosen tentu memuat komponen Livewire. --}}
+     tidak semua halaman mahasiswa tentu memuat komponen Livewire. --}}
 <div class="min-h-screen lg:flex">
     {{-- Checkbox harus jadi sibling langsung dari elemen yang dituju oleh peer-checked:* (aside,
          backdrop) — Tailwind memakai general sibling combinator (~), yang tidak menembus level
-         DOM. Sebelumnya checkbox ini diletakkan di luar <div>, jadi peer-checked:* di atas tidak
-         pernah menyala; jangan pindahkan lagi ke luar div ini. --}}
-    <input type="checkbox" id="dosen-sidebar-toggle" class="peer hidden">
+         DOM. Jangan pindahkan ke luar div ini (lihat catatan yang sama di layouts.dosen). --}}
+    <input type="checkbox" id="mahasiswa-sidebar-toggle" class="peer hidden">
 
     <label
-        for="dosen-sidebar-toggle"
+        for="mahasiswa-sidebar-toggle"
         class="fixed top-4 left-4 z-50 flex h-10 w-10 cursor-pointer items-center justify-center rounded-lg bg-white shadow-border lg:hidden"
     >
         <i data-lucide="menu" class="h-5 w-5 text-neutral-700" aria-hidden="true"></i>
     </label>
 
     <label
-        for="dosen-sidebar-toggle"
+        for="mahasiswa-sidebar-toggle"
         class="fixed inset-0 z-30 hidden bg-neutral-900/40 peer-checked:block lg:hidden"
     ></label>
 
@@ -81,42 +80,20 @@
 
         <div class="border-b border-neutral-200 bg-neutral-50 p-4">
             <div class="flex items-center gap-3">
-                @if ($dosenSidebarFotoUrl ?? null)
-                    <img
-                        src="{{ $dosenSidebarFotoUrl }}"
-                        alt="{{ $authUser->name ?? '' }}"
-                        class="h-10 w-10 shrink-0 rounded-full object-cover ring-1 ring-neutral-200"
-                    />
-                @else
-                    <div class="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-neutral-900 text-sm font-semibold text-white">
-                        {{ $userInitials }}
-                    </div>
-                @endif
+                <div class="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-neutral-900 text-sm font-semibold text-white">
+                    {{ $userInitials }}
+                </div>
                 <div class="min-w-0">
                     <p class="truncate text-sm font-semibold text-neutral-900">{{ $authUser->name ?? '' }}</p>
-                    @if ($dosenSidebarKodeDosen ?? null)
-                        <p class="truncate text-xs text-neutral-500">Kode: {{ $dosenSidebarKodeDosen }}</p>
+                    @if ($mahasiswaSidebarNim ?? null)
+                        <p class="truncate text-xs text-neutral-500">NIM: {{ $mahasiswaSidebarNim }}</p>
                     @endif
                 </div>
             </div>
         </div>
 
-        @if ($dosenHasProdiScope ?? false)
-            <div class="px-4 pt-4">
-                <a
-                    href="{{ $dosenProdiPortalUrl }}"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="flex w-full items-center justify-center gap-2 rounded-xl border border-sky-200 bg-sky-50 px-3 py-2.5 text-sm font-semibold text-sky-800 shadow-sm transition hover:bg-sky-100"
-                >
-                    <i data-lucide="landmark" class="h-4 w-4 shrink-0" aria-hidden="true"></i>
-                    Administrasi Prodi
-                </a>
-            </div>
-        @endif
-
-        <nav class="flex-1 space-y-1 overflow-y-auto p-4" aria-label="Navigasi dosen">
-            @include('dosen.partials.sidebar')
+        <nav class="flex-1 space-y-1 overflow-y-auto p-4" aria-label="Navigasi mahasiswa">
+            @include('mahasiswa.partials.sidebar')
         </nav>
 
         <div class="border-t border-neutral-200 p-4">

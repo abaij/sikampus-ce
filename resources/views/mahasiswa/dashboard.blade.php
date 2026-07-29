@@ -1,9 +1,8 @@
-@extends('layouts.web')
+@extends('layouts.mahasiswa')
 
 @section('title', 'Dashboard Mahasiswa — ' . config('app.name'))
 @section('header_title', 'Dashboard Mahasiswa')
 @section('header_subtitle', 'Selamat datang, ' . (auth()->user()->name ?? 'Mahasiswa'))
-@section('header_icon', 'graduation-cap')
 
 @section('content')
     <div class="rounded-2xl bg-white p-10 text-center shadow-border">

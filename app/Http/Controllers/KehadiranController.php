@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Dosen;
+use App\Models\Jadwal;
 use App\Models\JadwalDosen;
 use App\Models\Kehadiran;
 use App\Models\Kelas;
@@ -12,8 +13,12 @@ use App\Models\Mahasiswa;
 use App\Models\Perkuliahan;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -240,7 +245,7 @@ class KehadiranController extends Controller
         }
 
         // Ambil semua jadwal untuk kelas ini
-        $jadwalIds = \App\Models\Jadwal::where('id_kelas', $kelasId)
+        $jadwalIds = Jadwal::where('id_kelas', $kelasId)
             ->whereNull('deleted_at')
             ->pluck('id')
             ->toArray();
@@ -384,7 +389,7 @@ class KehadiranController extends Controller
             ], 404);
         }
 
-        $jadwalIds = \App\Models\Jadwal::where('id_kelas', $kelasId)
+        $jadwalIds = Jadwal::where('id_kelas', $kelasId)
             ->whereNull('deleted_at')
             ->pluck('id')
             ->toArray();
@@ -502,7 +507,7 @@ class KehadiranController extends Controller
         }
 
         // Ambil semua jadwal untuk kelas ini
-        $jadwalIds = \App\Models\Jadwal::where('id_kelas', $kelasId)
+        $jadwalIds = Jadwal::where('id_kelas', $kelasId)
             ->whereNull('deleted_at')
             ->pluck('id')
             ->toArray();
@@ -616,7 +621,7 @@ class KehadiranController extends Controller
         }
 
         // Ambil semua jadwal untuk kelas ini
-        $jadwalIds = \App\Models\Jadwal::where('id_kelas', $kelasId)
+        $jadwalIds = Jadwal::where('id_kelas', $kelasId)
             ->whereNull('deleted_at')
             ->pluck('id')
             ->toArray();
@@ -705,12 +710,12 @@ class KehadiranController extends Controller
         $headerStyle = [
             'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
             'fill' => [
-                'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                'fillType' => Fill::FILL_SOLID,
                 'startColor' => ['rgb' => '4472C4'],
             ],
-            'alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER],
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
         ];
-        $lastHeaderCol = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(count($headers));
+        $lastHeaderCol = Coordinate::stringFromColumnIndex(count($headers));
         $sheet->getStyle('A'.$row.':'.$lastHeaderCol.$row)->applyFromArray($headerStyle);
 
         // Data rows
@@ -743,7 +748,7 @@ class KehadiranController extends Controller
                             $statusLabel = $status;
                     }
                 }
-                $col = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIndex + 1);
+                $col = Coordinate::stringFromColumnIndex($colIndex + 1);
                 $sheet->setCellValue($col.$row, $statusLabel);
                 $colIndex++;
             }
@@ -756,19 +761,19 @@ class KehadiranController extends Controller
         $sheet->getColumnDimension('B')->setWidth(15); // NIM
         $sheet->getColumnDimension('C')->setWidth(30); // Nama
         for ($i = 4; $i <= 19; $i++) {
-            $col = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($i);
+            $col = Coordinate::stringFromColumnIndex($i);
             $sheet->getColumnDimension($col)->setWidth(6); // Pertemuan
         }
 
         // Center align untuk No dan Pertemuan
         $sheet->getStyle('A'.($row - count($mahasiswaData)).':A'.($row - 1))
             ->getAlignment()
-            ->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+            ->setHorizontal(Alignment::HORIZONTAL_CENTER);
         for ($i = 4; $i <= 19; $i++) {
-            $col = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($i);
+            $col = Coordinate::stringFromColumnIndex($i);
             $sheet->getStyle($col.($row - count($mahasiswaData)).':'.$col.($row - 1))
                 ->getAlignment()
-                ->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+                ->setHorizontal(Alignment::HORIZONTAL_CENTER);
         }
 
         // Filename
@@ -787,7 +792,7 @@ class KehadiranController extends Controller
     /**
      * Urut perkuliahan kronologis untuk rekap; indeks kolom pertemuan 1..n mengacu pada urutan ini.
      *
-     * @return array{\Illuminate\Support\Collection<int, Perkuliahan>, array<int, int>}
+     * @return array{Collection<int, Perkuliahan>, array<int, int>}
      */
     private function perkuliahanSortedForRekap(array $jadwalIds): array
     {

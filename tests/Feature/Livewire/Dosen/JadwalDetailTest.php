@@ -7,8 +7,14 @@ use App\Models\JadwalDosen;
 use App\Models\JenisKuliah;
 use App\Models\Kelas;
 use App\Models\KelasDosen;
+use App\Models\Mahasiswa;
+use App\Models\MateriPerkuliahan;
 use App\Models\Ruangan;
+use App\Models\Tugas;
+use App\Models\TugasMahasiswa;
 use App\Models\User;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 
 it('redirects unauthenticated users to the login page', function () {
@@ -104,4 +110,135 @@ it('saves the bahasan field independently of the jadwal edit form', function () 
         ->assertHasNoErrors();
 
     expect($jadwal->fresh()->bahasan)->toBe('Membahas rekursi dan iterasi');
+});
+
+it('uploads a materi perkuliahan file scoped to the jadwal', function () {
+    Storage::fake('public');
+
+    $dosenUser = dosenUser();
+    $dosen = Dosen::where('id_user', $dosenUser->id)->firstOrFail();
+    $kelas = Kelas::factory()->create();
+    $jadwal = Jadwal::factory()->create(['id_kelas' => $kelas->id]);
+    KelasDosen::create(['id_dosen' => $dosen->id, 'id_kelas' => $kelas->id, 'is_pic' => true]);
+
+    Livewire::actingAs($dosenUser)
+        ->test(Detail::class, ['kelasId' => $kelas->id, 'jadwalId' => $jadwal->id])
+        ->set('tab', 'materi')
+        ->set('materiNama', 'Slide pertemuan 1')
+        ->set('materiFile', UploadedFile::fake()->create('slide.pdf', 100, 'application/pdf'))
+        ->call('uploadMateri')
+        ->assertHasNoErrors();
+
+    $materi = MateriPerkuliahan::where('id_jadwal', $jadwal->id)->firstOrFail();
+    expect($materi->nama)->toBe('Slide pertemuan 1');
+    Storage::disk('public')->assertExists($materi->file);
+});
+
+it('defaults materi nama to the original filename when left blank', function () {
+    Storage::fake('public');
+
+    $dosenUser = dosenUser();
+    $dosen = Dosen::where('id_user', $dosenUser->id)->firstOrFail();
+    $kelas = Kelas::factory()->create();
+    $jadwal = Jadwal::factory()->create(['id_kelas' => $kelas->id]);
+    KelasDosen::create(['id_dosen' => $dosen->id, 'id_kelas' => $kelas->id, 'is_pic' => true]);
+
+    Livewire::actingAs($dosenUser)
+        ->test(Detail::class, ['kelasId' => $kelas->id, 'jadwalId' => $jadwal->id])
+        ->set('materiFile', UploadedFile::fake()->create('modul-2.pdf', 100, 'application/pdf'))
+        ->call('uploadMateri')
+        ->assertHasNoErrors();
+
+    $materi = MateriPerkuliahan::where('id_jadwal', $jadwal->id)->firstOrFail();
+    expect($materi->nama)->toBe('modul-2.pdf');
+});
+
+it('does not expose materi from another jadwal', function () {
+    $dosenUser = dosenUser();
+    $dosen = Dosen::where('id_user', $dosenUser->id)->firstOrFail();
+    $kelas = Kelas::factory()->create();
+    $jadwal = Jadwal::factory()->create(['id_kelas' => $kelas->id]);
+    $jadwalLain = Jadwal::factory()->create(['id_kelas' => $kelas->id]);
+    KelasDosen::create(['id_dosen' => $dosen->id, 'id_kelas' => $kelas->id, 'is_pic' => true]);
+
+    MateriPerkuliahan::create(['id_jadwal' => $jadwalLain->id, 'nama' => 'Materi jadwal lain', 'file' => 'materi_perkuliahan/x.pdf']);
+
+    $rows = Livewire::actingAs($dosenUser)
+        ->test(Detail::class, ['kelasId' => $kelas->id, 'jadwalId' => $jadwal->id])
+        ->instance()
+        ->materiRows();
+
+    expect($rows)->toHaveCount(0);
+});
+
+it('creates a tugas for the jadwal and lists it with zero submissions', function () {
+    Storage::fake('public');
+
+    $dosenUser = dosenUser();
+    $dosen = Dosen::where('id_user', $dosenUser->id)->firstOrFail();
+    $kelas = Kelas::factory()->create();
+    $jadwal = Jadwal::factory()->create(['id_kelas' => $kelas->id]);
+    KelasDosen::create(['id_dosen' => $dosen->id, 'id_kelas' => $kelas->id, 'is_pic' => true]);
+
+    Livewire::actingAs($dosenUser)
+        ->test(Detail::class, ['kelasId' => $kelas->id, 'jadwalId' => $jadwal->id])
+        ->set('tab', 'tugas')
+        ->set('tugasNama', 'Laporan praktikum 1')
+        ->set('tugasDeskripsi', 'Kerjakan sesuai instruksi')
+        ->set('tugasFile', UploadedFile::fake()->create('tugas.pdf', 100, 'application/pdf'))
+        ->call('submitTugas')
+        ->assertHasNoErrors();
+
+    $tugas = Tugas::where('id_jadwal', $jadwal->id)->firstOrFail();
+    expect($tugas->nama)->toBe('Laporan praktikum 1');
+    expect($tugas->id_dosen)->toBe($dosen->id);
+    Storage::disk('public')->assertExists($tugas->file);
+
+    $rows = Livewire::actingAs($dosenUser)
+        ->test(Detail::class, ['kelasId' => $kelas->id, 'jadwalId' => $jadwal->id])
+        ->instance()
+        ->tugasRows();
+
+    expect($rows->first()->jumlah_submit)->toBe(0);
+});
+
+it('rejects tugas tanggal_selesai earlier than tanggal_mulai', function () {
+    $dosenUser = dosenUser();
+    $dosen = Dosen::where('id_user', $dosenUser->id)->firstOrFail();
+    $kelas = Kelas::factory()->create();
+    $jadwal = Jadwal::factory()->create(['id_kelas' => $kelas->id]);
+    KelasDosen::create(['id_dosen' => $dosen->id, 'id_kelas' => $kelas->id, 'is_pic' => true]);
+
+    Livewire::actingAs($dosenUser)
+        ->test(Detail::class, ['kelasId' => $kelas->id, 'jadwalId' => $jadwal->id])
+        ->set('tugasNama', 'Tugas invalid')
+        ->set('tugasTanggalMulai', now()->addDay()->format('Y-m-d\TH:i'))
+        ->set('tugasTanggalSelesai', now()->format('Y-m-d\TH:i'))
+        ->call('submitTugas')
+        ->assertHasErrors(['tugasTanggalSelesai']);
+});
+
+it('marks a submission as accepted only when it belongs to this jadwal', function () {
+    $dosenUser = dosenUser();
+    $dosen = Dosen::where('id_user', $dosenUser->id)->firstOrFail();
+    $kelas = Kelas::factory()->create();
+    $jadwal = Jadwal::factory()->create(['id_kelas' => $kelas->id]);
+    $jadwalLain = Jadwal::factory()->create(['id_kelas' => $kelas->id]);
+    KelasDosen::create(['id_dosen' => $dosen->id, 'id_kelas' => $kelas->id, 'is_pic' => true]);
+
+    $tugas = Tugas::create(['id_jadwal' => $jadwal->id, 'id_dosen' => $dosen->id, 'nama' => 'Tugas 1']);
+    $tugasLain = Tugas::create(['id_jadwal' => $jadwalLain->id, 'id_dosen' => $dosen->id, 'nama' => 'Tugas lain']);
+    $mhs = Mahasiswa::factory()->create();
+
+    $submisi = TugasMahasiswa::create(['id_tugas' => $tugas->id, 'id_mahasiswa' => $mhs->id, 'status' => 'submitted', 'tanggal_submit' => now()]);
+    $submisiJadwalLain = TugasMahasiswa::create(['id_tugas' => $tugasLain->id, 'id_mahasiswa' => $mhs->id, 'status' => 'submitted', 'tanggal_submit' => now()]);
+
+    $component = Livewire::actingAs($dosenUser)
+        ->test(Detail::class, ['kelasId' => $kelas->id, 'jadwalId' => $jadwal->id]);
+
+    $component->call('terimaPengumpulan', $submisi->id)->assertHasNoErrors();
+    expect($submisi->fresh()->status)->toBe('accepted');
+
+    $component->call('terimaPengumpulan', $submisiJadwalLain->id)->assertStatus(403);
+    expect($submisiJadwalLain->fresh()->status)->toBe('submitted');
 });

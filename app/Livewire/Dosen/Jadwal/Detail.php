@@ -7,16 +7,23 @@ use App\Models\Jadwal;
 use App\Models\JadwalDosen;
 use App\Models\JenisKuliah;
 use App\Models\KelasDosen;
+use App\Models\MateriPerkuliahan;
 use App\Models\Ruangan;
+use App\Models\Tugas;
+use App\Models\TugasMahasiswa;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Locked;
 use Livewire\Attributes\Url;
 use Livewire\Component;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
+use Livewire\WithFileUploads;
 
 class Detail extends Component
 {
+    use WithFileUploads;
+
     // Locked: saveJadwal()/saveBahasan() memakai jadwalId langsung tanpa mengecek ulang akses
     // dosen (hanya dicek sekali di mount()) — tanpa ini, jadwalId bisa "disentuh" lewat request
     // Livewire yang dimanipulasi untuk mengedit jadwal milik kelas lain.
@@ -43,6 +50,24 @@ class Detail extends Component
     public string $id_jenis_kuliah = '';
 
     public string $bahasan = '';
+
+    public string $tab = 'informasi';
+
+    public string $materiNama = '';
+
+    /** @var TemporaryUploadedFile|null */
+    public $materiFile = null;
+
+    public string $tugasNama = '';
+
+    public string $tugasDeskripsi = '';
+
+    public string $tugasTanggalMulai = '';
+
+    public string $tugasTanggalSelesai = '';
+
+    /** @var TemporaryUploadedFile|null */
+    public $tugasFile = null;
 
     public function mount(int $kelasId, int $jadwalId): void
     {
@@ -114,6 +139,160 @@ class Detail extends Component
     public function jenisKuliahOptions()
     {
         return JenisKuliah::whereNull('deleted_at')->orderBy('nama')->get(['id', 'nama']);
+    }
+
+    public function setTab(string $tab): void
+    {
+        $this->tab = in_array($tab, ['informasi', 'materi', 'tugas'], true) ? $tab : 'informasi';
+    }
+
+    /**
+     * Sama persis dengan MateriPerkuliahanController::getByJadwal.
+     */
+    #[Computed]
+    public function materiRows()
+    {
+        return MateriPerkuliahan::where('id_jadwal', $this->jadwalId)
+            ->whereNull('deleted_at')
+            ->orderByDesc('created_at')
+            ->get();
+    }
+
+    /**
+     * Sama persis dengan MateriPerkuliahanController::store.
+     */
+    public function uploadMateri(): void
+    {
+        $validated = $this->validate([
+            'materiNama' => ['nullable', 'string', 'max:255'],
+            'materiFile' => ['required', 'file', 'max:10240'],
+        ]);
+
+        $path = $this->materiFile->store('materi_perkuliahan', 'public');
+
+        MateriPerkuliahan::create([
+            'id_jadwal' => $this->jadwalId,
+            'nama' => $validated['materiNama'] !== '' && $validated['materiNama'] !== null
+                ? $validated['materiNama']
+                : $this->materiFile->getClientOriginalName(),
+            'file' => $path,
+        ]);
+
+        $this->reset(['materiNama', 'materiFile']);
+        $this->resetValidation();
+        unset($this->materiRows);
+        session()->flash('status_materi', 'Materi berhasil diunggah.');
+    }
+
+    /**
+     * Sama persis dengan TugasController::getByJadwal.
+     */
+    #[Computed]
+    public function tugasRows()
+    {
+        $tugasList = Tugas::where('id_jadwal', $this->jadwalId)
+            ->whereNull('deleted_at')
+            ->with('dosen:id,nama')
+            ->orderByDesc('created_at')
+            ->get();
+
+        $tugasIds = $tugasList->pluck('id')->toArray();
+        $jumlahSubmit = [];
+        if ($tugasIds !== []) {
+            $jumlahSubmit = TugasMahasiswa::whereIn('id_tugas', $tugasIds)
+                ->whereNull('deleted_at')
+                ->selectRaw('id_tugas, COUNT(*) as jumlah')
+                ->groupBy('id_tugas')
+                ->pluck('jumlah', 'id_tugas')
+                ->toArray();
+        }
+
+        return $tugasList->map(function (Tugas $tugas) use ($jumlahSubmit) {
+            $tugas->jumlah_submit = (int) ($jumlahSubmit[$tugas->id] ?? 0);
+
+            return $tugas;
+        });
+    }
+
+    /**
+     * Sama persis dengan TugasController::getPengumpulanByJadwalForDosen.
+     */
+    #[Computed]
+    public function tugasPengumpulanRows()
+    {
+        $tugasIds = Tugas::where('id_jadwal', $this->jadwalId)
+            ->whereNull('deleted_at')
+            ->pluck('id');
+
+        if ($tugasIds->isEmpty()) {
+            return collect();
+        }
+
+        return TugasMahasiswa::whereIn('id_tugas', $tugasIds)
+            ->whereNull('deleted_at')
+            ->with(['mahasiswa:id,nim,nama', 'tugas:id,nama'])
+            ->orderByDesc('tanggal_submit')
+            ->orderBy('id')
+            ->get()
+            ->sortBy(function (TugasMahasiswa $tm) {
+                return [(int) $tm->id_tugas, (string) ($tm->mahasiswa->nim ?? '')];
+            })
+            ->values();
+    }
+
+    /**
+     * Sama persis dengan TugasController::store.
+     */
+    public function submitTugas(): void
+    {
+        $validated = $this->validate([
+            'tugasNama' => ['required', 'string', 'max:255'],
+            'tugasDeskripsi' => ['nullable', 'string'],
+            'tugasFile' => ['nullable', 'file', 'mimes:pdf,doc,docx,xls,xlsx,ppt,pptx', 'max:10240'],
+            'tugasTanggalMulai' => ['nullable', 'date'],
+            'tugasTanggalSelesai' => ['nullable', 'date', 'after_or_equal:tugasTanggalMulai'],
+        ]);
+
+        $filePath = $this->tugasFile ? $this->tugasFile->store('tugas', 'public') : null;
+
+        Tugas::create([
+            'id_jadwal' => $this->jadwalId,
+            'id_dosen' => $this->dosenId,
+            'nama' => $validated['tugasNama'],
+            'deskripsi' => $validated['tugasDeskripsi'] ?? null,
+            'file' => $filePath,
+            'tanggal_mulai' => $validated['tugasTanggalMulai'] !== '' ? $validated['tugasTanggalMulai'] : null,
+            'tanggal_selesai' => $validated['tugasTanggalSelesai'] !== '' ? $validated['tugasTanggalSelesai'] : null,
+        ]);
+
+        $this->reset(['tugasNama', 'tugasDeskripsi', 'tugasTanggalMulai', 'tugasTanggalSelesai', 'tugasFile']);
+        $this->resetValidation();
+        unset($this->tugasRows);
+        session()->flash('status_tugas', 'Tugas berhasil ditambahkan.');
+    }
+
+    /**
+     * Sama persis dengan TugasController::updatePengumpulanStatusForDosen, ditambah pengecekan
+     * bahwa pengumpulan ini milik tugas pada jadwalId yang sedang dibuka — idTugasMahasiswa
+     * datang langsung dari parameter aksi wire:click, jadi bisa "disentuh" lewat request Livewire
+     * yang dimanipulasi untuk menunjuk pengumpulan tugas pada jadwal lain.
+     */
+    public function terimaPengumpulan(int $idTugasMahasiswa): void
+    {
+        $tm = TugasMahasiswa::whereNull('deleted_at')
+            ->with(['tugas' => function ($q): void {
+                $q->whereNull('deleted_at');
+            }])
+            ->find($idTugasMahasiswa);
+
+        abort_if($tm === null || $tm->tugas === null, 404);
+        abort_unless((int) $tm->tugas->id_jadwal === $this->jadwalId, 403, 'Pengumpulan ini bukan untuk jadwal ini.');
+
+        $tm->status = 'accepted';
+        $tm->updated_by = Dosen::find($this->dosenId)?->nama;
+        $tm->save();
+
+        unset($this->tugasPengumpulanRows);
     }
 
     public function startEdit(): void
