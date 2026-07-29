@@ -5,6 +5,8 @@ namespace App\Livewire\Admin\Tagihan;
 use App\Livewire\Admin\Tagihan\Concerns\ForwardsIndexState;
 use App\Models\Pembayaran;
 use App\Models\Tagihan;
+use App\Services\KeringananBiayaKreditService;
+use App\Services\StatusPembayaranTagihan;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 
@@ -17,6 +19,8 @@ class Show extends Component
     public Tagihan $tagihan;
 
     public float $totalPembayaranDisetujui;
+
+    public float $kreditKeringanan;
 
     public float $sisaPembayaranDisetujui;
 
@@ -46,11 +50,13 @@ class Show extends Component
         $this->tagihan = $tagihan;
 
         $totalDisetujui = (float) Pembayaran::approvedQueryForTagihan($tagihan->id)->sum('nominal');
+        $kredit = KeringananBiayaKreditService::kreditUntukTagihan($tagihan);
         $totalTagihan = (float) $tagihan->total;
 
         $this->totalPembayaranDisetujui = $totalDisetujui;
-        $this->sisaPembayaranDisetujui = max(0, $totalTagihan - $totalDisetujui);
-        $this->statusPembayaranAcc = $this->resolveStatusPembayaranAcc($tagihan, $totalDisetujui);
+        $this->kreditKeringanan = $kredit;
+        $this->sisaPembayaranDisetujui = max(0.0, $totalTagihan - $totalDisetujui - $kredit);
+        $this->statusPembayaranAcc = $this->resolveStatusPembayaranAcc($tagihan, $totalDisetujui, $kredit);
 
         $this->resolveBackUrl();
     }
@@ -81,24 +87,11 @@ class Show extends Component
     }
 
     /**
-     * Sama persis dengan TagihanController::statusPembayaranAcc.
-     *
      * @return string lunas|dibayar_sebagian|belum_bayar|kedaluwarsa
      */
-    private function resolveStatusPembayaranAcc(Tagihan $tagihan, float $totalDisetujui): string
+    private function resolveStatusPembayaranAcc(Tagihan $tagihan, float $totalDisetujui, float $kreditKeringanan = 0.0): string
     {
-        $totalTagihan = (float) $tagihan->total;
-        if ($totalDisetujui + 0.009 >= $totalTagihan) {
-            return 'lunas';
-        }
-        if ($totalDisetujui > 0) {
-            return 'dibayar_sebagian';
-        }
-        if ($tagihan->status === 'expired') {
-            return 'kedaluwarsa';
-        }
-
-        return 'belum_bayar';
+        return StatusPembayaranTagihan::hitung($tagihan, $totalDisetujui, $kreditKeringanan);
     }
 
     public function render()

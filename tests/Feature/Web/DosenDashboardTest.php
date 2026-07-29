@@ -6,12 +6,13 @@ it('redirects a guest to the login page', function () {
     $this->get(route('dosen.dashboard'))->assertRedirect(route('login'));
 });
 
-it('shows the placeholder dashboard to a dosen', function () {
-    $dosen = User::factory()->create(['role' => 'dosen']);
+it('shows the dashboard to a dosen', function () {
+    $dosen = dosenUser();
 
     $this->actingAs($dosen)
         ->get(route('dosen.dashboard'))
-        ->assertOk();
+        ->assertOk()
+        ->assertSee('Dashboard');
 });
 
 it('forbids a non-dosen user', function () {

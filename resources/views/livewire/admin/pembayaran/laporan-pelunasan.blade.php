@@ -70,6 +70,7 @@
                         <th class="px-4 py-3">Prodi</th>
                         <th class="px-4 py-3 text-right">Total Tagihan</th>
                         <th class="px-4 py-3 text-right">Pembayaran Disetujui</th>
+                        <th class="px-4 py-3 text-right">Keringanan Disetujui</th>
                         <th class="px-4 py-3 text-right">Sisa Tunggakan</th>
                         <th class="px-4 py-3 text-right">Pencapaian</th>
                     </tr>
@@ -87,6 +88,9 @@
                             </td>
                             <td class="px-4 py-3 text-right text-neutral-900">Rp{{ number_format($item->total_tagihan, 0, ',', '.') }}</td>
                             <td class="px-4 py-3 text-right font-medium text-emerald-700">Rp{{ number_format($item->total_pembayaran, 0, ',', '.') }}</td>
+                            <td class="px-4 py-3 text-right {{ $item->total_keringanan > 0 ? 'font-medium text-amber-700' : 'text-neutral-400' }}">
+                                {{ $item->total_keringanan > 0 ? 'Rp'.number_format($item->total_keringanan, 0, ',', '.') : '—' }}
+                            </td>
                             <td class="px-4 py-3 text-right font-semibold text-sky-700">Rp{{ number_format($item->sisa, 0, ',', '.') }}</td>
                             <td class="px-4 py-3 text-right font-semibold text-sky-700">{{ number_format($item->persentase, 2) }}%</td>
                         </tr>

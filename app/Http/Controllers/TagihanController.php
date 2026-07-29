@@ -11,7 +11,9 @@ use App\Models\StrukturBiaya;
 use App\Models\Tagihan;
 use App\Models\TagihanRinci;
 use App\Models\User;
+use App\Services\KeringananBiayaKreditService;
 use App\Services\KeuanganAksesMahasiswaService;
+use App\Services\StatusPembayaranTagihan;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -20,6 +22,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -53,32 +57,13 @@ class TagihanController extends Controller
     }
 
     /**
-     * Subquery SQL: jumlah nominal pembayaran yang sudah disetujui (approved_at) per tagihan.
-     */
-    private function subquerySumPembayaranDisetujui(): string
-    {
-        return '(SELECT COALESCE(SUM(pembayaran.nominal), 0) FROM pembayaran WHERE pembayaran.id_tagihan = tagihan.id AND pembayaran.deleted_at IS NULL AND pembayaran.approved_at IS NOT NULL)';
-    }
-
-    /**
-     * Status tampilan admin: berdasarkan akumulasi pembayaran yang sudah ACC, bukan hanya kolom status tagihan.
+     * Status tampilan admin. Rumusnya tinggal satu, di StatusPembayaranTagihan.
      *
      * @return string lunas|dibayar_sebagian|belum_bayar|kedaluwarsa
      */
-    private function statusPembayaranAcc(Tagihan $tagihan, float $totalDisetujui): string
+    private function statusPembayaranAcc(Tagihan $tagihan, float $totalDisetujui, float $kreditKeringanan = 0.0): string
     {
-        $totalTagihan = (float) $tagihan->total;
-        if ($totalDisetujui + 0.009 >= $totalTagihan) {
-            return 'lunas';
-        }
-        if ($totalDisetujui > 0) {
-            return 'dibayar_sebagian';
-        }
-        if ($tagihan->status === 'expired') {
-            return 'kedaluwarsa';
-        }
-
-        return 'belum_bayar';
+        return StatusPembayaranTagihan::hitung($tagihan, $totalDisetujui, $kreditKeringanan);
     }
 
     /**
@@ -209,32 +194,46 @@ class TagihanController extends Controller
                 ->whereDate('tanggal_jatuh_tempo', '<', Carbon::today());
         }
 
-        $sumSub = $this->subquerySumPembayaranDisetujui();
-        if ($statusPembayaranAcc === 'lunas') {
-            $query->whereRaw("{$sumSub} >= tagihan.total");
-        } elseif ($statusPembayaranAcc === 'dibayar_sebagian') {
-            $query->whereRaw("{$sumSub} > 0")
-                ->whereRaw("{$sumSub} < tagihan.total");
-        } elseif ($statusPembayaranAcc === 'belum_bayar') {
-            $query->whereRaw("{$sumSub} <= 0")
-                ->where('tagihan.status', '!=', 'expired');
-        } elseif ($statusPembayaranAcc === 'kedaluwarsa') {
-            $query->where('tagihan.status', 'expired')
-                ->whereRaw("{$sumSub} < tagihan.total");
+        // Filter memakai ekspresi yang sama dengan label barisnya, jadi mustahil mengembalikan
+        // baris yang statusnya berbeda dari filter yang dipilih.
+        if (array_key_exists($statusPembayaranAcc, StatusPembayaranTagihan::opsi())) {
+            $query->whereRaw(StatusPembayaranTagihan::sqlEkspresi().' = ?', [$statusPembayaranAcc]);
         }
 
         return $query;
     }
 
+    /**
+     * Satu tagihan per (mahasiswa, semester, tahap) — bukan lagi per (mahasiswa, semester).
+     *
+     * Aturan lama menolak tagihan kedua di semester yang sama, padahal generateFromStrukturBiaya
+     * memang membuat satu tagihan per tahap. Akibatnya tagihan multi-tahap tidak pernah bisa
+     * diedit lagi lewat update()/form. Tagihan tanpa tahap (mis. hasil import atau input manual)
+     * menempati slotnya sendiri, jadi tetap dibatasi satu per semester.
+     */
+    private function tagihanKembarExists(int $mahasiswaId, int $semesterId, ?int $tahap, ?int $kecualiId = null): bool
+    {
+        return Tagihan::where('id_mahasiswa', $mahasiswaId)
+            ->where('id_semester', $semesterId)
+            ->when(
+                $tahap === null,
+                fn ($q) => $q->whereNull('tahap'),
+                fn ($q) => $q->where('tahap', $tahap)
+            )
+            ->when($kecualiId, fn ($q) => $q->where('id', '!=', $kecualiId))
+            ->exists();
+    }
+
+    private function pesanTagihanKembar(?int $tahap): string
+    {
+        return $tahap === null
+            ? 'Tagihan tanpa tahap untuk mahasiswa dan semester ini sudah ada.'
+            : "Tagihan tahap {$tahap} untuk mahasiswa dan semester ini sudah ada.";
+    }
+
     private function labelStatusPembayaranAcc(string $status): string
     {
-        return match ($status) {
-            'lunas' => 'Lunas',
-            'dibayar_sebagian' => 'Dibayar sebagian',
-            'belum_bayar' => 'Belum bayar',
-            'kedaluwarsa' => 'Kedaluwarsa',
-            default => $status,
-        };
+        return StatusPembayaranTagihan::opsiRingkas()[$status] ?? $status;
     }
 
     /**
@@ -290,6 +289,8 @@ class TagihanController extends Controller
             $rowMeta++;
         }
 
+        $kredit = KeringananBiayaKreditService::kreditUntukTagihanIds($ids->all());
+
         $headerRow = $rowMeta + 1;
         $headers = [
             'No',
@@ -298,8 +299,10 @@ class TagihanController extends Controller
             'Nama Mahasiswa',
             'Program Studi',
             'Semester',
+            'Tahap',
             'Total (Rp)',
             'Terbayar disetujui (Rp)',
+            'Keringanan disetujui (Rp)',
             'Sisa (Rp)',
             'Status (ACC)',
             'Tanggal tagihan',
@@ -313,12 +316,14 @@ class TagihanController extends Controller
         $no = 1;
         $sumTotal = 0.0;
         $sumTerbayar = 0.0;
+        $sumKredit = 0.0;
 
         foreach ($tagihans as $tagihan) {
             $totalDisetujui = (float) ($sums[$tagihan->id] ?? 0);
+            $kreditBaris = (float) ($kredit[$tagihan->id] ?? 0);
             $totalTagihan = (float) $tagihan->total;
-            $sisa = max(0, $totalTagihan - $totalDisetujui);
-            $acc = $this->statusPembayaranAcc($tagihan, $totalDisetujui);
+            $sisa = max(0.0, $totalTagihan - $totalDisetujui - $kreditBaris);
+            $acc = $this->statusPembayaranAcc($tagihan, $totalDisetujui, $kreditBaris);
 
             $m = $tagihan->mahasiswa;
             $prodiNama = $m?->prodi ? (($m->prodi->kode ? $m->prodi->kode.' · ' : '').$m->prodi->nama) : '';
@@ -331,25 +336,29 @@ class TagihanController extends Controller
             $sheet->setCellValue('D'.$row, $m?->nama ?? '');
             $sheet->setCellValue('E'.$row, $prodiNama);
             $sheet->setCellValue('F'.$row, $semLabel);
-            $sheet->setCellValue('G'.$row, $totalTagihan);
-            $sheet->setCellValue('H'.$row, $totalDisetujui);
-            $sheet->setCellValue('I'.$row, $sisa);
-            $sheet->setCellValue('J'.$row, $this->labelStatusPembayaranAcc($acc));
-            $sheet->setCellValue('K'.$row, $tagihan->tanggal_tagihan ? Carbon::parse($tagihan->tanggal_tagihan)->format('Y-m-d') : '');
-            $sheet->setCellValue('L'.$row, $tagihan->tanggal_jatuh_tempo ? Carbon::parse($tagihan->tanggal_jatuh_tempo)->format('Y-m-d') : '');
-            $sheet->setCellValue('M'.$row, $tagihan->keterangan ?? '');
+            $sheet->setCellValue('G'.$row, $tagihan->tahap ?? '');
+            $sheet->setCellValue('H'.$row, $totalTagihan);
+            $sheet->setCellValue('I'.$row, $totalDisetujui);
+            $sheet->setCellValue('J'.$row, $kreditBaris);
+            $sheet->setCellValue('K'.$row, $sisa);
+            $sheet->setCellValue('L'.$row, $this->labelStatusPembayaranAcc($acc));
+            $sheet->setCellValue('M'.$row, $tagihan->tanggal_tagihan ? Carbon::parse($tagihan->tanggal_tagihan)->format('Y-m-d') : '');
+            $sheet->setCellValue('N'.$row, $tagihan->tanggal_jatuh_tempo ? Carbon::parse($tagihan->tanggal_jatuh_tempo)->format('Y-m-d') : '');
+            $sheet->setCellValue('O'.$row, $tagihan->keterangan ?? '');
 
             $sumTotal += $totalTagihan;
             $sumTerbayar += $totalDisetujui;
+            $sumKredit += $kreditBaris;
             $row++;
             $no++;
         }
 
         $totalRow = $row;
-        $sheet->setCellValue('F'.$totalRow, 'TOTAL');
-        $sheet->setCellValue('G'.$totalRow, $sumTotal);
-        $sheet->setCellValue('H'.$totalRow, $sumTerbayar);
-        $sheet->setCellValue('I'.$totalRow, max(0, $sumTotal - $sumTerbayar));
+        $sheet->setCellValue('G'.$totalRow, 'TOTAL');
+        $sheet->setCellValue('H'.$totalRow, $sumTotal);
+        $sheet->setCellValue('I'.$totalRow, $sumTerbayar);
+        $sheet->setCellValue('J'.$totalRow, $sumKredit);
+        $sheet->setCellValue('K'.$totalRow, max(0, $sumTotal - $sumTerbayar - $sumKredit));
 
         $titleStyle = ['font' => ['bold' => true, 'size' => 14]];
         $sheet->getStyle('A1')->applyFromArray($titleStyle);
@@ -357,25 +366,25 @@ class TagihanController extends Controller
         $headerStyle = [
             'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
             'fill' => [
-                'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                'fillType' => Fill::FILL_SOLID,
                 'startColor' => ['rgb' => '4472C4'],
             ],
-            'alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER],
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
         ];
-        $sheet->getStyle('A'.$headerRow.':M'.$headerRow)->applyFromArray($headerStyle);
+        $sheet->getStyle('A'.$headerRow.':O'.$headerRow)->applyFromArray($headerStyle);
 
         if ($tagihans->isNotEmpty()) {
             $totalStyle = [
                 'font' => ['bold' => true],
                 'fill' => [
-                    'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                    'fillType' => Fill::FILL_SOLID,
                     'startColor' => ['rgb' => 'E7E6E6'],
                 ],
             ];
-            $sheet->getStyle('F'.$totalRow.':I'.$totalRow)->applyFromArray($totalStyle);
+            $sheet->getStyle('G'.$totalRow.':K'.$totalRow)->applyFromArray($totalStyle);
         }
 
-        foreach (range('A', 'M') as $col) {
+        foreach (range('A', 'O') as $col) {
             $sheet->getColumnDimension($col)->setAutoSize(true);
         }
 
@@ -413,13 +422,17 @@ class TagihanController extends Controller
                 ->pluck('total_disetujui', 'id_tagihan');
         }
 
-        $data->getCollection()->transform(function (Tagihan $tagihan) use ($sums) {
+        $kredit = KeringananBiayaKreditService::kreditUntukTagihanIds($ids->all());
+
+        $data->getCollection()->transform(function (Tagihan $tagihan) use ($sums, $kredit) {
             $totalDisetujui = (float) ($sums[$tagihan->id] ?? 0);
+            $kreditBaris = (float) ($kredit[$tagihan->id] ?? 0);
             $totalTagihan = (float) $tagihan->total;
             $arr = $tagihan->toArray();
             $arr['total_pembayaran_disetujui'] = $totalDisetujui;
-            $arr['sisa_pembayaran_disetujui'] = max(0, $totalTagihan - $totalDisetujui);
-            $arr['status_pembayaran_acc'] = $this->statusPembayaranAcc($tagihan, $totalDisetujui);
+            $arr['kredit_keringanan'] = $kreditBaris;
+            $arr['sisa_pembayaran_disetujui'] = max(0.0, $totalTagihan - $totalDisetujui - $kreditBaris);
+            $arr['status_pembayaran_acc'] = $this->statusPembayaranAcc($tagihan, $totalDisetujui, $kreditBaris);
 
             return $arr;
         });
@@ -714,14 +727,15 @@ class TagihanController extends Controller
                     $monthOffset = max(0, ((int) $tahap) - 1);
                     $tanggalTagihan = $baseMonth->copy()->addMonths($monthOffset)->day(1)->toDateString();
                     $tanggalJatuhTempo = $baseMonth->copy()->addMonths($monthOffset)->day(15)->toDateString();
-                    $keterangan = "{$keteranganBase} [TAHAP:{$tahap}]";
+                    $keterangan = $keteranganBase;
 
-                    $existsSameTahap = Tagihan::where('id_mahasiswa', $mahasiswa->id)
-                        ->where('id_semester', $validated['id_periode'])
-                        ->where('keterangan', 'like', "%[TAHAP:{$tahap}]%")
-                        ->exists();
-
-                    if ($existsSameTahap) {
+                    // Dulu deteksi kembar membaca penanda teks "[TAHAP:n]" di kolom keterangan
+                    // yang bebas diedit siapa saja; sekarang memakai kolom tahap.
+                    if ($this->tagihanKembarExists(
+                        (int) $mahasiswa->id,
+                        (int) $validated['id_periode'],
+                        (int) $tahap
+                    )) {
                         $skippedCount++;
                         $detailSkipped[] = [
                             'id_mahasiswa' => $mahasiswa->id,
@@ -739,6 +753,7 @@ class TagihanController extends Controller
                         'id_semester' => $validated['id_periode'],
                         'no_tagihan' => $this->generateNoTagihan(),
                         'total' => $total,
+                        'tahap' => (int) $tahap,
                         'status' => 'unpaid',
                         'tanggal_tagihan' => $tanggalTagihan,
                         'tanggal_jatuh_tempo' => $tanggalJatuhTempo,
@@ -780,6 +795,7 @@ class TagihanController extends Controller
             'id_mahasiswa' => ['required', 'integer', 'exists:mahasiswa,id'],
             'id_semester' => ['required', 'integer', 'exists:semester,id'],
             'total' => ['required', 'numeric', 'min:0'],
+            'tahap' => ['nullable', 'integer', 'min:1'],
             'status' => ['nullable', 'string', Rule::in(['unpaid', 'paid', 'expired'])],
             'tanggal_tagihan' => ['nullable', 'date'],
             'tanggal_jatuh_tempo' => ['nullable', 'date', 'after_or_equal:tanggal_tagihan'],
@@ -805,14 +821,11 @@ class TagihanController extends Controller
             'rincian.*.nominal.min' => 'Nominal tidak boleh negatif.',
         ]);
 
-        // Check for unique constraint
-        $exists = Tagihan::where('id_mahasiswa', $validated['id_mahasiswa'])
-            ->where('id_semester', $validated['id_semester'])
-            ->exists();
+        $tahap = isset($validated['tahap']) ? (int) $validated['tahap'] : null;
 
-        if ($exists) {
+        if ($this->tagihanKembarExists((int) $validated['id_mahasiswa'], (int) $validated['id_semester'], $tahap)) {
             return response()->json([
-                'message' => 'Tagihan untuk mahasiswa dan semester ini sudah ada.',
+                'message' => $this->pesanTagihanKembar($tahap),
             ], 422);
         }
 
@@ -834,6 +847,7 @@ class TagihanController extends Controller
                 'id_semester' => $validated['id_semester'],
                 'no_tagihan' => $noTagihan,
                 'total' => $validated['total'],
+                'tahap' => $tahap,
                 'status' => $validated['status'] ?? 'unpaid',
                 'tanggal_tagihan' => $validated['tanggal_tagihan'] ?? now(),
                 'tanggal_jatuh_tempo' => $validated['tanggal_jatuh_tempo'] ?? null,
@@ -892,12 +906,14 @@ class TagihanController extends Controller
         ]);
 
         $totalDisetujui = (float) Pembayaran::approvedQueryForTagihan($tagihan->id)->sum('nominal');
+        $kreditBaris = KeringananBiayaKreditService::kreditUntukTagihan($tagihan);
         $totalTagihan = (float) $tagihan->total;
 
         $payload = $tagihan->toArray();
         $payload['total_pembayaran_disetujui'] = $totalDisetujui;
-        $payload['sisa_pembayaran_disetujui'] = max(0, $totalTagihan - $totalDisetujui);
-        $payload['status_pembayaran_acc'] = $this->statusPembayaranAcc($tagihan, $totalDisetujui);
+        $payload['kredit_keringanan'] = $kreditBaris;
+        $payload['sisa_pembayaran_disetujui'] = max(0.0, $totalTagihan - $totalDisetujui - $kreditBaris);
+        $payload['status_pembayaran_acc'] = $this->statusPembayaranAcc($tagihan, $totalDisetujui, $kreditBaris);
 
         return response()->json($payload);
     }
@@ -909,6 +925,7 @@ class TagihanController extends Controller
             'id_mahasiswa' => ['sometimes', 'required', 'integer', 'exists:mahasiswa,id'],
             'id_semester' => ['sometimes', 'required', 'integer', 'exists:semester,id'],
             'total' => ['sometimes', 'required', 'numeric', 'min:0'],
+            'tahap' => ['nullable', 'integer', 'min:1'],
             'status' => ['nullable', 'string', Rule::in(['unpaid', 'paid', 'expired'])],
             'tanggal_tagihan' => ['nullable', 'date'],
             'tanggal_jatuh_tempo' => ['nullable', 'date', 'after_or_equal:tanggal_tagihan'],
@@ -934,21 +951,18 @@ class TagihanController extends Controller
             'rincian.*.nominal.min' => 'Nominal tidak boleh negatif.',
         ]);
 
-        // Check for unique constraint if mahasiswa or semester is being updated
-        if (isset($validated['id_mahasiswa']) || isset($validated['id_semester'])) {
-            $mahasiswaId = $validated['id_mahasiswa'] ?? $tagihan->id_mahasiswa;
-            $semesterId = $validated['id_semester'] ?? $tagihan->id_semester;
+        // Cek kembar selalu mengecualikan baris ini sendiri, jadi menyimpan ulang tagihan tanpa
+        // mengubah apa pun tidak akan pernah ditolak — itu yang dulu mengunci tagihan multi-tahap.
+        $mahasiswaId = (int) ($validated['id_mahasiswa'] ?? $tagihan->id_mahasiswa);
+        $semesterId = (int) ($validated['id_semester'] ?? $tagihan->id_semester);
+        $tahap = array_key_exists('tahap', $validated)
+            ? ($validated['tahap'] !== null ? (int) $validated['tahap'] : null)
+            : ($tagihan->tahap !== null ? (int) $tagihan->tahap : null);
 
-            $exists = Tagihan::where('id_mahasiswa', $mahasiswaId)
-                ->where('id_semester', $semesterId)
-                ->where('id', '!=', $tagihan->id)
-                ->exists();
-
-            if ($exists) {
-                return response()->json([
-                    'message' => 'Tagihan untuk mahasiswa dan semester ini sudah ada.',
-                ], 422);
-            }
+        if ($this->tagihanKembarExists($mahasiswaId, $semesterId, $tahap, (int) $tagihan->id)) {
+            return response()->json([
+                'message' => $this->pesanTagihanKembar($tahap),
+            ], 422);
         }
 
         // Validate total if rincian is provided
@@ -966,9 +980,10 @@ class TagihanController extends Controller
         try {
             // Update tagihan
             $tagihan->update([
-                'id_mahasiswa' => $validated['id_mahasiswa'] ?? $tagihan->id_mahasiswa,
-                'id_semester' => $validated['id_semester'] ?? $tagihan->id_semester,
+                'id_mahasiswa' => $mahasiswaId,
+                'id_semester' => $semesterId,
                 'total' => $validated['total'] ?? $tagihan->total,
+                'tahap' => $tahap,
                 'status' => $validated['status'] ?? $tagihan->status,
                 'tanggal_tagihan' => $validated['tanggal_tagihan'] ?? $tagihan->tanggal_tagihan,
                 'tanggal_jatuh_tempo' => $validated['tanggal_jatuh_tempo'] ?? $tagihan->tanggal_jatuh_tempo,
@@ -1058,10 +1073,10 @@ class TagihanController extends Controller
         $headerStyle = [
             'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
             'fill' => [
-                'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                'fillType' => Fill::FILL_SOLID,
                 'startColor' => ['rgb' => '4472C4'],
             ],
-            'alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER],
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
         ];
         $sheet1->getStyle('A1:G1')->applyFromArray($headerStyle);
 
@@ -1354,7 +1369,7 @@ class TagihanController extends Controller
                 }
 
                 $nominal = (float) $rinci['nominal'];
-                
+
                 /*
                 if ($nominal <= 0) {
                     $errors[] = "Baris {$rowNumber}: Nominal komponen biaya '{$rinci['nama_komponen_biaya']}' harus lebih dari 0.";
@@ -1474,13 +1489,18 @@ class TagihanController extends Controller
             ->get();
 
         // Hitung total pembayaran untuk setiap tagihan
-        $tagihanWithPembayaran = $tagihanList->map(function ($tagihan) {
+        $kreditKeringanan = KeringananBiayaKreditService::kreditUntukTagihanIds($tagihanList->pluck('id')->all());
+
+        $tagihanWithPembayaran = $tagihanList->map(function ($tagihan) use ($kreditKeringanan) {
             $totalPembayaranDisetujui = Pembayaran::approvedQueryForTagihan($tagihan->id)->sum('nominal');
             $totalSemuaPembayaran = Pembayaran::where('id_tagihan', $tagihan->id)
                 ->whereNull('deleted_at')
                 ->sum('nominal');
-            $sisaTagihan = $tagihan->total - $totalPembayaranDisetujui;
-            $sisaDapatDibayar = max(0, (float) $tagihan->total - (float) $totalSemuaPembayaran);
+            $kredit = (float) ($kreditKeringanan[$tagihan->id] ?? 0);
+            $sisaTagihan = (float) $tagihan->total - (float) $totalPembayaranDisetujui - $kredit;
+            // `sisa_dapat_dibayar` sengaja ikut memperhitungkan pembayaran yang masih menunggu
+            // verifikasi, supaya mahasiswa tidak mengunggah bukti dua kali untuk nominal yang sama.
+            $sisaDapatDibayar = max(0.0, (float) $tagihan->total - (float) $totalSemuaPembayaran - $kredit);
 
             return [
                 'id' => $tagihan->id,
@@ -1508,6 +1528,7 @@ class TagihanController extends Controller
                     ];
                 })->toArray(),
                 'total_pembayaran' => $totalPembayaranDisetujui,
+                'kredit_keringanan' => $kredit,
                 'sisa_tagihan' => $sisaTagihan,
                 'sisa_dapat_dibayar' => $sisaDapatDibayar,
             ];

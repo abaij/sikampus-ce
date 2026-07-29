@@ -12,12 +12,16 @@ use App\Models\Prodi;
 use App\Models\Semester;
 use App\Models\StatusAkademik;
 use App\Models\Tagihan;
+use App\Services\KeringananBiayaKreditService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -349,10 +353,10 @@ class LaporanController extends Controller
         $headerStyle = [
             'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
             'fill' => [
-                'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                'fillType' => Fill::FILL_SOLID,
                 'startColor' => ['rgb' => '4472C4'],
             ],
-            'alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER],
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
         ];
         $sheet->getStyle('A5:D5')->applyFromArray($headerStyle);
 
@@ -360,7 +364,7 @@ class LaporanController extends Controller
         $totalStyle = [
             'font' => ['bold' => true],
             'fill' => [
-                'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                'fillType' => Fill::FILL_SOLID,
                 'startColor' => ['rgb' => 'E7E6E6'],
             ],
         ];
@@ -373,8 +377,8 @@ class LaporanController extends Controller
         $sheet->getColumnDimension('D')->setWidth(20);
 
         // Center align number columns
-        $sheet->getStyle('A6:A'.($row - 1))->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
-        $sheet->getStyle('D6:D'.$row)->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+        $sheet->getStyle('A6:A'.($row - 1))->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+        $sheet->getStyle('D6:D'.$row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
     }
 
     /**
@@ -454,10 +458,10 @@ class LaporanController extends Controller
         $headerStyle = [
             'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
             'fill' => [
-                'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                'fillType' => Fill::FILL_SOLID,
                 'startColor' => ['rgb' => '4472C4'],
             ],
-            'alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER],
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
         ];
         $sheet->getStyle('A6:H6')->applyFromArray($headerStyle);
 
@@ -465,7 +469,7 @@ class LaporanController extends Controller
         $totalStyle = [
             'font' => ['bold' => true],
             'fill' => [
-                'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                'fillType' => Fill::FILL_SOLID,
                 'startColor' => ['rgb' => 'E7E6E6'],
             ],
         ];
@@ -482,8 +486,8 @@ class LaporanController extends Controller
         $sheet->getColumnDimension('H')->setWidth(20);
 
         // Center align number columns
-        $sheet->getStyle('A7:A'.($row - 1))->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
-        $sheet->getStyle('F7:F'.($row - 1))->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+        $sheet->getStyle('A7:A'.($row - 1))->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+        $sheet->getStyle('F7:F'.($row - 1))->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
     }
 
     /**
@@ -913,10 +917,10 @@ class LaporanController extends Controller
         $headerStyle = [
             'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
             'fill' => [
-                'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                'fillType' => Fill::FILL_SOLID,
                 'startColor' => ['rgb' => '4472C4'],
             ],
-            'alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER],
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
         ];
         $sheet->getStyle('A6:I6')->applyFromArray($headerStyle);
 
@@ -924,7 +928,7 @@ class LaporanController extends Controller
         $totalStyle = [
             'font' => ['bold' => true],
             'fill' => [
-                'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                'fillType' => Fill::FILL_SOLID,
                 'startColor' => ['rgb' => 'E7E6E6'],
             ],
         ];
@@ -942,8 +946,8 @@ class LaporanController extends Controller
         $sheet->getColumnDimension('I')->setWidth(15);
 
         // Center align number columns
-        $sheet->getStyle('A7:A'.($row - 1))->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
-        $sheet->getStyle('F7:I'.$row)->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+        $sheet->getStyle('A7:A'.($row - 1))->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+        $sheet->getStyle('F7:I'.$row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
         $filename = 'laporan_persetujuan_krs_'.date('YmdHis').'.xlsx';
 
@@ -1338,10 +1342,10 @@ class LaporanController extends Controller
         $headerStyle = [
             'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
             'fill' => [
-                'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                'fillType' => Fill::FILL_SOLID,
                 'startColor' => ['rgb' => '4472C4'],
             ],
-            'alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER],
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
         ];
         $sheet->getStyle('A6:I6')->applyFromArray($headerStyle);
 
@@ -1357,8 +1361,8 @@ class LaporanController extends Controller
         $sheet->getColumnDimension('I')->setWidth(15);
 
         // Center align number columns
-        $sheet->getStyle('A7:A'.($row - 1))->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
-        $sheet->getStyle('F7:I'.($row - 1))->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+        $sheet->getStyle('A7:A'.($row - 1))->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+        $sheet->getStyle('F7:I'.($row - 1))->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
         $filename = 'laporan_pengisian_nilai_'.date('YmdHis').'.xlsx';
 
@@ -1386,7 +1390,7 @@ class LaporanController extends Controller
 
         $query = $this->buildPelunasanTagihanQuery($prodiId, $semesterId, $search);
         $paginator = $query->paginate($perPage);
-        $data = $this->mapPelunasanTagihanToArray($paginator->getCollection());
+        $data = $this->mapPelunasanTagihanToArray($paginator->getCollection(), $semesterId);
 
         return response()->json([
             'data' => $data,
@@ -1423,7 +1427,7 @@ class LaporanController extends Controller
         }
 
         $query = $this->buildPelunasanTagihanQuery($prodiId, $semesterId, $search);
-        $rows = $this->mapPelunasanTagihanToArray($query->get());
+        $rows = $this->mapPelunasanTagihanToArray($query->get(), $semesterId);
 
         $spreadsheet = new Spreadsheet;
         $sheet = $spreadsheet->getActiveSheet();
@@ -1445,6 +1449,7 @@ class LaporanController extends Controller
             'Program Studi',
             'Total Tagihan (Rp)',
             'Pembayaran Disetujui (Rp)',
+            'Keringanan Disetujui (Rp)',
             'Sisa Tunggakan (Rp)',
             'Pencapaian (%)',
         ];
@@ -1455,32 +1460,40 @@ class LaporanController extends Controller
         $no = 1;
         $sumTagihan = 0.0;
         $sumPembayaran = 0.0;
+        $sumKeringanan = 0.0;
 
         foreach ($rows as $item) {
             $prodiText = '—';
             if (! empty($item['prodi'])) {
                 $prodiText = ($item['prodi']['kode'] ? $item['prodi']['kode'].' · ' : '').$item['prodi']['nama'];
             }
+            $keringanan = (float) ($item['total_keringanan_disetujui'] ?? 0);
             $sheet->setCellValue('A'.$row, $no);
             $sheet->setCellValue('B'.$row, $item['nim'] ?? '');
             $sheet->setCellValue('C'.$row, $item['nama']);
             $sheet->setCellValue('D'.$row, $prodiText);
             $sheet->setCellValue('E'.$row, $item['total_tagihan']);
             $sheet->setCellValue('F'.$row, $item['total_pembayaran_disetujui']);
-            $sheet->setCellValue('G'.$row, $item['total_tagihan'] - $item['total_pembayaran_disetujui']);
-            $sheet->setCellValue('H'.$row, $item['persentase_pembayaran']);
+            $sheet->setCellValue('G'.$row, $keringanan);
+            $sheet->setCellValue('H'.$row, max(0, $item['total_tagihan'] - $item['total_pembayaran_disetujui'] - $keringanan));
+            $sheet->setCellValue('I'.$row, $item['persentase_pembayaran']);
 
             $sumTagihan += $item['total_tagihan'];
             $sumPembayaran += $item['total_pembayaran_disetujui'];
+            $sumKeringanan += $keringanan;
             $row++;
             $no++;
         }
 
-        $totalPersen = $sumTagihan > 0 ? round(100.0 * $sumPembayaran / $sumTagihan, 2) : 0.0;
+        // Persentase total dulu keliru ditulis ke kolom G (kolom sisa tunggakan), bukan ke kolom
+        // pencapaian — ikut dirapikan karena susunan kolomnya memang berubah di sini.
+        $totalPersen = $sumTagihan > 0 ? round(100.0 * ($sumPembayaran + $sumKeringanan) / $sumTagihan, 2) : 0.0;
         $sheet->setCellValue('C'.$row, 'TOTAL');
         $sheet->setCellValue('E'.$row, $sumTagihan);
         $sheet->setCellValue('F'.$row, $sumPembayaran);
-        $sheet->setCellValue('G'.$row, $totalPersen);
+        $sheet->setCellValue('G'.$row, $sumKeringanan);
+        $sheet->setCellValue('H'.$row, max(0, $sumTagihan - $sumPembayaran - $sumKeringanan));
+        $sheet->setCellValue('I'.$row, $totalPersen);
 
         $titleStyle = ['font' => ['bold' => true, 'size' => 14]];
         $sheet->getStyle('A1')->applyFromArray($titleStyle);
@@ -1488,21 +1501,21 @@ class LaporanController extends Controller
         $headerStyle = [
             'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
             'fill' => [
-                'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                'fillType' => Fill::FILL_SOLID,
                 'startColor' => ['rgb' => '4472C4'],
             ],
-            'alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER],
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
         ];
-        $sheet->getStyle('A'.$headerRow.':H'.$headerRow)->applyFromArray($headerStyle);
+        $sheet->getStyle('A'.$headerRow.':I'.$headerRow)->applyFromArray($headerStyle);
 
         $totalStyle = [
             'font' => ['bold' => true],
             'fill' => [
-                'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                'fillType' => Fill::FILL_SOLID,
                 'startColor' => ['rgb' => 'E7E6E6'],
             ],
         ];
-        $sheet->getStyle('C'.$row.':H'.$row)->applyFromArray($totalStyle);
+        $sheet->getStyle('C'.$row.':I'.$row)->applyFromArray($totalStyle);
 
         $sheet->getColumnDimension('A')->setWidth(8);
         $sheet->getColumnDimension('B')->setWidth(16);
@@ -1510,15 +1523,16 @@ class LaporanController extends Controller
         $sheet->getColumnDimension('D')->setWidth(36);
         $sheet->getColumnDimension('E')->setWidth(22);
         $sheet->getColumnDimension('F')->setWidth(26);
-        $sheet->getColumnDimension('G')->setWidth(16);
-        $sheet->getColumnDimension('H')->setWidth(16);
+        $sheet->getColumnDimension('G')->setWidth(26);
+        $sheet->getColumnDimension('H')->setWidth(20);
+        $sheet->getColumnDimension('I')->setWidth(16);
 
         $lastDataRow = $row - 1;
         if ($lastDataRow >= $dataStart) {
             $sheet->getStyle('A'.$dataStart.':A'.$lastDataRow)->getAlignment()
-                ->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
-            $sheet->getStyle('E'.$dataStart.':H'.$lastDataRow)->getAlignment()
-                ->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_RIGHT);
+                ->setHorizontal(Alignment::HORIZONTAL_CENTER);
+            $sheet->getStyle('E'.$dataStart.':I'.$lastDataRow)->getAlignment()
+                ->setHorizontal(Alignment::HORIZONTAL_RIGHT);
         }
 
         $filename = 'laporan_pelunasan_tagihan_'.date('YmdHis').'.xlsx';
@@ -1533,7 +1547,7 @@ class LaporanController extends Controller
         ]);
     }
 
-    private function buildPelunasanTagihanQuery(?int $prodiId, ?int $semesterId, ?string $search): \Illuminate\Database\Eloquent\Builder
+    private function buildPelunasanTagihanQuery(?int $prodiId, ?int $semesterId, ?string $search): Builder
     {
         $tagihanSub = Tagihan::query()
             ->when($semesterId, fn ($q) => $q->where('id_semester', $semesterId))
@@ -1572,21 +1586,33 @@ class LaporanController extends Controller
     }
 
     /**
-     * @param  \Illuminate\Support\Collection<int, \App\Models\Mahasiswa>  $collection
+     * @param  Collection<int, Mahasiswa>  $collection
      * @return array<int, array<string, mixed>>
      */
-    private function mapPelunasanTagihanToArray($collection): array
+    private function mapPelunasanTagihanToArray($collection, ?int $semesterId = null): array
     {
         $prodiIds = $collection->pluck('id_prodi')->filter()->unique()->values();
         $prodiMap = $prodiIds->isNotEmpty()
             ? Prodi::whereIn('id', $prodiIds)->whereNull('deleted_at')->get()->keyBy('id')
             : collect();
 
-        return $collection->map(function ($row) use ($prodiMap) {
+        // Keringanan yang sudah disetujui mengurangi kewajiban, jadi ikut menutup pelunasan.
+        // Di level agregat per mahasiswa tidak perlu alokasi per tagihan — cukup dibatasi agar
+        // tidak melebihi sisa yang belum terbayar supaya persentase tidak pernah > 100%.
+        $kreditMap = KeringananBiayaKreditService::kreditPerMahasiswa(
+            $collection->pluck('id')->all(),
+            $semesterId
+        );
+
+        return $collection->map(function ($row) use ($prodiMap, $kreditMap) {
             $totalTagihan = (float) ($row->agg_total_tagihan ?? 0);
             $totalPembayaran = (float) ($row->agg_total_pembayaran ?? 0);
+            $keringanan = min(
+                (float) ($kreditMap[$row->id] ?? 0),
+                max(0.0, $totalTagihan - $totalPembayaran)
+            );
             $persentase = $totalTagihan > 0
-                ? round(100.0 * $totalPembayaran / $totalTagihan, 2)
+                ? round(100.0 * ($totalPembayaran + $keringanan) / $totalTagihan, 2)
                 : 0.0;
             $prodi = $prodiMap->get($row->id_prodi);
 
@@ -1601,6 +1627,7 @@ class LaporanController extends Controller
                 ] : null,
                 'total_tagihan' => $totalTagihan,
                 'total_pembayaran_disetujui' => $totalPembayaran,
+                'total_keringanan_disetujui' => $keringanan,
                 'persentase_pembayaran' => $persentase,
             ];
         })->values()->all();

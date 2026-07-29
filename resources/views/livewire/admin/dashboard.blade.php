@@ -1,6 +1,8 @@
 @section('title', 'Dashboard — ' . config('app.name'))
 @section('header_title', 'Ringkasan Kampus')
-@section('header_subtitle', 'Ringkasan aktivitas akademik terkini')
+@section('header_subtitle', $showAkademik && $showKeuangan
+    ? 'Ringkasan aktivitas akademik dan keuangan terkini'
+    : ($showKeuangan ? 'Ringkasan aktivitas keuangan terkini' : 'Ringkasan aktivitas akademik terkini'))
 @section('header_icon', 'layout-dashboard')
 
 @section('nav')
@@ -8,6 +10,7 @@
 @endsection
 
 <div class="space-y-6">
+    @if ($showAkademik)
     <div class="grid gap-4 md:grid-cols-2">
         <div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-pink-500 to-rose-500 p-6 text-white shadow-lg">
             <div class="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_20%_20%,white,transparent_35%),radial-gradient(circle_at_80%_0%,white,transparent_25%)]"></div>
@@ -223,4 +226,113 @@
             </div>
         @endif
     </div>
+    @endif
+
+    @if ($showKeuangan)
+    <div class="space-y-6">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <div>
+                <h2 class="text-lg font-semibold text-neutral-900">Ringkasan Keuangan</h2>
+                <p class="text-sm text-neutral-500">Total tagihan, pembayaran, dan piutang berjalan</p>
+            </div>
+            <div class="w-full sm:w-56">
+                <x-searchable-select model="filterSemesterKeuangan" :options="$this->semesterOptionsKeuangan" :live="true" placeholder="Semua periode" />
+            </div>
+        </div>
+
+        @php $ringkasan = $this->keuanganStats['ringkasan']; @endphp
+        <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <div class="rounded-2xl bg-white p-5 shadow-border">
+                <p class="text-sm text-neutral-500">Total Tagihan</p>
+                <p class="mt-1 text-2xl font-semibold text-neutral-900">Rp{{ number_format($ringkasan['total_tagihan'], 0, ',', '.') }}</p>
+            </div>
+            <div class="rounded-2xl bg-white p-5 shadow-border">
+                <p class="text-sm text-neutral-500">Total Terbayar</p>
+                <p class="mt-1 text-2xl font-semibold text-emerald-600">Rp{{ number_format($ringkasan['total_terbayar'], 0, ',', '.') }}</p>
+            </div>
+            <div class="rounded-2xl bg-white p-5 shadow-border">
+                <p class="text-sm text-neutral-500">Piutang Berjalan</p>
+                <p class="mt-1 text-2xl font-semibold text-amber-600">Rp{{ number_format($ringkasan['total_piutang'], 0, ',', '.') }}</p>
+                @if ($ringkasan['total_keringanan'] > 0)
+                    <p class="text-xs text-neutral-500">
+                        Setelah keringanan Rp{{ number_format($ringkasan['total_keringanan'], 0, ',', '.') }}
+                    </p>
+                @endif
+            </div>
+            <div class="rounded-2xl bg-white p-5 shadow-border">
+                <p class="text-sm text-neutral-500">Menunggu Approval</p>
+                <p class="mt-1 text-2xl font-semibold text-sky-600">Rp{{ number_format($ringkasan['pembayaran_menunggu_approval_total'], 0, ',', '.') }}</p>
+                <p class="text-xs text-neutral-500">{{ $ringkasan['pembayaran_menunggu_approval_count'] }} pembayaran</p>
+            </div>
+        </div>
+
+        @if ($ringkasan['pembayaran_menunggu_approval_count'] > 0 && \Illuminate\Support\Facades\Route::has('admin.keuangan.pembayaran'))
+            <a
+                href="{{ route('admin.keuangan.pembayaran') }}"
+                class="group flex items-center justify-between rounded-xl border border-amber-200 bg-amber-50/60 px-4 py-3 text-sm text-amber-800 transition hover:-translate-y-0.5 hover:shadow-sm"
+            >
+                <span>{{ $ringkasan['pembayaran_menunggu_approval_count'] }} pembayaran menunggu approval admin.</span>
+                <i data-lucide="arrow-right" class="h-3.5 w-3.5 transition group-hover:translate-x-0.5" aria-hidden="true"></i>
+            </a>
+        @endif
+
+        <div class="grid gap-4 md:grid-cols-2">
+            <div class="rounded-2xl bg-white p-6 shadow-border">
+                <p class="text-lg font-semibold text-neutral-900">Status Tagihan</p>
+                {{-- Kosakata & angkanya sengaja sama persis dengan halaman daftar tagihan: keduanya
+                     memakai StatusPembayaranTagihan, bukan kolom `tagihan.status`. --}}
+                <p class="mb-4 text-xs text-neutral-500">Berdasarkan pembayaran disetujui dan keringanan biaya</p>
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between rounded-xl bg-emerald-50 px-4 py-3 text-sm">
+                        <span class="font-medium text-emerald-800">Lunas</span>
+                        <span class="font-semibold text-emerald-800">{{ $ringkasan['jumlah_tagihan_lunas'] }}</span>
+                    </div>
+                    <div class="flex items-center justify-between rounded-xl bg-sky-50 px-4 py-3 text-sm">
+                        <span class="font-medium text-sky-900">Dibayar sebagian</span>
+                        <span class="font-semibold text-sky-900">{{ $ringkasan['jumlah_tagihan_dibayar_sebagian'] }}</span>
+                    </div>
+                    <div class="flex items-center justify-between rounded-xl bg-amber-50 px-4 py-3 text-sm">
+                        <span class="font-medium text-amber-900">Belum bayar</span>
+                        <span class="font-semibold text-amber-900">{{ $ringkasan['jumlah_tagihan_belum_bayar'] }}</span>
+                    </div>
+                    <div class="flex items-center justify-between rounded-xl bg-rose-50 px-4 py-3 text-sm">
+                        <span class="font-medium text-rose-800">Kedaluwarsa</span>
+                        <span class="font-semibold text-rose-800">{{ $ringkasan['jumlah_tagihan_kedaluwarsa'] }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="rounded-2xl bg-white p-6 shadow-border">
+                <p class="mb-4 text-lg font-semibold text-neutral-900">Tren Pembayaran 6 Bulan Terakhir</p>
+                @php $tren = $this->keuanganStats['tren_bulanan']; $chartH = $this->keuanganStats['chart_height']; @endphp
+                <div class="flex items-end justify-between gap-3" style="height: {{ $chartH + 24 }}px">
+                    @foreach ($tren as $bulan)
+                        <div class="group relative flex flex-1 flex-col items-center justify-end gap-2">
+                            <div class="invisible absolute -top-1 z-10 -translate-y-full whitespace-nowrap rounded-lg bg-neutral-900 px-2.5 py-1.5 text-xs text-white opacity-0 shadow-lg transition group-hover:visible group-hover:opacity-100">
+                                Rp{{ number_format($bulan['total'], 0, ',', '.') }}
+                            </div>
+                            <div class="w-full rounded-t-[4px] bg-emerald-500 opacity-90 transition-opacity group-hover:opacity-100" style="height: {{ $bulan['height_px'] }}px"></div>
+                            <span class="text-xs text-neutral-500">{{ $bulan['label'] }}</span>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+        </div>
+
+        <div class="rounded-2xl bg-white p-6 shadow-border">
+            <p class="mb-4 text-lg font-semibold text-neutral-900">Akses Cepat Keuangan</p>
+            <div class="grid gap-2 sm:grid-cols-3">
+                @foreach ($this->keuanganQuickLinks as $link)
+                    <a
+                        href="{{ $link['url'] }}"
+                        class="group flex items-center justify-between rounded-xl px-4 py-3 text-sm font-semibold text-neutral-700 shadow-border transition hover:-translate-y-0.5 hover:shadow-sm"
+                    >
+                        {{ $link['label'] }}
+                        <span class="text-sky-500 transition group-hover:translate-x-0.5">↗</span>
+                    </a>
+                @endforeach
+            </div>
+        </div>
+    </div>
+    @endif
 </div>

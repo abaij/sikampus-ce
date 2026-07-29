@@ -1,5 +1,12 @@
 <?php
 
+use App\Models\Dosen;
+use App\Models\Role;
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
+use Tests\TestCase;
+
 /*
 |--------------------------------------------------------------------------
 | Test Case
@@ -11,8 +18,8 @@
 |
 */
 
-pest()->extend(Tests\TestCase::class)
-    ->use(Illuminate\Foundation\Testing\RefreshDatabase::class)
+pest()->extend(TestCase::class)
+    ->use(RefreshDatabase::class)
     ->in('Feature');
 
 /*
@@ -51,7 +58,7 @@ function something()
  * (dibuat otomatis kalau belum ada). Sejak Spatie menjadi satu-satunya sumber
  * kebenaran untuk role.admin/role.admin.keuangan, users.role legacy saja tidak lagi cukup.
  */
-function adminUser(string $legacyRole = 'admin'): \App\Models\User
+function adminUser(string $legacyRole = 'admin'): User
 {
     $spatieRoleName = match ($legacyRole) {
         'admin_akademik' => 'Akademik',
@@ -59,12 +66,12 @@ function adminUser(string $legacyRole = 'admin'): \App\Models\User
         default => 'Superadmin',
     };
 
-    $role = \App\Models\Role::firstOrCreate(
+    $role = Role::firstOrCreate(
         ['name' => $spatieRoleName, 'guard_name' => 'web'],
         ['code' => strtolower($spatieRoleName)]
     );
 
-    $user = \App\Models\User::factory()->create(['role' => $legacyRole]);
+    $user = User::factory()->create(['role' => $legacyRole]);
     $user->syncRoles([$role]);
 
     return $user;
@@ -73,11 +80,11 @@ function adminUser(string $legacyRole = 'admin'): \App\Models\User
 /**
  * Beri user scope prodi langsung (user_role_scopes, scope_type=prodi) untuk role Spatie-nya.
  */
-function scopeAdminToProdi(\App\Models\User $user, int $prodiId): void
+function scopeAdminToProdi(User $user, int $prodiId): void
 {
     $role = $user->roles()->first();
 
-    \Illuminate\Support\Facades\DB::table('user_role_scopes')->insert([
+    DB::table('user_role_scopes')->insert([
         'id_user' => $user->id,
         'id_role' => $role->id,
         'id_scope' => $prodiId,
@@ -90,11 +97,11 @@ function scopeAdminToProdi(\App\Models\User $user, int $prodiId): void
 /**
  * Beri user scope fakultas langsung (user_role_scopes, scope_type=fakultas) untuk role Spatie-nya.
  */
-function scopeAdminToFakultas(\App\Models\User $user, int $fakultasId): void
+function scopeAdminToFakultas(User $user, int $fakultasId): void
 {
     $role = $user->roles()->first();
 
-    \Illuminate\Support\Facades\DB::table('user_role_scopes')->insert([
+    DB::table('user_role_scopes')->insert([
         'id_user' => $user->id,
         'id_role' => $role->id,
         'id_scope' => $fakultasId,
@@ -102,4 +109,17 @@ function scopeAdminToFakultas(\App\Models\User $user, int $fakultasId): void
         'created_at' => now(),
         'updated_at' => now(),
     ]);
+}
+
+/**
+ * Buat user dosen untuk test, lengkap dengan baris `dosen` yang ditautkan lewat id_user — area
+ * dosen (dashboard, profil/akun) selalu mengambil data lewat Dosen::where('id_user', ...), jadi
+ * user dosen "telanjang" tanpa baris ini akan 404 (ModelNotFoundException) di komponen tersebut.
+ */
+function dosenUser(array $userAttributes = [], array $dosenAttributes = []): User
+{
+    $user = User::factory()->create(array_merge(['role' => 'dosen'], $userAttributes));
+    Dosen::factory()->create(array_merge(['id_user' => $user->id], $dosenAttributes));
+
+    return $user;
 }

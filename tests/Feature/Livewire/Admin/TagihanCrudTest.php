@@ -81,9 +81,9 @@ it('deletes a tagihan', function () {
     expect(Tagihan::find($tagihan->id))->toBeNull();
 });
 
-it('rejects a duplicate mahasiswa/semester combination', function () {
+it('rejects a duplicate mahasiswa/semester combination when neither has a tahap', function () {
     $admin = adminUser();
-    $existing = Tagihan::factory()->create();
+    $existing = Tagihan::factory()->create(['tahap' => null]);
     $komponen = KomponenBiaya::factory()->create();
 
     Livewire::actingAs($admin)
@@ -94,6 +94,84 @@ it('rejects a duplicate mahasiswa/semester combination', function () {
         ->set('rincian.0.nominal', '1000')
         ->call('save')
         ->assertHasErrors('id_semester');
+});
+
+it('allows a second tagihan in the same semester when the tahap differs', function () {
+    $admin = adminUser();
+    $existing = Tagihan::factory()->create(['tahap' => 1]);
+    $komponen = KomponenBiaya::factory()->create();
+
+    Livewire::actingAs($admin)
+        ->test(Form::class)
+        ->call('selectMahasiswa', $existing->id_mahasiswa, 'label')
+        ->set('id_semester', $existing->id_semester)
+        ->set('tahap', '2')
+        ->set('rincian.0.id_komponen_biaya', (string) $komponen->id)
+        ->set('rincian.0.nominal', '1000')
+        ->call('save')
+        ->assertHasNoErrors()
+        ->assertRedirect(route('admin.keuangan.tagihan'));
+
+    expect(Tagihan::where('id_mahasiswa', $existing->id_mahasiswa)
+        ->where('id_semester', $existing->id_semester)
+        ->count())->toBe(2);
+});
+
+it('still rejects a second tagihan on the same tahap', function () {
+    $admin = adminUser();
+    $existing = Tagihan::factory()->create(['tahap' => 2]);
+    $komponen = KomponenBiaya::factory()->create();
+
+    Livewire::actingAs($admin)
+        ->test(Form::class)
+        ->call('selectMahasiswa', $existing->id_mahasiswa, 'label')
+        ->set('id_semester', $existing->id_semester)
+        ->set('tahap', '2')
+        ->set('rincian.0.id_komponen_biaya', (string) $komponen->id)
+        ->set('rincian.0.nominal', '1000')
+        ->call('save')
+        ->assertHasErrors('id_semester');
+});
+
+/**
+ * Ini kasus yang dulu rusak: begitu satu mahasiswa punya lebih dari satu tagihan dalam satu
+ * semester (hasil generate per tahap), form edit selalu menolak simpan dengan alasan "sudah ada"
+ * — sehingga tagihan multi-tahap tidak pernah bisa diubah sama sekali.
+ */
+it('can still edit a tagihan when the same semester holds other tahap', function () {
+    $admin = adminUser();
+    $mahasiswa = Mahasiswa::factory()->create();
+    $semester = Semester::factory()->create();
+
+    $tahap1 = Tagihan::factory()->create([
+        'id_mahasiswa' => $mahasiswa->id,
+        'id_semester' => $semester->id,
+        'tahap' => 1,
+        'total' => 1000000,
+    ]);
+    Tagihan::factory()->create([
+        'id_mahasiswa' => $mahasiswa->id,
+        'id_semester' => $semester->id,
+        'tahap' => 2,
+        'total' => 1000000,
+    ]);
+
+    $komponen = KomponenBiaya::factory()->create();
+    TagihanRinci::factory()->create([
+        'id_tagihan' => $tahap1->id,
+        'id_komponen_biaya' => $komponen->id,
+        'nominal' => 1000000,
+    ]);
+
+    Livewire::actingAs($admin)
+        ->test(Form::class, ['id' => $tahap1->id])
+        ->set('rincian.0.nominal', '1500000')
+        ->call('save')
+        ->assertHasNoErrors()
+        ->assertRedirect(route('admin.keuangan.tagihan'));
+
+    expect((float) $tahap1->fresh()->total)->toBe(1500000.0);
+    expect($tahap1->fresh()->tahap)->toBe(1);
 });
 
 it('rejects duplicate komponen biaya within rincian', function () {

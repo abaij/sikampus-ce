@@ -3,7 +3,6 @@
 use App\Http\Controllers\DosenWaliController;
 use App\Http\Controllers\SurveyController;
 use App\Http\Controllers\Web\AdminWebLoginController;
-use App\Http\Controllers\Web\DosenDashboardController;
 use App\Http\Controllers\Web\KrsCetakController;
 use App\Http\Controllers\Web\LoginController;
 use App\Http\Controllers\Web\MahasiswaDashboardController;
@@ -114,6 +113,11 @@ use App\Livewire\Admin\Wisuda\Show as WisudaShow;
 use App\Livewire\Admin\Yudisium\Form as YudisiumForm;
 use App\Livewire\Admin\Yudisium\Index as YudisiumIndex;
 use App\Livewire\Admin\Yudisium\Show as YudisiumShow;
+use App\Livewire\Dosen\Dashboard as DosenDashboard;
+use App\Livewire\Dosen\Jadwal\Detail as DosenJadwalDetail;
+use App\Livewire\Dosen\Jadwal\Index as DosenJadwalIndex;
+use App\Livewire\Dosen\Jadwal\Show as DosenJadwalShow;
+use App\Livewire\Dosen\Kelas\Index as DosenKelasIndex;
 use App\Livewire\Dosen\Profil as DosenProfil;
 use App\Livewire\Mahasiswa\Profil as MahasiswaProfil;
 use Illuminate\Support\Facades\Route;
@@ -140,10 +144,28 @@ Route::middleware(['auth', 'superadmin.web'])->group(function (): void {
     Route::post('/test-upload', [SuperadminTestUploadController::class, 'store'])->name('superadmin.test-upload.store');
 });
 
-// Dashboard dosen — placeholder, modulnya menyusul.
+// Area dosen (sidebar, lihat resources/views/layouts/dosen.blade.php + dosen/partials/sidebar).
+// Dashboard, Akun, Kelas & Jadwal Mengajar sudah fungsional; modul lain masih menunjuk ke
+// 'dosen.coming-soon' sampai masing-masing diport dari siak-frontend
+// (lihat .claude/skills/siak-livewire-module).
 Route::middleware(['auth', 'role.dosen.web'])->group(function (): void {
-    Route::get('/dosen/dashboard', [DosenDashboardController::class, 'index'])->name('dosen.dashboard');
+    Route::livewire('/dosen/dashboard', DosenDashboard::class)->name('dosen.dashboard');
     Route::livewire('/dosen/profil', DosenProfil::class)->name('dosen.profil');
+
+    Route::livewire('/dosen/kelas', DosenKelasIndex::class)->name('dosen.kelas');
+
+    // Rute literal ('/dosen/jadwal') harus di atas rute berparameter ('{kelasId}', '{kelasId}/{jadwalId}').
+    Route::livewire('/dosen/jadwal', DosenJadwalIndex::class)->name('dosen.jadwal');
+    Route::livewire('/dosen/jadwal/{kelasId}', DosenJadwalShow::class)->name('dosen.jadwal.show');
+    Route::livewire('/dosen/jadwal/{kelasId}/{jadwalId}', DosenJadwalDetail::class)->name('dosen.jadwal.detail');
+
+    Route::view('/dosen/nilai', 'dosen.coming-soon', ['title' => 'Nilai'])->name('dosen.nilai');
+    Route::view('/dosen/rps', 'dosen.coming-soon', ['title' => 'RPS'])->name('dosen.rps');
+    Route::view('/dosen/krs', 'dosen.coming-soon', ['title' => 'Persetujuan KRS'])->name('dosen.krs');
+    Route::view('/dosen/perwalian', 'dosen.coming-soon', ['title' => 'Perwalian'])->name('dosen.perwalian');
+    Route::view('/dosen/tugas-akhir', 'dosen.coming-soon', ['title' => 'Tugas Akhir'])->name('dosen.tugas-akhir');
+    Route::view('/dosen/ujian-sidang', 'dosen.coming-soon', ['title' => 'Ujian Sidang'])->name('dosen.ujian-sidang');
+    Route::view('/dosen/arsip', 'dosen.coming-soon', ['title' => 'Arsip'])->name('dosen.arsip');
 });
 
 // Dashboard mahasiswa — placeholder, modulnya menyusul.
@@ -268,10 +290,8 @@ Route::prefix('admin')->name('admin.')->group(function (): void {
         Route::livewire('administrasi/pengumuman/create', PengumumanForm::class)->name('administrasi.pengumuman.create');
         Route::livewire('administrasi/pengumuman/{id}/edit', PengumumanForm::class)->name('administrasi.pengumuman.edit');
 
-        // Menu Keuangan — modulnya besar, diporting bertahap. Sampai masing-masing komponen
-        // Livewire-nya dibuat, setiap rute mengarah ke halaman generik "sedang dalam
-        // pengembangan" supaya menu & submenu yang sudah dipasang di nav tidak 404.
-        Route::view('keuangan/dashboard', 'admin.coming-soon', ['title' => 'Dashboard Keuangan', 'group' => 'Keuangan'])->name('keuangan.dashboard');
+        // Dashboard keuangan digabung ke dashboard admin utama (admin.dashboard) — bagian mana
+        // yang tampil diatur oleh role user, bukan oleh route terpisah (lihat Dashboard::mount()).
         // Rute literal (create, generate) harus didaftarkan sebelum 'keuangan/tagihan/{id}'
         // supaya tidak tertangkap sebagai id (lihat catatan di skill siak-livewire-module).
         Route::livewire('keuangan/tagihan', TagihanIndex::class)->name('keuangan.tagihan');

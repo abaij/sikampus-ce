@@ -79,11 +79,20 @@
             <div>
                 <p class="text-xs font-semibold text-neutral-500">Total Tagihan</p>
                 <p class="mt-1 text-sm font-semibold text-neutral-900">Rp{{ number_format((float) $tagihan->total, 0, ',', '.') }}</p>
+                @if ($tagihan->tahap)
+                    <p class="mt-1 text-xs text-neutral-500">Tahap {{ $tagihan->tahap }}</p>
+                @endif
             </div>
             <div>
                 <p class="text-xs font-semibold text-neutral-500">Total Dibayar (Disetujui)</p>
                 <p class="mt-1 text-sm font-semibold text-emerald-700">Rp{{ number_format($totalPembayaranDisetujui, 0, ',', '.') }}</p>
             </div>
+            @if ($kreditKeringanan > 0)
+                <div>
+                    <p class="text-xs font-semibold text-neutral-500">Keringanan Disetujui</p>
+                    <p class="mt-1 text-sm font-semibold text-amber-700">Rp{{ number_format($kreditKeringanan, 0, ',', '.') }}</p>
+                </div>
+            @endif
             <div>
                 <p class="text-xs font-semibold text-neutral-500">Sisa (Menurut ACC)</p>
                 <p class="mt-1 text-sm font-semibold text-neutral-900">Rp{{ number_format($sisaPembayaranDisetujui, 0, ',', '.') }}</p>

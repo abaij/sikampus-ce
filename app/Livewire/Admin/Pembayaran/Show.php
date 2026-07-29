@@ -63,9 +63,7 @@ class Show extends Component
         DB::transaction(function () use ($tagihan) {
             $this->pembayaran->delete();
 
-            $totalPembayaran = (float) Pembayaran::approvedQueryForTagihan($tagihan->id)->sum('nominal');
-
-            if ($totalPembayaran >= $tagihan->total) {
+            if ($tagihan->lunasMenurutPembayaranDisetujui()) {
                 $tagihan->update(['status' => 'paid']);
             } else {
                 $tagihan->update(['status' => 'unpaid', 'tanggal_pembayaran' => null]);
@@ -98,9 +96,7 @@ class Show extends Component
                 'approved_by' => $approver,
             ]);
 
-            $totalPembayaran = (float) Pembayaran::approvedQueryForTagihan($tagihan->id)->sum('nominal');
-
-            if ($totalPembayaran >= $tagihan->total) {
+            if ($tagihan->lunasMenurutPembayaranDisetujui()) {
                 $tagihan->update([
                     'status' => 'paid',
                     'tanggal_pembayaran' => $this->pembayaran->tanggal_pembayaran ?? now(),

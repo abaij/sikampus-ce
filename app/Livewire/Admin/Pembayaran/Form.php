@@ -6,6 +6,7 @@ use App\Livewire\Admin\Pembayaran\Concerns\ForwardsIndexState;
 use App\Models\Mahasiswa;
 use App\Models\Pembayaran;
 use App\Models\Tagihan;
+use App\Services\KeringananBiayaKreditService;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -63,7 +64,8 @@ class Form extends Component
         $totalApprovedLain = Pembayaran::approvedQueryForTagihan($this->lockedTagihan->id)
             ->where('id', '!=', $id)
             ->sum('nominal');
-        $this->sisaTagihanSaatIni = max(0, (float) $this->lockedTagihan->total - (float) $totalApprovedLain);
+        $kredit = KeringananBiayaKreditService::kreditUntukTagihan($this->lockedTagihan);
+        $this->sisaTagihanSaatIni = max(0.0, (float) $this->lockedTagihan->total - (float) $totalApprovedLain - $kredit);
     }
 
     /**
@@ -87,10 +89,16 @@ class Form extends Component
             ->whereIn('status', ['unpaid', 'expired'])
             ->with(['semester'])
             ->orderByDesc('tanggal_tagihan')
-            ->get()
-            ->map(function (Tagihan $t) {
+            ->get();
+
+        $kredit = KeringananBiayaKreditService::kreditUntukTagihanIds($tagihan->pluck('id')->all());
+
+        $tagihan = $tagihan
+            ->map(function (Tagihan $t) use ($kredit) {
                 $totalPembayaran = (float) Pembayaran::approvedQueryForTagihan($t->id)->sum('nominal');
-                $t->setAttribute('sisa_tagihan', (float) $t->total - $totalPembayaran);
+                $kreditBaris = (float) ($kredit[$t->id] ?? 0);
+                $t->setAttribute('kredit_keringanan', $kreditBaris);
+                $t->setAttribute('sisa_tagihan', (float) $t->total - $totalPembayaran - $kreditBaris);
 
                 return $t;
             })
@@ -164,16 +172,19 @@ class Form extends Component
         $tagihan = Tagihan::findOrFail($validated['id_tagihan']);
 
         $totalPembayaran = (float) Pembayaran::approvedQueryForTagihan($tagihan->id)->sum('nominal');
-        $sisaTagihan = (float) $tagihan->total - $totalPembayaran;
+        $kredit = KeringananBiayaKreditService::kreditUntukTagihan($tagihan);
+        $sisaTagihan = (float) $tagihan->total - $totalPembayaran - $kredit;
 
-        if ((float) $validated['nominal'] > $sisaTagihan) {
-            $this->addError('nominal', 'Nominal pembayaran tidak boleh melebihi sisa tagihan yang belum dibayar.');
+        if ($sisaTagihan <= 0) {
+            $this->addError('id_tagihan', $kredit > 0
+                ? 'Tagihan ini sudah tertutup oleh pembayaran dan keringanan biaya.'
+                : 'Tagihan ini sudah lunas.');
 
             return;
         }
 
-        if ($sisaTagihan <= 0) {
-            $this->addError('id_tagihan', 'Tagihan ini sudah lunas.');
+        if ((float) $validated['nominal'] > $sisaTagihan) {
+            $this->addError('nominal', 'Nominal pembayaran tidak boleh melebihi sisa tagihan yang belum dibayar.');
 
             return;
         }
@@ -194,8 +205,7 @@ class Form extends Component
                 'created_by' => $userName,
             ]);
 
-            $totalPembayaran = Pembayaran::where('id_tagihan', $tagihan->id)->sum('nominal');
-            if ($totalPembayaran >= $tagihan->total) {
+            if ($tagihan->lunasMenurutPembayaranDisetujui()) {
                 $tagihan->update([
                     'status' => 'paid',
                     'tanggal_pembayaran' => $validated['tanggal_pembayaran'] ?: now(),
@@ -218,8 +228,9 @@ class Form extends Component
         $totalApprovedLain = Pembayaran::approvedQueryForTagihan($tagihan->id)
             ->where('id', '!=', $pembayaran->id)
             ->sum('nominal');
+        $kredit = KeringananBiayaKreditService::kreditUntukTagihan($tagihan);
 
-        if ((float) $tagihan->total < (float) $validated['nominal'] + (float) $totalApprovedLain) {
+        if ((float) $tagihan->total - $kredit < (float) $validated['nominal'] + (float) $totalApprovedLain) {
             $this->addError('nominal', 'Nominal pembayaran tidak boleh melebihi total tagihan.');
 
             return;
@@ -233,9 +244,7 @@ class Form extends Component
                 'keterangan' => $validated['keterangan'] ?: null,
             ]);
 
-            $totalPembayaran = (float) Pembayaran::approvedQueryForTagihan($tagihan->id)->sum('nominal');
-
-            if ($totalPembayaran >= $tagihan->total) {
+            if ($tagihan->lunasMenurutPembayaranDisetujui()) {
                 $tagihan->update([
                     'status' => 'paid',
                     'tanggal_pembayaran' => $pembayaran->tanggal_pembayaran,

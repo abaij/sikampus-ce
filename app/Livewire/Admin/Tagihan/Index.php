@@ -6,6 +6,8 @@ use App\Models\Pembayaran;
 use App\Models\Prodi;
 use App\Models\Semester;
 use App\Models\Tagihan;
+use App\Services\KeringananBiayaKreditService;
+use App\Services\StatusPembayaranTagihan;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
@@ -115,30 +117,12 @@ class Index extends Component
         }
     }
 
-    private function subquerySumPembayaranDisetujui(): string
-    {
-        return '(SELECT COALESCE(SUM(pembayaran.nominal), 0) FROM pembayaran WHERE pembayaran.id_tagihan = tagihan.id AND pembayaran.deleted_at IS NULL AND pembayaran.approved_at IS NOT NULL)';
-    }
-
     /**
-     * Sama persis dengan TagihanController::statusPembayaranAcc.
-     *
      * @return string lunas|dibayar_sebagian|belum_bayar|kedaluwarsa
      */
-    public function statusPembayaranAcc(Tagihan $tagihan, float $totalDisetujui): string
+    public function statusPembayaranAcc(Tagihan $tagihan, float $totalDisetujui, float $kreditKeringanan = 0.0): string
     {
-        $totalTagihan = (float) $tagihan->total;
-        if ($totalDisetujui + 0.009 >= $totalTagihan) {
-            return 'lunas';
-        }
-        if ($totalDisetujui > 0) {
-            return 'dibayar_sebagian';
-        }
-        if ($tagihan->status === 'expired') {
-            return 'kedaluwarsa';
-        }
-
-        return 'belum_bayar';
+        return StatusPembayaranTagihan::hitung($tagihan, $totalDisetujui, $kreditKeringanan);
     }
 
     #[Computed]
@@ -165,12 +149,7 @@ class Index extends Component
 
     public function statusPembayaranAccOptions(): array
     {
-        return [
-            'lunas' => 'Lunas (disetujui penuh)',
-            'dibayar_sebagian' => 'Dibayar sebagian (ACC)',
-            'belum_bayar' => 'Belum ada pembayaran disetujui',
-            'kedaluwarsa' => 'Kedaluwarsa (belum lunas)',
-        ];
+        return StatusPembayaranTagihan::opsi();
     }
 
     public function confirmDelete(int $id): void
@@ -232,15 +211,9 @@ class Index extends Component
                 ->whereDate('tanggal_jatuh_tempo', '<', Carbon::today());
         }
 
-        $sumSub = $this->subquerySumPembayaranDisetujui();
-        if ($this->filterStatusPembayaranAcc === 'lunas') {
-            $query->whereRaw("{$sumSub} >= tagihan.total");
-        } elseif ($this->filterStatusPembayaranAcc === 'dibayar_sebagian') {
-            $query->whereRaw("{$sumSub} > 0")->whereRaw("{$sumSub} < tagihan.total");
-        } elseif ($this->filterStatusPembayaranAcc === 'belum_bayar') {
-            $query->whereRaw("{$sumSub} <= 0")->where('tagihan.status', '!=', 'expired');
-        } elseif ($this->filterStatusPembayaranAcc === 'kedaluwarsa') {
-            $query->where('tagihan.status', 'expired')->whereRaw("{$sumSub} < tagihan.total");
+        // Filter memakai ekspresi yang sama dengan label barisnya.
+        if (array_key_exists($this->filterStatusPembayaranAcc, StatusPembayaranTagihan::opsi())) {
+            $query->whereRaw(StatusPembayaranTagihan::sqlEkspresi().' = ?', [$this->filterStatusPembayaranAcc]);
         }
 
         $tagihanList = $query->orderByDesc('tanggal_tagihan')
@@ -256,14 +229,18 @@ class Index extends Component
             ->selectRaw('id_tagihan, SUM(nominal) as total_disetujui')
             ->pluck('total_disetujui', 'id_tagihan');
 
-        $paymentSummaries = $tagihanList->getCollection()->mapWithKeys(function (Tagihan $tagihan) use ($sums) {
+        $kredit = KeringananBiayaKreditService::kreditUntukTagihanIds($ids->all());
+
+        $paymentSummaries = $tagihanList->getCollection()->mapWithKeys(function (Tagihan $tagihan) use ($sums, $kredit) {
             $totalDisetujui = (float) ($sums[$tagihan->id] ?? 0);
+            $kreditBaris = (float) ($kredit[$tagihan->id] ?? 0);
             $totalTagihan = (float) $tagihan->total;
 
             return [$tagihan->id => [
                 'total_disetujui' => $totalDisetujui,
-                'sisa' => max(0, $totalTagihan - $totalDisetujui),
-                'status' => $this->statusPembayaranAcc($tagihan, $totalDisetujui),
+                'kredit_keringanan' => $kreditBaris,
+                'sisa' => max(0.0, $totalTagihan - $totalDisetujui - $kreditBaris),
+                'status' => $this->statusPembayaranAcc($tagihan, $totalDisetujui, $kreditBaris),
             ]];
         });
 

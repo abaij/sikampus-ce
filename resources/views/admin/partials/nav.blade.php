@@ -52,7 +52,6 @@
         [
             'label' => 'Keuangan',
             'items' => [
-                ['route' => 'admin.keuangan.dashboard', 'label' => 'Dashboard'],
                 ['label' => 'Tagihan', 'children' => [
                     ['route' => 'admin.keuangan.tagihan', 'label' => 'Tagihan'],
                     ['route' => 'admin.keuangan.tagihan.generate', 'label' => 'Generate Tagihan'],

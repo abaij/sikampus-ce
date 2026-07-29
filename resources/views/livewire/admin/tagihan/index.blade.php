@@ -111,10 +111,16 @@
                                 @if ($tagihan->semester?->kode)
                                     <span class="text-xs text-neutral-500">({{ $tagihan->semester->kode }})</span>
                                 @endif
+                                @if ($tagihan->tahap)
+                                    <div class="text-xs text-neutral-500">Tahap {{ $tagihan->tahap }}</div>
+                                @endif
                             </td>
                             <td class="px-4 py-3 font-semibold text-neutral-900">Rp{{ number_format((float) $tagihan->total, 0, ',', '.') }}</td>
                             <td class="px-4 py-3">
                                 <div class="font-semibold text-neutral-800">Rp{{ number_format($summary['total_disetujui'], 0, ',', '.') }}</div>
+                                @if ($summary['kredit_keringanan'] > 0)
+                                    <div class="text-xs text-amber-700">+ keringanan Rp{{ number_format($summary['kredit_keringanan'], 0, ',', '.') }}</div>
+                                @endif
                                 @if ($summary['sisa'] > 0)
                                     <div class="text-xs text-neutral-500">Sisa Rp{{ number_format($summary['sisa'], 0, ',', '.') }}</div>
                                 @endif

@@ -279,6 +279,42 @@ class User extends Authenticatable
     }
 
     /**
+     * Role Spatie "Akademik" — sama polanya dengan isSuperadmin(), dipakai untuk menentukan
+     * visibilitas bagian dashboard akademik pada dashboard admin gabungan.
+     */
+    public function isAkademik(): bool
+    {
+        if ($this->hasAnyRole(['akademik', 'Akademik'])) {
+            return true;
+        }
+
+        return $this->roles()
+            ->where(function ($q): void {
+                $q->where('code', 'akademik')
+                    ->orWhereIn('name', ['akademik', 'Akademik']);
+            })
+            ->exists();
+    }
+
+    /**
+     * Role Spatie "Keuangan" — sama polanya dengan isSuperadmin(), dipakai untuk menentukan
+     * visibilitas bagian dashboard keuangan pada dashboard admin gabungan.
+     */
+    public function isKeuangan(): bool
+    {
+        if ($this->hasAnyRole(['keuangan', 'Keuangan'])) {
+            return true;
+        }
+
+        return $this->roles()
+            ->where(function ($q): void {
+                $q->where('code', 'keuangan')
+                    ->orWhereIn('name', ['keuangan', 'Keuangan']);
+            })
+            ->exists();
+    }
+
+    /**
      * Ambil daftar id prodi yang boleh diakses user berdasarkan scope.
      * - Scope prodi: id prodi dari user_role_scopes (scope_type = prodi).
      * - Scope fakultas: id prodi yang id_fakultas-nya ada di user_role_scopes (scope_type = fakultas).

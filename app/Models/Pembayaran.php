@@ -11,6 +11,7 @@ class Pembayaran extends Model
     use HasFactory, SoftDeletes;
 
     protected $table = 'pembayaran';
+
     protected $fillable = [
         'id_tagihan',
         'no_pembayaran',
@@ -25,7 +26,9 @@ class Pembayaran extends Model
         'updated_by',
         'deleted_by',
     ];
+
     protected $hidden = ['created_at', 'updated_at', 'deleted_at'];
+
     protected $casts = [
         'id_tagihan' => 'integer',
         'nominal' => 'decimal:2',
@@ -49,5 +52,18 @@ class Pembayaran extends Model
             ->where('id_tagihan', $tagihanId)
             ->whereNull('deleted_at')
             ->whereNotNull('approved_at');
+    }
+
+    /**
+     * Versi SQL dari approvedQueryForTagihan()->sum('nominal'), sebagai subquery berkorelasi
+     * terhadap satu baris tagihan. Dipakai query daftar/filter/agregat yang tidak bisa memuat
+     * seluruh barisnya ke PHP dulu.
+     */
+    public static function sqlSumDisetujui(string $aliasTagihan = 'tagihan'): string
+    {
+        return "(SELECT COALESCE(SUM(pby.nominal), 0) FROM pembayaran pby
+            WHERE pby.id_tagihan = {$aliasTagihan}.id
+              AND pby.deleted_at IS NULL
+              AND pby.approved_at IS NOT NULL)";
     }
 }

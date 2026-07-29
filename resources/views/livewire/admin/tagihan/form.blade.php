@@ -70,6 +70,20 @@
                 </div>
 
                 <div>
+                    <label class="mb-1.5 block text-sm font-medium text-neutral-700">Tahap</label>
+                    <input
+                        type="number"
+                        min="1"
+                        step="1"
+                        wire:model="tahap"
+                        placeholder="Kosongkan jika tagihan tidak bertahap"
+                        class="w-full rounded-lg px-3 py-2.5 text-sm outline-none focus:border-neutral-900 focus:ring-2 focus:ring-neutral-900/10 @error('tahap') ring-2 ring-red-500 @enderror shadow-border"
+                    />
+                    <p class="mt-1.5 text-xs text-neutral-500">Satu mahasiswa boleh punya beberapa tagihan dalam satu semester selama tahapnya berbeda.</p>
+                    @error('tahap') <p class="mt-1.5 text-sm text-red-600">{{ $message }}</p> @enderror
+                </div>
+
+                <div>
                     <label class="mb-1.5 block text-sm font-medium text-neutral-700">Status *</label>
                     <select wire:model="status" class="w-full rounded-lg px-3 py-2.5 text-sm outline-none focus:border-neutral-900 focus:ring-2 focus:ring-neutral-900/10 shadow-border">
                         <option value="unpaid">Belum Bayar</option>

@@ -8,6 +8,8 @@ use App\Models\Pembayaran;
 use App\Models\Prodi;
 use App\Models\Semester;
 use App\Models\Tagihan;
+use App\Services\KeringananBiayaKreditService;
+use App\Services\StatusPembayaranTagihan;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
@@ -17,6 +19,8 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -162,10 +166,10 @@ class PembayaranController extends Controller
 
         $totalTagihan = (float) $tagihanQuery()->sum('total');
         $jumlahTagihan = $tagihanQuery()->count();
-        $jumlahPerStatus = $tagihanQuery()
-            ->select('status', DB::raw('count(*) as jumlah'))
-            ->groupBy('status')
-            ->pluck('jumlah', 'status');
+        // Diturunkan dari pembayaran yang disetujui + kredit keringanan, bukan dari kolom
+        // `tagihan.status` — supaya angka ringkasan ini tidak pernah berbeda dari status yang
+        // tampil di halaman daftar tagihan (dulu berbeda, mis. pada tagihan bernilai Rp0).
+        $jumlahPerStatusAcc = StatusPembayaranTagihan::hitungPerStatus($tagihanQuery());
 
         $approvedPembayaranQuery = function () use ($semesterId) {
             $q = Pembayaran::query()->whereNotNull('approved_at');
@@ -176,7 +180,8 @@ class PembayaranController extends Controller
             return $q;
         };
         $totalTerbayar = (float) $approvedPembayaranQuery()->sum('nominal');
-        $totalPiutang = max(0.0, $totalTagihan - $totalTerbayar);
+        $totalKeringanan = KeringananBiayaKreditService::totalKreditDisetujui($semesterId);
+        $totalPiutang = max(0.0, $totalTagihan - $totalTerbayar - $totalKeringanan);
 
         $pendingPembayaranQuery = function () use ($semesterId) {
             $q = Pembayaran::query()->whereNull('approved_at');
@@ -209,11 +214,19 @@ class PembayaranController extends Controller
             'ringkasan' => [
                 'total_tagihan' => $totalTagihan,
                 'total_terbayar' => $totalTerbayar,
+                'total_keringanan' => $totalKeringanan,
                 'total_piutang' => $totalPiutang,
                 'jumlah_tagihan' => $jumlahTagihan,
-                'jumlah_tagihan_paid' => (int) ($jumlahPerStatus['paid'] ?? 0),
-                'jumlah_tagihan_unpaid' => (int) ($jumlahPerStatus['unpaid'] ?? 0),
-                'jumlah_tagihan_expired' => (int) ($jumlahPerStatus['expired'] ?? 0),
+                'jumlah_tagihan_lunas' => $jumlahPerStatusAcc[StatusPembayaranTagihan::LUNAS],
+                'jumlah_tagihan_dibayar_sebagian' => $jumlahPerStatusAcc[StatusPembayaranTagihan::DIBAYAR_SEBAGIAN],
+                'jumlah_tagihan_belum_bayar' => $jumlahPerStatusAcc[StatusPembayaranTagihan::BELUM_BAYAR],
+                'jumlah_tagihan_kedaluwarsa' => $jumlahPerStatusAcc[StatusPembayaranTagihan::KEDALUWARSA],
+                // Kunci lama dipertahankan supaya frontend Next.js tidak patah; isinya kini
+                // memakai status turunan, dan "unpaid" berarti belum lunas (termasuk sebagian).
+                'jumlah_tagihan_paid' => $jumlahPerStatusAcc[StatusPembayaranTagihan::LUNAS],
+                'jumlah_tagihan_unpaid' => $jumlahPerStatusAcc[StatusPembayaranTagihan::BELUM_BAYAR]
+                    + $jumlahPerStatusAcc[StatusPembayaranTagihan::DIBAYAR_SEBAGIAN],
+                'jumlah_tagihan_expired' => $jumlahPerStatusAcc[StatusPembayaranTagihan::KEDALUWARSA],
                 'pembayaran_menunggu_approval_count' => $pendingCount,
                 'pembayaran_menunggu_approval_total' => $pendingTotal,
             ],
@@ -344,10 +357,10 @@ class PembayaranController extends Controller
         $headerStyle = [
             'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
             'fill' => [
-                'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                'fillType' => Fill::FILL_SOLID,
                 'startColor' => ['rgb' => '4472C4'],
             ],
-            'alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER],
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
         ];
         $sheet->getStyle('A'.$headerRow.':M'.$headerRow)->applyFromArray($headerStyle);
 
@@ -355,7 +368,7 @@ class PembayaranController extends Controller
             $totalStyle = [
                 'font' => ['bold' => true],
                 'fill' => [
-                    'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                    'fillType' => Fill::FILL_SOLID,
                     'startColor' => ['rgb' => 'E7E6E6'],
                 ],
             ];
@@ -402,14 +415,18 @@ class PembayaranController extends Controller
             ->get();
 
         // Calculate total pembayaran yang sudah ada untuk setiap tagihan
-        $tagihanWithPembayaran = $tagihan->map(function ($t) {
+        $kredit = KeringananBiayaKreditService::kreditUntukTagihanIds($tagihan->pluck('id')->all());
+
+        $tagihanWithPembayaran = $tagihan->map(function ($t) use ($kredit) {
             $totalPembayaran = Pembayaran::approvedQueryForTagihan($t->id)->sum('nominal');
-            $sisaTagihan = $t->total - $totalPembayaran;
+            $kreditBaris = (float) ($kredit[$t->id] ?? 0);
+            $sisaTagihan = (float) $t->total - (float) $totalPembayaran - $kreditBaris;
 
             return [
                 'id' => $t->id,
                 'no_tagihan' => $t->no_tagihan,
                 'total' => $t->total,
+                'tahap' => $t->tahap,
                 'status' => $t->status,
                 'tanggal_tagihan' => $t->tanggal_tagihan,
                 'tanggal_jatuh_tempo' => $t->tanggal_jatuh_tempo,
@@ -418,6 +435,7 @@ class PembayaranController extends Controller
                 'semester' => $t->semester,
                 'tagihan_rinci' => $t->tagihanRinci,
                 'total_pembayaran' => $totalPembayaran,
+                'kredit_keringanan' => $kreditBaris,
                 'sisa_tagihan' => $sisaTagihan,
             ];
         })->filter(function ($t) {
@@ -438,12 +456,14 @@ class PembayaranController extends Controller
     {
         $tagihan = Tagihan::findOrFail($tagihanId);
         $totalPembayaran = Pembayaran::approvedQueryForTagihan($tagihanId)->sum('nominal');
-        $sisaTagihan = $tagihan->total - $totalPembayaran;
+        $kredit = KeringananBiayaKreditService::kreditUntukTagihan($tagihan);
+        $sisaTagihan = (float) $tagihan->total - (float) $totalPembayaran - $kredit;
 
         return response()->json([
             'id_tagihan' => $tagihanId,
             'total_tagihan' => $tagihan->total,
             'total_pembayaran' => $totalPembayaran,
+            'kredit_keringanan' => $kredit,
             'sisa_tagihan' => $sisaTagihan,
         ]);
     }
@@ -467,21 +487,26 @@ class PembayaranController extends Controller
         // Get tagihan
         $tagihan = Tagihan::findOrFail($validated['id_tagihan']);
 
-        // Hanya pembayaran tersetujui yang mengurangi sisa
+        // Hanya pembayaran tersetujui yang mengurangi sisa; keringanan yang sudah disetujui juga
+        // mengurangi kewajiban, jadi tidak boleh ada tagihan yang tetap ditagih penuh setelah
+        // keringanannya diberikan.
         $totalPembayaran = Pembayaran::approvedQueryForTagihan($tagihan->id)->sum('nominal');
-        $sisaTagihan = $tagihan->total - $totalPembayaran;
+        $kredit = KeringananBiayaKreditService::kreditUntukTagihan($tagihan);
+        $sisaTagihan = (float) $tagihan->total - (float) $totalPembayaran - $kredit;
+
+        // Check if tagihan is already fully paid
+        if ($sisaTagihan <= 0) {
+            return response()->json([
+                'message' => $kredit > 0
+                    ? 'Tagihan ini sudah tertutup oleh pembayaran dan keringanan biaya.'
+                    : 'Tagihan ini sudah lunas.',
+            ], 422);
+        }
 
         // Validate nominal tidak melebihi sisa tagihan
         if ($validated['nominal'] > $sisaTagihan) {
             return response()->json([
                 'message' => 'Nominal pembayaran tidak boleh melebihi sisa tagihan yang belum dibayar.',
-            ], 422);
-        }
-
-        // Check if tagihan is already fully paid
-        if ($sisaTagihan <= 0) {
-            return response()->json([
-                'message' => 'Tagihan ini sudah lunas.',
             ], 422);
         }
 
@@ -503,12 +528,8 @@ class PembayaranController extends Controller
                 'created_by' => $request->user()->name ?? 'admin',
             ]);
 
-            // Calculate total pembayaran untuk tagihan ini
-            $totalPembayaran = Pembayaran::where('id_tagihan', $tagihan->id)
-                ->sum('nominal');
-
             // Update status tagihan jika sudah lunas
-            if ($totalPembayaran >= $tagihan->total) {
+            if ($tagihan->lunasMenurutPembayaranDisetujui()) {
                 $tagihan->update([
                     'status' => 'paid',
                     'tanggal_pembayaran' => $validated['tanggal_pembayaran'] ?? now(),
@@ -565,9 +586,7 @@ class PembayaranController extends Controller
                 'approved_by' => $approver,
             ]);
 
-            $totalPembayaran = Pembayaran::approvedQueryForTagihan($tagihan->id)->sum('nominal');
-
-            if ($totalPembayaran >= $tagihan->total) {
+            if ($tagihan->lunasMenurutPembayaranDisetujui()) {
                 $tagihan->update([
                     'status' => 'paid',
                     'tanggal_pembayaran' => $pembayaran->tanggal_pembayaran ?? now(),
@@ -630,8 +649,9 @@ class PembayaranController extends Controller
             $totalApprovedLain = Pembayaran::approvedQueryForTagihan($tagihan->id)
                 ->where('id', '!=', $pembayaran->id)
                 ->sum('nominal');
+            $kredit = KeringananBiayaKreditService::kreditUntukTagihan($tagihan);
 
-            if ($tagihan->total < $validated['nominal'] + $totalApprovedLain) {
+            if ((float) $tagihan->total - $kredit < (float) $validated['nominal'] + (float) $totalApprovedLain) {
                 return response()->json([
                     'message' => 'Nominal pembayaran tidak boleh melebihi total tagihan.',
                 ], 422);
@@ -648,9 +668,7 @@ class PembayaranController extends Controller
                 'keterangan' => $validated['keterangan'] ?? $pembayaran->keterangan,
             ]);
 
-            $totalPembayaran = Pembayaran::approvedQueryForTagihan($tagihan->id)->sum('nominal');
-
-            if ($totalPembayaran >= $tagihan->total) {
+            if ($tagihan->lunasMenurutPembayaranDisetujui()) {
                 $tagihan->update([
                     'status' => 'paid',
                     'tanggal_pembayaran' => $pembayaran->tanggal_pembayaran,
@@ -684,9 +702,7 @@ class PembayaranController extends Controller
             // Delete pembayaran
             $pembayaran->delete();
 
-            $totalPembayaran = Pembayaran::approvedQueryForTagihan($tagihan->id)->sum('nominal');
-
-            if ($totalPembayaran >= $tagihan->total) {
+            if ($tagihan->lunasMenurutPembayaranDisetujui()) {
                 $tagihan->update([
                     'status' => 'paid',
                 ]);
@@ -733,10 +749,10 @@ class PembayaranController extends Controller
         $headerStyle = [
             'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
             'fill' => [
-                'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                'fillType' => Fill::FILL_SOLID,
                 'startColor' => ['rgb' => '4472C4'],
             ],
-            'alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER],
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
         ];
         $sheet->getStyle('A1:H1')->applyFromArray($headerStyle);
 
@@ -910,10 +926,8 @@ class PembayaranController extends Controller
                     'approved_by' => $importApprover,
                 ]);
 
-                $newTotalPembayaran = Pembayaran::approvedQueryForTagihan($tagihan->id)->sum('nominal');
-
                 // Update status tagihan jika sudah lunas
-                if ($newTotalPembayaran >= $tagihan->total) {
+                if ($tagihan->lunasMenurutPembayaranDisetujui()) {
                     $tagihan->update([
                         'status' => 'paid',
                         'tanggal_pembayaran' => $tanggalPembayaran,
@@ -986,11 +1000,14 @@ class PembayaranController extends Controller
         $totalSemua = (float) Pembayaran::where('id_tagihan', $tagihan->id)
             ->whereNull('deleted_at')
             ->sum('nominal');
-        $sisaDapatDialokasikan = (float) $tagihan->total - $totalSemua;
+        $kredit = KeringananBiayaKreditService::kreditUntukTagihan($tagihan);
+        $sisaDapatDialokasikan = (float) $tagihan->total - $totalSemua - $kredit;
 
         if ($sisaDapatDialokasikan <= 0) {
             return response()->json([
-                'message' => 'Tagihan ini sudah tidak memiliki sisa yang dapat dibayarkan (termasuk pembayaran yang menunggu verifikasi).',
+                'message' => $kredit > 0
+                    ? 'Tagihan ini sudah tidak memiliki sisa yang dapat dibayarkan setelah keringanan biaya (termasuk pembayaran yang menunggu verifikasi).'
+                    : 'Tagihan ini sudah tidak memiliki sisa yang dapat dibayarkan (termasuk pembayaran yang menunggu verifikasi).',
             ], 422);
         }
 

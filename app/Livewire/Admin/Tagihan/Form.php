@@ -32,6 +32,9 @@ class Form extends Component
 
     public string $status = 'unpaid';
 
+    /** Kosong = tagihan tanpa tahap. Diikat ke <input type="number">, jadi string. */
+    public string $tahap = '';
+
     public string $tanggal_tagihan = '';
 
     public string $tanggal_jatuh_tempo = '';
@@ -61,6 +64,7 @@ class Form extends Component
         $this->id_mahasiswa = $tagihan->id_mahasiswa;
         $this->mahasiswaLabel = trim(($tagihan->mahasiswa->nim ?? '—').' — '.($tagihan->mahasiswa->nama ?? ''));
         $this->id_semester = $tagihan->id_semester;
+        $this->tahap = $tagihan->tahap !== null ? (string) $tagihan->tahap : '';
         $this->status = $tagihan->status ?? 'unpaid';
         $this->tanggal_tagihan = $tagihan->tanggal_tagihan?->format('Y-m-d') ?? now()->format('Y-m-d');
         $this->tanggal_jatuh_tempo = $tagihan->tanggal_jatuh_tempo?->format('Y-m-d') ?? '';
@@ -240,6 +244,7 @@ class Form extends Component
         return [
             'id_mahasiswa' => ['required', 'integer', 'exists:mahasiswa,id'],
             'id_semester' => ['required', 'integer', 'exists:semester,id'],
+            'tahap' => ['nullable', 'integer', 'min:1'],
             'status' => ['nullable', 'string', Rule::in(['unpaid', 'paid', 'expired'])],
             'tanggal_tagihan' => ['nullable', 'date'],
             'tanggal_jatuh_tempo' => ['nullable', 'date', 'after_or_equal:tanggal_tagihan'],
@@ -274,26 +279,39 @@ class Form extends Component
             return;
         }
 
+        // Sama persis dengan TagihanController::tagihanKembarExists — satu tagihan per
+        // (mahasiswa, semester, tahap). Aturan lama yang mengabaikan tahap membuat tagihan hasil
+        // generate multi-tahap tidak pernah bisa disimpan ulang dari form ini.
+        $tahap = $validated['tahap'] !== '' && $validated['tahap'] !== null ? (int) $validated['tahap'] : null;
+
         $exists = Tagihan::where('id_mahasiswa', $validated['id_mahasiswa'])
             ->where('id_semester', $validated['id_semester'])
+            ->when(
+                $tahap === null,
+                fn ($q) => $q->whereNull('tahap'),
+                fn ($q) => $q->where('tahap', $tahap)
+            )
             ->when($this->tagihanId, fn ($q) => $q->where('id', '!=', $this->tagihanId))
             ->exists();
 
         if ($exists) {
-            $this->addError('id_semester', 'Tagihan untuk mahasiswa dan semester ini sudah ada.');
+            $this->addError('id_semester', $tahap === null
+                ? 'Tagihan tanpa tahap untuk mahasiswa dan semester ini sudah ada.'
+                : "Tagihan tahap {$tahap} untuk mahasiswa dan semester ini sudah ada.");
 
             return;
         }
 
         $total = collect($validated['rincian'])->sum('nominal');
 
-        DB::transaction(function () use ($validated, $total) {
+        DB::transaction(function () use ($validated, $total, $tahap) {
             if ($this->tagihanId) {
                 $tagihan = Tagihan::findOrFail($this->tagihanId);
                 $tagihan->update([
                     'id_mahasiswa' => $validated['id_mahasiswa'],
                     'id_semester' => $validated['id_semester'],
                     'total' => $total,
+                    'tahap' => $tahap,
                     'status' => $validated['status'] ?: 'unpaid',
                     'tanggal_tagihan' => $validated['tanggal_tagihan'] ?: null,
                     'tanggal_jatuh_tempo' => $validated['tanggal_jatuh_tempo'] ?: null,
@@ -313,6 +331,7 @@ class Form extends Component
                     'id_semester' => $validated['id_semester'],
                     'no_tagihan' => $this->generateNoTagihan(),
                     'total' => $total,
+                    'tahap' => $tahap,
                     'status' => $validated['status'] ?: 'unpaid',
                     'tanggal_tagihan' => $validated['tanggal_tagihan'] ?: now(),
                     'tanggal_jatuh_tempo' => $validated['tanggal_jatuh_tempo'] ?: null,

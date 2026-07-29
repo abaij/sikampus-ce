@@ -9,16 +9,45 @@ use App\Models\Pembayaran;
 use App\Models\Prodi;
 use App\Models\Semester;
 use App\Models\StatusAkademik;
+use App\Models\Tagihan;
 use App\Models\TugasAkhir;
 use App\Models\UjianSidang;
 use App\Models\WisudaMahasiswa;
+use App\Services\KeringananBiayaKreditService;
+use App\Services\StatusPembayaranTagihan;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route as RouteFacade;
 use Livewire\Attributes\Computed;
+use Livewire\Attributes\Url;
 use Livewire\Component;
 
 class Dashboard extends Component
 {
+    // Visibilitas bagian dashboard ditentukan oleh role Spatie user, bukan oleh route —
+    // keduanya dirender di halaman admin.dashboard yang sama:
+    // - Superadmin: kedua bagian tampil.
+    // - Akademik saja: hanya bagian akademik.
+    // - Keuangan saja: hanya bagian keuangan.
+    public bool $showAkademik = false;
+
+    public bool $showKeuangan = false;
+
+    // Terikat <x-searchable-select>, string karena opsi kosong = "semua periode" — sama
+    // seperti PembayaranController::dashboardStats yang menganggap parameter kosong sebagai
+    // "semua periode" (beda dengan endpoint lain yang default ke semester aktif).
+    #[Url(as: 'id_semester')]
+    public string $filterSemesterKeuangan = '';
+
+    public function mount(): void
+    {
+        $user = Auth::user();
+        $isSuperadmin = $user?->isSuperadmin() ?? false;
+
+        $this->showAkademik = $isSuperadmin || ($user?->isAkademik() ?? false);
+        $this->showKeuangan = $isSuperadmin || ($user?->isKeuangan() ?? false);
+    }
+
     /**
      * Sama persis dengan DashboardController::getMahasiswaKrsStats, dipangkas ke field yang
      * benar-benar ditampilkan kartu "Mahasiswa Aktif" (total_aktif, semester, status_lain).
@@ -82,9 +111,8 @@ class Dashboard extends Component
 
     /**
      * Sama persis dengan DashboardController::getAntrianTindakan, ditambah resolusi url lewat
-     * Route::has() — modul pembayaran/keuangan belum punya halaman di panel Livewire ini, jadi
-     * baris itu ditampilkan tanpa tautan sampai modulnya diporting, bukan diarahkan ke route
-     * yang tidak ada. Ujian sidang belum punya halaman daftar tersendiri (show-nya butuh
+     * Route::has() — dipakai sebagai jaga-jaga kalau salah satu modul belum/tidak lagi punya
+     * halaman di panel ini. Ujian sidang belum punya halaman daftar tersendiri (show-nya butuh
      * {id}/{sidangId} tugas akhir induknya), jadi diarahkan ke daftar tugas akhir yang sama.
      */
     #[Computed]
@@ -397,6 +425,110 @@ class Dashboard extends Component
             ['route' => 'admin.akademik.jadwal', 'label' => 'Jadwal Kuliah'],
             ['route' => 'admin.akademik.kurikulum', 'label' => 'Kurikulum'],
             ['route' => 'admin.akademik.perkuliahan', 'label' => 'Perkuliahan'],
+        ];
+
+        return collect($candidates)
+            ->filter(fn ($link) => RouteFacade::has($link['route']))
+            ->map(fn ($link) => ['label' => $link['label'], 'url' => route($link['route'])])
+            ->values()
+            ->all();
+    }
+
+    #[Computed]
+    public function semesterOptionsKeuangan(): array
+    {
+        return Semester::orderByDesc('kode')
+            ->get(['id', 'nama', 'kode'])
+            ->mapWithKeys(fn ($s) => [$s->id => $s->kode ? "{$s->nama} ({$s->kode})" : $s->nama])
+            ->all();
+    }
+
+    /**
+     * Sama persis dengan PembayaranController::dashboardStats, ditambah tinggi batang tren
+     * bulanan siap-render (Blade tidak menjalankan JS) — mengikuti pola mahasiswaPerProdi().
+     */
+    #[Computed]
+    public function keuanganStats(): array
+    {
+        $semesterId = $this->filterSemesterKeuangan !== '' ? (int) $this->filterSemesterKeuangan : null;
+        $semester = $semesterId ? Semester::find($semesterId, ['id', 'nama']) : null;
+
+        $tagihanQuery = fn () => Tagihan::query()->when($semesterId, fn ($q) => $q->where('id_semester', $semesterId));
+
+        $totalTagihan = (float) $tagihanQuery()->sum('total');
+        // Diturunkan dari pembayaran yang disetujui + kredit keringanan, bukan dari kolom
+        // `tagihan.status` — supaya angka ringkasan ini tidak pernah berbeda dari status yang
+        // tampil di halaman daftar tagihan (dulu berbeda, mis. pada tagihan bernilai Rp0).
+        $jumlahPerStatusAcc = StatusPembayaranTagihan::hitungPerStatus($tagihanQuery());
+
+        $approvedPembayaranQuery = fn () => Pembayaran::query()
+            ->whereNotNull('approved_at')
+            ->when($semesterId, fn ($q) => $q->whereHas('tagihan', fn ($tq) => $tq->where('id_semester', $semesterId)));
+
+        $totalTerbayar = (float) $approvedPembayaranQuery()->sum('nominal');
+        $totalKeringanan = KeringananBiayaKreditService::totalKreditDisetujui($semesterId);
+        $totalPiutang = max(0.0, $totalTagihan - $totalTerbayar - $totalKeringanan);
+
+        $pendingPembayaranQuery = fn () => Pembayaran::query()
+            ->whereNull('approved_at')
+            ->when($semesterId, fn ($q) => $q->whereHas('tagihan', fn ($tq) => $tq->where('id_semester', $semesterId)));
+
+        $pendingCount = $pendingPembayaranQuery()->count();
+        $pendingTotal = (float) $pendingPembayaranQuery()->sum('nominal');
+
+        $trenMentah = [];
+        for ($i = 5; $i >= 0; $i--) {
+            $bulan = now()->subMonths($i);
+            $awal = $bulan->copy()->startOfMonth();
+            $akhir = $bulan->copy()->endOfMonth();
+            $total = (float) $approvedPembayaranQuery()->whereBetween('tanggal_pembayaran', [$awal, $akhir])->sum('nominal');
+            $trenMentah[] = ['bulan' => $bulan->format('Y-m'), 'label' => $bulan->translatedFormat('M Y'), 'total' => $total];
+        }
+
+        $chartHeight = 140;
+        $maxTren = max(1.0, (float) collect($trenMentah)->max('total'));
+        $trenBulanan = array_map(function ($t) use ($maxTren, $chartHeight) {
+            $t['height_px'] = $t['total'] > 0 ? max(4, (int) round(($t['total'] / $maxTren) * $chartHeight)) : 0;
+
+            return $t;
+        }, $trenMentah);
+
+        return [
+            'semester' => $semester ? ['id' => $semester->id, 'nama' => $semester->nama] : null,
+            'ringkasan' => [
+                'total_tagihan' => $totalTagihan,
+                'total_terbayar' => $totalTerbayar,
+                'total_keringanan' => $totalKeringanan,
+                'total_piutang' => $totalPiutang,
+                'jumlah_tagihan_lunas' => $jumlahPerStatusAcc[StatusPembayaranTagihan::LUNAS],
+                'jumlah_tagihan_dibayar_sebagian' => $jumlahPerStatusAcc[StatusPembayaranTagihan::DIBAYAR_SEBAGIAN],
+                'jumlah_tagihan_belum_bayar' => $jumlahPerStatusAcc[StatusPembayaranTagihan::BELUM_BAYAR],
+                'jumlah_tagihan_kedaluwarsa' => $jumlahPerStatusAcc[StatusPembayaranTagihan::KEDALUWARSA],
+                // Kunci lama dipertahankan supaya frontend Next.js tidak patah; isinya kini
+                // memakai status turunan, dan "unpaid" berarti belum lunas (termasuk sebagian).
+                'jumlah_tagihan_paid' => $jumlahPerStatusAcc[StatusPembayaranTagihan::LUNAS],
+                'jumlah_tagihan_unpaid' => $jumlahPerStatusAcc[StatusPembayaranTagihan::BELUM_BAYAR]
+                    + $jumlahPerStatusAcc[StatusPembayaranTagihan::DIBAYAR_SEBAGIAN],
+                'jumlah_tagihan_expired' => $jumlahPerStatusAcc[StatusPembayaranTagihan::KEDALUWARSA],
+                'pembayaran_menunggu_approval_count' => $pendingCount,
+                'pembayaran_menunggu_approval_total' => $pendingTotal,
+            ],
+            'tren_bulanan' => $trenBulanan,
+            'chart_height' => $chartHeight,
+        ];
+    }
+
+    /**
+     * Sama persis dengan daftar "Akses cepat" keuangan di frontend (Tagihan/Pembayaran/
+     * Pengaturan biaya).
+     */
+    #[Computed]
+    public function keuanganQuickLinks(): array
+    {
+        $candidates = [
+            ['route' => 'admin.keuangan.tagihan', 'label' => 'Tagihan'],
+            ['route' => 'admin.keuangan.pembayaran', 'label' => 'Pembayaran'],
+            ['route' => 'admin.keuangan.struktur-biaya', 'label' => 'Pengaturan Biaya'],
         ];
 
         return collect($candidates)
