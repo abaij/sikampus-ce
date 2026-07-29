@@ -7,6 +7,10 @@
         ['label' => 'Perkuliahan', 'icon' => 'calendar', 'children' => [
             ['route' => 'dosen.kelas', 'label' => 'Kelas'],
             ['route' => 'dosen.jadwal', 'label' => 'Jadwal Mengajar'],
+            // Frontend tidak menaruh Kehadiran di sidebar (hanya diakses lewat tombol "Isi
+            // kehadiran" di halaman detail Jadwal Mengajar) — versi Jadwal Detail di panel ini
+            // belum punya tombol itu, jadi ditambahkan di sini supaya modulnya tetap terjangkau.
+            ['route' => 'dosen.kehadiran', 'label' => 'Kehadiran'],
             ['route' => 'dosen.nilai', 'label' => 'Nilai'],
             ['route' => 'dosen.rps', 'label' => 'RPS'],
         ]],

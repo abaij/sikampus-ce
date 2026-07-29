@@ -114,10 +114,15 @@ use App\Livewire\Admin\Wisuda\Show as WisudaShow;
 use App\Livewire\Admin\Yudisium\Form as YudisiumForm;
 use App\Livewire\Admin\Yudisium\Index as YudisiumIndex;
 use App\Livewire\Admin\Yudisium\Show as YudisiumShow;
+use App\Livewire\Dosen\Arsip\Index as DosenArsipIndex;
+use App\Livewire\Dosen\Arsip\NilaiKelas as DosenArsipNilaiKelas;
 use App\Livewire\Dosen\Dashboard as DosenDashboard;
 use App\Livewire\Dosen\Jadwal\Detail as DosenJadwalDetail;
 use App\Livewire\Dosen\Jadwal\Index as DosenJadwalIndex;
 use App\Livewire\Dosen\Jadwal\Show as DosenJadwalShow;
+use App\Livewire\Dosen\Kehadiran\Detail as DosenKehadiranDetail;
+use App\Livewire\Dosen\Kehadiran\Index as DosenKehadiranIndex;
+use App\Livewire\Dosen\Kehadiran\RekapKelas as DosenKehadiranRekapKelas;
 use App\Livewire\Dosen\Kelas\Index as DosenKelasIndex;
 use App\Livewire\Dosen\Krs\Index as DosenKrsIndex;
 use App\Livewire\Dosen\Nilai\Index as DosenNilaiIndex;
@@ -194,7 +199,15 @@ Route::middleware(['auth', 'role.dosen.web'])->group(function (): void {
     Route::livewire('/dosen/ujian-sidang', DosenUjianSidangIndex::class)->name('dosen.ujian-sidang');
     Route::livewire('/dosen/ujian-sidang/{id}', DosenUjianSidangShow::class)->name('dosen.ujian-sidang.show');
 
-    Route::view('/dosen/arsip', 'dosen.coming-soon', ['title' => 'Arsip'])->name('dosen.arsip');
+    // Rute literal ('/dosen/arsip') harus di atas rute berparameter ('/nilai/{id}').
+    Route::livewire('/dosen/arsip', DosenArsipIndex::class)->name('dosen.arsip');
+    Route::livewire('/dosen/arsip/nilai/{id}', DosenArsipNilaiKelas::class)->name('dosen.arsip.nilai');
+
+    // Rute literal ('/dosen/kehadiran', '/dosen/kehadiran/rekap/{id}') harus di atas rute
+    // berparameter tunggal ('/dosen/kehadiran/{id}').
+    Route::livewire('/dosen/kehadiran', DosenKehadiranIndex::class)->name('dosen.kehadiran');
+    Route::livewire('/dosen/kehadiran/rekap/{id}', DosenKehadiranRekapKelas::class)->name('dosen.kehadiran.rekap');
+    Route::livewire('/dosen/kehadiran/{id}', DosenKehadiranDetail::class)->name('dosen.kehadiran.detail');
 });
 
 // Dashboard mahasiswa — placeholder, modulnya menyusul.
