@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Models\Dosen;
 use App\Models\Mahasiswa;
+use App\Models\Prodi;
 use App\Models\Semester;
 use App\Models\Setting;
 use Illuminate\Auth\Notifications\ResetPassword;
@@ -38,7 +39,7 @@ class AppServiceProvider extends ServiceProvider
         // variabel @php di parent tidak pernah terlihat oleh section milik anak. Composer men-supply
         // variabel yang sama ke kedua view secara independen, jadi favicon, brand mark header,
         // footer, dan brand mark halaman login semuanya konsisten dari satu sumber.
-        View::composer(['layouts.web', 'layouts.dosen', 'layouts.mahasiswa', 'auth.login'], function ($view): void {
+        View::composer(['layouts.web', 'layouts.dosen', 'layouts.mahasiswa', 'layouts.prodi', 'auth.login'], function ($view): void {
             $univSettings = Setting::whereIn('key', ['app_univ_name', 'app_univ_logo'])->pluck('value', 'key');
             $namaPerguruanTinggi = trim((string) $univSettings->get('app_univ_name'));
             $logoPerguruanTinggi = trim((string) $univSettings->get('app_univ_logo'));
@@ -68,16 +69,11 @@ class AppServiceProvider extends ServiceProvider
             $user = auth()->user();
             $dosen = $user ? Dosen::where('id_user', $user->id)->first() : null;
 
-            // Portal /prodi (kaprodi/sekprodi) hanya ada di siak-frontend (Next.js), tidak ada
-            // padanan di panel Blade ini — tombolnya membuka FRONTEND_URL di tab baru, sama
-            // seperti ResetPassword::createUrlUsing() di atas.
-            $frontendUrl = rtrim((string) env('FRONTEND_URL', 'http://localhost:3000'), '/');
-
             $view->with([
                 'dosenSidebarKodeDosen' => $dosen?->kode_dosen,
                 'dosenSidebarFotoUrl' => $dosen?->foto ? asset('storage/'.ltrim($dosen->foto, '/')) : null,
                 'dosenHasProdiScope' => $user?->hasProdiScope() ?? false,
-                'dosenProdiPortalUrl' => $frontendUrl.'/prodi',
+                'dosenProdiPortalUrl' => route('prodi.dashboard'),
             ]);
         });
 
@@ -88,6 +84,35 @@ class AppServiceProvider extends ServiceProvider
             $mahasiswa = $user ? Mahasiswa::where('id_user', $user->id)->first() : null;
 
             $view->with('mahasiswaSidebarNim', $mahasiswa?->nim);
+        });
+
+        // Sidebar portal prodi (layouts.prodi) butuh info dosen (nama/foto) + daftar prodi yang
+        // di-manage user ini (kaprodi dan/atau sekprodi, bisa lebih dari satu) untuk kartu identitas
+        // & badge peran — dibagikan lewat composer dengan alasan sama seperti layouts.dosen di atas.
+        View::composer('layouts.prodi', function ($view): void {
+            $user = auth()->user();
+            $dosen = $user ? Dosen::where('id_user', $user->id)->first() : null;
+
+            $kaprodiIds = $user?->getKaprodiProdiIds() ?? [];
+            $sekprodiIds = $user?->getSekprodiProdiIds() ?? [];
+            $prodiIds = array_values(array_unique(array_merge($kaprodiIds, $sekprodiIds)));
+
+            $prodiScopeList = Prodi::with('jenjang')
+                ->whereIn('id', $prodiIds)
+                ->orderBy('nama')
+                ->get()
+                ->map(fn (Prodi $prodi) => [
+                    'id' => $prodi->id,
+                    'nama' => $prodi->nama,
+                    'kode_jenjang' => $prodi->jenjang?->kode,
+                    'peran' => in_array($prodi->id, $kaprodiIds, true) ? 'Kepala Prodi' : 'Sekretaris Prodi',
+                ]);
+
+            $view->with([
+                'prodiSidebarFotoUrl' => $dosen?->foto ? asset('storage/'.ltrim($dosen->foto, '/')) : null,
+                'prodiSidebarKodeDosen' => $dosen?->kode_dosen,
+                'prodiScopeList' => $prodiScopeList,
+            ]);
         });
     }
 }

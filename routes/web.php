@@ -138,6 +138,12 @@ use App\Livewire\Dosen\TugasAkhir\Show as DosenTugasAkhirShow;
 use App\Livewire\Dosen\UjianSidang\Index as DosenUjianSidangIndex;
 use App\Livewire\Dosen\UjianSidang\Show as DosenUjianSidangShow;
 use App\Livewire\Mahasiswa\Profil as MahasiswaProfil;
+use App\Livewire\Prodi\Dashboard as ProdiDashboard;
+use App\Livewire\Prodi\JadwalKuliah\Index as ProdiJadwalKuliahIndex;
+use App\Livewire\Prodi\Kurikulum\Index as ProdiKurikulumIndex;
+use App\Livewire\Prodi\Kurikulum\Show as ProdiKurikulumShow;
+use App\Livewire\Prodi\Matkul\Index as ProdiMatkulIndex;
+use App\Livewire\Prodi\Matkul\Show as ProdiMatkulShow;
 use Illuminate\Support\Facades\Route;
 
 // Login gabungan — satu pintu masuk untuk semua tipe akun (admin/akademik/keuangan, dosen,
@@ -208,6 +214,32 @@ Route::middleware(['auth', 'role.dosen.web'])->group(function (): void {
     Route::livewire('/dosen/kehadiran', DosenKehadiranIndex::class)->name('dosen.kehadiran');
     Route::livewire('/dosen/kehadiran/rekap/{id}', DosenKehadiranRekapKelas::class)->name('dosen.kehadiran.rekap');
     Route::livewire('/dosen/kehadiran/{id}', DosenKehadiranDetail::class)->name('dosen.kehadiran.detail');
+});
+
+// Portal Administrasi Prodi (sidebar, lihat resources/views/layouts/prodi.blade.php +
+// prodi/partials/sidebar) — hanya dosen yang menjadi Kepala Prodi/Sekretaris Prodi
+// (User::hasProdiScope()), diakses lewat tombol "Administrasi Prodi" di sidebar dosen. Cermin
+// dari grup route API 'prodi/*' (routes/api.php, middleware role.admin.prodi), yang read-only
+// kecuali approval/transfer-nilai konversi nilai dan update bobot penilaian kurikulum-matkul.
+// Modul yang belum diport menunjuk ke 'prodi.coming-soon' sampai dibangun (lihat
+// .claude/skills/siak-livewire-module).
+Route::middleware(['auth', 'role.admin.prodi.web'])->group(function (): void {
+    Route::livewire('/prodi', ProdiDashboard::class)->name('prodi.dashboard');
+
+    // Rute literal ('/prodi/kurikulum') harus di atas rute berparameter ('{id}').
+    Route::livewire('/prodi/kurikulum', ProdiKurikulumIndex::class)->name('prodi.kurikulum');
+    Route::livewire('/prodi/kurikulum/{id}', ProdiKurikulumShow::class)->name('prodi.kurikulum.show');
+
+    Route::livewire('/prodi/jadwal-kuliah', ProdiJadwalKuliahIndex::class)->name('prodi.jadwal-kuliah');
+    Route::view('/prodi/krs', 'prodi.coming-soon', ['title' => 'KRS'])->name('prodi.krs');
+    Route::view('/prodi/konversi-nilai', 'prodi.coming-soon', ['title' => 'Konversi Nilai'])->name('prodi.konversi-nilai');
+
+    // Rute literal ('/prodi/matkul') harus di atas rute berparameter ('{id}').
+    Route::livewire('/prodi/matkul', ProdiMatkulIndex::class)->name('prodi.matkul');
+    Route::livewire('/prodi/matkul/{id}', ProdiMatkulShow::class)->name('prodi.matkul.show');
+
+    Route::view('/prodi/mahasiswa', 'prodi.coming-soon', ['title' => 'Mahasiswa'])->name('prodi.mahasiswa');
+    Route::view('/prodi/dosen', 'prodi.coming-soon', ['title' => 'Dosen'])->name('prodi.dosen');
 });
 
 // Area mahasiswa (sidebar, lihat resources/views/layouts/mahasiswa.blade.php +

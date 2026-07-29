@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Dosen;
+use App\Models\Prodi;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -122,4 +123,19 @@ function dosenUser(array $userAttributes = [], array $dosenAttributes = []): Use
     Dosen::factory()->create(array_merge(['id_user' => $user->id], $dosenAttributes));
 
     return $user;
+}
+
+/**
+ * Buat user dosen lalu tetapkan sebagai Kepala Prodi ('kaprodi', default) atau Sekretaris Prodi
+ * ('sekprodi') untuk $prodi (prodi.id_kaprodi / id_sekprodi mereferensi dosen.id) — dipakai
+ * portal Administrasi Prodi (User::hasProdiScope(), middleware role.admin.prodi/.web).
+ */
+function kaprodiUser(Prodi $prodi, string $peran = 'kaprodi'): User
+{
+    $dosenUser = dosenUser();
+    $dosen = Dosen::where('id_user', $dosenUser->id)->firstOrFail();
+
+    $prodi->update($peran === 'sekprodi' ? ['id_sekprodi' => $dosen->id] : ['id_kaprodi' => $dosen->id]);
+
+    return $dosenUser;
 }

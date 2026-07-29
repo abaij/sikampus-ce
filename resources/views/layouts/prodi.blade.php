@@ -1,8 +1,10 @@
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
-{{-- Layout khusus area dosen (sidebar kiri), terpisah dari layouts.web (navbar atas) yang
-     dipakai panel admin/mahasiswa/superadmin. $namaPerguruanTinggi & $logoPerguruanTinggiSrc
-     dipasok View Composer yang sama di AppServiceProvider::boot(). --}}
+{{-- Layout khusus portal Administrasi Prodi (sidebar kiri) — dipakai dosen yang menjadi Kepala
+     Prodi/Sekretaris Prodi (User::hasProdiScope()). Strukturnya sengaja disalin dari
+     layouts.dosen (bukan di-extend) karena keduanya independen dan boleh berubah terpisah;
+     mirip pola layouts.mahasiswa vs layouts.dosen. $namaPerguruanTinggi &
+     $logoPerguruanTinggiSrc dipasok View Composer yang sama di AppServiceProvider::boot(). --}}
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -36,33 +38,27 @@
         : '?';
 @endphp
 
-{{-- Toggle sidebar mobile lewat checkbox murni (tanpa Alpine) — konsisten dengan filosofi
-     layouts.web bahwa navigasi persisten tidak boleh bergantung pada Livewire/Alpine, karena
-     tidak semua halaman dosen tentu memuat komponen Livewire. --}}
+{{-- Toggle sidebar mobile lewat checkbox murni (tanpa Alpine) — sama alasannya dengan
+     layouts.dosen: navigasi persisten tidak boleh bergantung pada Livewire/Alpine. --}}
 <div class="min-h-screen lg:flex">
-    {{-- Checkbox harus jadi sibling langsung dari elemen yang dituju oleh peer-checked:* (aside,
-         backdrop) — Tailwind memakai general sibling combinator (~), yang tidak menembus level
-         DOM. Sebelumnya checkbox ini diletakkan di luar <div>, jadi peer-checked:* di atas tidak
-         pernah menyala; jangan pindahkan lagi ke luar div ini. --}}
-    <input type="checkbox" id="dosen-sidebar-toggle" class="peer hidden">
+    <input type="checkbox" id="prodi-sidebar-toggle" class="peer hidden">
 
     <label
-        for="dosen-sidebar-toggle"
+        for="prodi-sidebar-toggle"
         class="fixed top-4 left-4 z-50 flex h-10 w-10 cursor-pointer items-center justify-center rounded-lg bg-white shadow-border lg:hidden"
     >
         <i data-lucide="menu" class="h-5 w-5 text-neutral-700" aria-hidden="true"></i>
     </label>
 
     <label
-        for="dosen-sidebar-toggle"
+        for="prodi-sidebar-toggle"
         class="fixed inset-0 z-30 hidden bg-neutral-900/40 peer-checked:block lg:hidden"
     ></label>
 
-    {{-- lg:sticky + lg:h-screen (bukan lg:static) supaya aside berhenti mengikuti tinggi konten
-         dan tetap terkunci ke viewport saat desktop — tanpa ini, nav di dalamnya yang panjang
-         (banyak menu/submenu) mendorong tinggi aside ikut tumbuh, dan overflow-y-auto pada <nav>
-         tidak pernah aktif karena aside sendiri tidak dibatasi tingginya, sehingga seluruh
-         halaman ikut discroll alih-alih hanya kontennya. --}}
+    {{-- lg:sticky + lg:h-screen (bukan lg:static) supaya aside berhenti mengikuti tinggi konten dan
+         tetap terkunci ke viewport saat desktop — sama alasannya dengan layouts.dosen: tanpa ini,
+         nav yang panjang mendorong tinggi aside ikut tumbuh dan overflow-y-auto pada <nav> tidak
+         pernah aktif. --}}
     <aside class="fixed inset-y-0 left-0 z-40 flex w-72 -translate-x-full flex-col border-r border-neutral-200 bg-white transition-transform duration-200 ease-in-out peer-checked:translate-x-0 lg:sticky lg:top-0 lg:h-screen lg:translate-x-0 lg:self-start">
         <div class="flex items-center gap-3 border-b border-neutral-200 p-5">
             @if ($logoPerguruanTinggiSrc)
@@ -73,22 +69,22 @@
                 />
             @else
                 <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-neutral-900 text-white">
-                    <i data-lucide="graduation-cap" class="h-6 w-6" aria-hidden="true"></i>
+                    <i data-lucide="landmark" class="h-6 w-6" aria-hidden="true"></i>
                 </div>
             @endif
             <div class="min-w-0">
                 <p class="truncate text-base font-semibold leading-tight text-neutral-900">
                     {{ $namaPerguruanTinggi !== '' ? $namaPerguruanTinggi : 'Sikampus' }}
                 </p>
-                <p class="truncate text-xs text-neutral-500">{{ config('app.name', 'Academic Information System') }}</p>
+                <p class="truncate text-xs text-neutral-500">Administrasi Prodi</p>
             </div>
         </div>
 
         <div class="border-b border-neutral-200 bg-neutral-50 p-4">
             <div class="flex items-center gap-3">
-                @if ($dosenSidebarFotoUrl ?? null)
+                @if ($prodiSidebarFotoUrl ?? null)
                     <img
-                        src="{{ $dosenSidebarFotoUrl }}"
+                        src="{{ $prodiSidebarFotoUrl }}"
                         alt="{{ $authUser->name ?? '' }}"
                         class="h-10 w-10 shrink-0 rounded-full object-cover ring-1 ring-neutral-200"
                     />
@@ -99,27 +95,35 @@
                 @endif
                 <div class="min-w-0">
                     <p class="truncate text-sm font-semibold text-neutral-900">{{ $authUser->name ?? '' }}</p>
-                    @if ($dosenSidebarKodeDosen ?? null)
-                        <p class="truncate text-xs text-neutral-500">Kode: {{ $dosenSidebarKodeDosen }}</p>
+                    @if ($prodiSidebarKodeDosen ?? null)
+                        <p class="truncate text-xs text-neutral-500">Kode: {{ $prodiSidebarKodeDosen }}</p>
                     @endif
                 </div>
             </div>
+            @if (($prodiScopeList ?? collect())->isNotEmpty())
+                <ul class="mt-3 space-y-1">
+                    @foreach ($prodiScopeList as $prodi)
+                        <li class="flex items-center justify-between gap-2 text-xs text-neutral-600">
+                            <span class="truncate">{{ $prodi['nama'] }}{{ $prodi['kode_jenjang'] ? ' ('.$prodi['kode_jenjang'].')' : '' }}</span>
+                            <span class="shrink-0 rounded-full bg-sky-50 px-2 py-0.5 font-medium text-sky-700">{{ $prodi['peran'] }}</span>
+                        </li>
+                    @endforeach
+                </ul>
+            @endif
         </div>
 
-        @if ($dosenHasProdiScope ?? false)
-            <div class="px-4 pt-4">
-                <a
-                    href="{{ $dosenProdiPortalUrl }}"
-                    class="flex w-full items-center justify-center gap-2 rounded-xl border border-sky-200 bg-sky-50 px-3 py-2.5 text-sm font-semibold text-sky-800 shadow-sm transition hover:bg-sky-100"
-                >
-                    <i data-lucide="landmark" class="h-4 w-4 shrink-0" aria-hidden="true"></i>
-                    Administrasi Prodi
-                </a>
-            </div>
-        @endif
+        <div class="px-4 pt-4">
+            <a
+                href="{{ route('dosen.dashboard') }}"
+                class="flex w-full items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium text-neutral-700 shadow-border transition hover:bg-neutral-50"
+            >
+                <i data-lucide="arrow-left" class="h-4 w-4 shrink-0" aria-hidden="true"></i>
+                Kembali ke Dashboard Dosen
+            </a>
+        </div>
 
-        <nav class="flex-1 space-y-1 overflow-y-auto p-4" aria-label="Navigasi dosen">
-            @include('dosen.partials.sidebar')
+        <nav class="flex-1 space-y-1 overflow-y-auto p-4" aria-label="Navigasi administrasi prodi">
+            @include('prodi.partials.sidebar')
         </nav>
 
         <div class="border-t border-neutral-200 p-4">
@@ -161,9 +165,8 @@
 
     <div class="flex min-h-screen flex-1 flex-col">
         <header class="print:hidden sticky top-0 z-20 flex items-center justify-end border-b border-neutral-200 bg-white/90 px-4 py-3 backdrop-blur sm:px-6">
-            {{-- Notifikasi belum punya halaman di panel ini (API-nya sudah ada di
-                 NotifikasiController, tapi belum diport) — ikon disabled dulu, bukan tautan
-                 palsu, supaya tidak menyesatkan. --}}
+            {{-- Notifikasi belum punya halaman di panel ini — ikon disabled dulu, bukan tautan
+                 palsu, supaya tidak menyesatkan. Sama seperti layouts.dosen. --}}
             <span
                 title="Notifikasi (segera hadir)"
                 class="flex h-9 w-9 cursor-not-allowed items-center justify-center rounded-full text-neutral-300"
