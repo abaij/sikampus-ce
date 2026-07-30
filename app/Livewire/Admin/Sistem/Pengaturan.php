@@ -2,8 +2,7 @@
 
 namespace App\Livewire\Admin\Sistem;
 
-use App\Services\EnvFileWriter;
-use Illuminate\Support\Facades\Artisan;
+use App\Models\Setting;
 use Livewire\Component;
 
 class Pengaturan extends Component
@@ -23,25 +22,23 @@ class Pengaturan extends Component
     public string $fromName = '';
 
     /**
-     * Password tidak pernah dikirim balik ke browser — properti ini cuma menandai apakah .env
-     * sudah punya MAIL_PASSWORD, supaya form tahu field password boleh dibiarkan kosong saat
-     * simpan (artinya "jangan diubah"), bukan berarti "kosongkan password".
+     * Password tidak pernah dikirim balik ke browser — properti ini cuma menandai apakah baris
+     * app_mail_password sudah ada isinya, supaya form tahu field password boleh dibiarkan kosong
+     * saat simpan (artinya "jangan diubah"), bukan berarti "kosongkan password".
      */
     public bool $hasStoredPassword = false;
 
-    public string $formError = '';
-
     public function mount(): void
     {
-        $env = app(EnvFileWriter::class);
+        $settings = Setting::where('key', 'like', 'app_mail_%')->pluck('value', 'key');
 
-        $this->host = $env->get('MAIL_HOST');
-        $this->port = $env->get('MAIL_PORT');
-        $this->username = $env->get('MAIL_USERNAME');
-        $this->encryption = $env->get('MAIL_SCHEME');
-        $this->fromAddress = $env->get('MAIL_FROM_ADDRESS');
-        $this->fromName = $env->get('MAIL_FROM_NAME');
-        $this->hasStoredPassword = $env->get('MAIL_PASSWORD') !== '';
+        $this->host = (string) ($settings['app_mail_host'] ?? '');
+        $this->port = (string) ($settings['app_mail_port'] ?? '');
+        $this->username = (string) ($settings['app_mail_username'] ?? '');
+        $this->encryption = (string) ($settings['app_mail_encryption'] ?? '');
+        $this->fromAddress = (string) ($settings['app_mail_from_address'] ?? '');
+        $this->fromName = (string) ($settings['app_mail_from_name'] ?? '');
+        $this->hasStoredPassword = (string) ($settings['app_mail_password'] ?? '') !== '';
     }
 
     protected function rules(): array
@@ -59,46 +56,24 @@ class Pengaturan extends Component
 
     public function save(): void
     {
-        $this->formError = '';
-
-        $env = app(EnvFileWriter::class);
-
-        if (! $env->isWritable()) {
-            $this->formError = $env->exists()
-                ? 'File .env tidak dapat ditulis. Periksa izin berkas di server.'
-                : 'Direktori proyek tidak dapat ditulis; tidak dapat membuat .env.';
-
-            return;
-        }
-
         $validated = $this->validate();
 
         $values = [
-            'MAIL_MAILER' => 'smtp',
-            'MAIL_HOST' => $validated['host'],
-            'MAIL_PORT' => (string) $validated['port'],
-            'MAIL_USERNAME' => $validated['username'],
-            'MAIL_SCHEME' => $validated['encryption'] ?? '',
-            'MAIL_FROM_ADDRESS' => $validated['fromAddress'],
-            'MAIL_FROM_NAME' => $validated['fromName'],
+            'app_mail_host' => $validated['host'],
+            'app_mail_port' => (string) $validated['port'],
+            'app_mail_username' => $validated['username'],
+            'app_mail_encryption' => $validated['encryption'] ?? '',
+            'app_mail_from_address' => $validated['fromAddress'],
+            'app_mail_from_name' => $validated['fromName'],
         ];
 
         if (($validated['password'] ?? '') !== '') {
-            $values['MAIL_PASSWORD'] = $validated['password'];
+            $values['app_mail_password'] = $validated['password'];
         }
 
-        try {
-            $env->set($values);
-        } catch (\Throwable $e) {
-            report($e);
-            $this->formError = 'Gagal menyimpan .env: '.$e->getMessage();
-
-            return;
+        foreach ($values as $key => $value) {
+            Setting::updateOrCreate(['key' => $key], ['value' => $value]);
         }
-
-        // Supaya pengaturan langsung aktif tanpa langkah manual — config bisa saja sudah
-        // di-cache (php artisan config:cache) sebelumnya.
-        Artisan::call('config:clear');
 
         if (($validated['password'] ?? '') !== '') {
             $this->hasStoredPassword = true;

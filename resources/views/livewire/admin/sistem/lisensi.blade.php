@@ -1,6 +1,6 @@
 @section('title', 'License Key — ' . config('app.name'))
 @section('header_title', 'License Key')
-@section('header_subtitle', 'Kunci lisensi aplikasi, disimpan langsung ke file .env')
+@section('header_subtitle', 'Kunci lisensi aplikasi, disimpan di database')
 @section('header_icon', 'key-round')
 
 @section('nav')
@@ -20,13 +20,6 @@
         <div class="mb-4 flex gap-3 rounded-lg border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
             <i data-lucide="check-circle" class="h-5 w-5 shrink-0 text-emerald-600" aria-hidden="true"></i>
             <span>{{ session('status') }}</span>
-        </div>
-    @endif
-
-    @if ($formError)
-        <div class="mb-4 flex gap-3 rounded-lg border border-rose-100 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-            <i data-lucide="alert-triangle" class="h-5 w-5 shrink-0 text-rose-500" aria-hidden="true"></i>
-            <span>{{ $formError }}</span>
         </div>
     @endif
 

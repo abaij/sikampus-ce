@@ -2,19 +2,16 @@
 
 namespace App\Livewire\Admin\Sistem;
 
-use App\Services\EnvFileWriter;
-use Illuminate\Support\Facades\Artisan;
+use App\Models\Setting;
 use Livewire\Component;
 
 class Lisensi extends Component
 {
     public string $licenseKey = '';
 
-    public string $formError = '';
-
     public function mount(): void
     {
-        $this->licenseKey = app(EnvFileWriter::class)->get('APP_LICENSE_KEY');
+        $this->licenseKey = (string) Setting::where('key', 'app_license_key')->value('value');
     }
 
     protected function rules(): array
@@ -26,30 +23,9 @@ class Lisensi extends Component
 
     public function save(): void
     {
-        $this->formError = '';
-
-        $env = app(EnvFileWriter::class);
-
-        if (! $env->isWritable()) {
-            $this->formError = $env->exists()
-                ? 'File .env tidak dapat ditulis. Periksa izin berkas di server.'
-                : 'Direktori proyek tidak dapat ditulis; tidak dapat membuat .env.';
-
-            return;
-        }
-
         $validated = $this->validate();
 
-        try {
-            $env->set(['APP_LICENSE_KEY' => $validated['licenseKey']]);
-        } catch (\Throwable $e) {
-            report($e);
-            $this->formError = 'Gagal menyimpan .env: '.$e->getMessage();
-
-            return;
-        }
-
-        Artisan::call('config:clear');
+        Setting::updateOrCreate(['key' => 'app_license_key'], ['value' => $validated['licenseKey']]);
 
         session()->flash('status', 'License key berhasil disimpan.');
     }

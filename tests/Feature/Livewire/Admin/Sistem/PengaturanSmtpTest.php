@@ -1,50 +1,28 @@
 <?php
 
 use App\Livewire\Admin\Sistem\Pengaturan;
-use App\Services\EnvFileWriter;
+use App\Models\Setting;
+use App\Providers\AppServiceProvider;
 use Livewire\Livewire;
 
-// Path .env palsu di-bind ke container di setiap test (lihat bindFakeEnv()) supaya file .env
-// proyek yang asli tidak pernah tersentuh sama sekali oleh test ini.
-function bindFakeEnv(string $seed = ''): string
-{
-    $path = tempnam(sys_get_temp_dir(), 'envtest_');
-    file_put_contents($path, $seed);
-    app()->instance(EnvFileWriter::class, new EnvFileWriter($path));
-
-    return $path;
-}
-
-afterEach(function () {
-    if (isset($this->envPath) && file_exists($this->envPath)) {
-        unlink($this->envPath);
-    }
-});
-
 it('redirects unauthenticated users to the admin login page', function () {
-    $this->envPath = bindFakeEnv();
-
     $this->get(route('admin.sistem.pengaturan'))->assertRedirect(route('login'));
 });
 
 it('forbids an admin who is not superadmin', function () {
-    $this->envPath = bindFakeEnv();
     $admin = adminUser('admin_akademik');
 
     $this->actingAs($admin)->get(route('admin.sistem.pengaturan'))->assertForbidden();
 });
 
-it('renders prefilled from existing env values for a superadmin, without ever echoing the stored password', function () {
-    $this->envPath = bindFakeEnv(<<<'ENV'
-    MAIL_MAILER=smtp
-    MAIL_HOST=mail.kandaga.com
-    MAIL_PORT=465
-    MAIL_USERNAME="siak@sikampus.com"
-    MAIL_PASSWORD="rahasia-lama"
-    MAIL_SCHEME=smtps
-    MAIL_FROM_ADDRESS="siak@sikampus.com"
-    MAIL_FROM_NAME="SIAK"
-    ENV);
+it('renders prefilled from existing settings for a superadmin, without ever echoing the stored password', function () {
+    Setting::create(['key' => 'app_mail_host', 'value' => 'mail.kandaga.com']);
+    Setting::create(['key' => 'app_mail_port', 'value' => '465']);
+    Setting::create(['key' => 'app_mail_username', 'value' => 'siak@sikampus.com']);
+    Setting::create(['key' => 'app_mail_password', 'value' => 'rahasia-lama']);
+    Setting::create(['key' => 'app_mail_encryption', 'value' => 'smtps']);
+    Setting::create(['key' => 'app_mail_from_address', 'value' => 'siak@sikampus.com']);
+    Setting::create(['key' => 'app_mail_from_name', 'value' => 'SIAK']);
     $admin = adminUser();
 
     Livewire::actingAs($admin)
@@ -59,8 +37,7 @@ it('renders prefilled from existing env values for a superadmin, without ever ec
         ->assertSet('hasStoredPassword', true);
 });
 
-it('saves new smtp settings into the env file, leaving unrelated keys untouched', function () {
-    $this->envPath = bindFakeEnv("APP_NAME=\"Sikampus\"\nAPP_ENV=local\n");
+it('saves new smtp settings into the settings table', function () {
     $admin = adminUser();
 
     Livewire::actingAs($admin)
@@ -75,22 +52,16 @@ it('saves new smtp settings into the env file, leaving unrelated keys untouched'
         ->call('save')
         ->assertHasNoErrors();
 
-    $env = new EnvFileWriter($this->envPath);
-    expect($env->get('MAIL_MAILER'))->toBe('smtp');
-    expect($env->get('MAIL_HOST'))->toBe('smtp.contoh.com');
-    expect($env->get('MAIL_PORT'))->toBe('587');
-    expect($env->get('MAIL_USERNAME'))->toBe('noreply@contoh.com');
-    expect($env->get('MAIL_PASSWORD'))->toBe('sandi-baru');
-    expect($env->get('MAIL_FROM_ADDRESS'))->toBe('noreply@contoh.com');
-    expect($env->get('MAIL_FROM_NAME'))->toBe('Kampus Contoh');
-    expect($env->get('APP_NAME'))->toBe('Sikampus');
+    expect(Setting::where('key', 'app_mail_host')->value('value'))->toBe('smtp.contoh.com');
+    expect(Setting::where('key', 'app_mail_port')->value('value'))->toBe('587');
+    expect(Setting::where('key', 'app_mail_username')->value('value'))->toBe('noreply@contoh.com');
+    expect(Setting::where('key', 'app_mail_password')->value('value'))->toBe('sandi-baru');
+    expect(Setting::where('key', 'app_mail_from_address')->value('value'))->toBe('noreply@contoh.com');
+    expect(Setting::where('key', 'app_mail_from_name')->value('value'))->toBe('Kampus Contoh');
 });
 
-it('keeps the stored password unchanged when the password field is left blank', function () {
-    $this->envPath = bindFakeEnv(<<<'ENV'
-    MAIL_HOST=mail.lama.com
-    MAIL_PASSWORD="jangan-berubah"
-    ENV);
+it('overwrites existing settings in place without creating duplicate rows', function () {
+    Setting::create(['key' => 'app_mail_host', 'value' => 'mail.lama.com']);
     $admin = adminUser();
 
     Livewire::actingAs($admin)
@@ -103,24 +74,18 @@ it('keeps the stored password unchanged when the password field is left blank', 
         ->call('save')
         ->assertHasNoErrors();
 
-    $env = new EnvFileWriter($this->envPath);
-    expect($env->get('MAIL_HOST'))->toBe('mail.baru.com');
-    expect($env->get('MAIL_PASSWORD'))->toBe('jangan-berubah');
+    expect(Setting::where('key', 'app_mail_host')->count())->toBe(1);
+    expect(Setting::where('key', 'app_mail_host')->value('value'))->toBe('mail.baru.com');
 });
 
-it('treats a legacy MAIL_SCHEME=null env line as the empty "otomatis" option and saves fine untouched', function () {
-    // Reproduksi persis .env proyek ini saat ini: MAIL_SCHEME=null (bareword, bukan string
-    // kosong). Tanpa normalisasi di EnvFileWriter, properti encryption akan berisi literal
-    // "null" yang gagal validasi in:,smtps walau user tidak menyentuh dropdown-nya sama sekali.
-    $this->envPath = bindFakeEnv(<<<'ENV'
-    MAIL_HOST=mail.lama.com
-    MAIL_SCHEME=null
-    ENV);
+it('keeps the stored password unchanged when the password field is left blank', function () {
+    Setting::create(['key' => 'app_mail_host', 'value' => 'mail.lama.com']);
+    Setting::create(['key' => 'app_mail_password', 'value' => 'jangan-berubah']);
     $admin = adminUser();
 
     Livewire::actingAs($admin)
         ->test(Pengaturan::class)
-        ->assertSet('encryption', '')
+        ->set('host', 'mail.baru.com')
         ->set('port', '587')
         ->set('username', 'user@contoh.com')
         ->set('fromAddress', 'user@contoh.com')
@@ -128,12 +93,11 @@ it('treats a legacy MAIL_SCHEME=null env line as the empty "otomatis" option and
         ->call('save')
         ->assertHasNoErrors();
 
-    $env = new EnvFileWriter($this->envPath);
-    expect($env->get('MAIL_SCHEME'))->toBe('');
+    expect(Setting::where('key', 'app_mail_host')->value('value'))->toBe('mail.baru.com');
+    expect(Setting::where('key', 'app_mail_password')->value('value'))->toBe('jangan-berubah');
 });
 
 it('requires host, port, username, from address, and from name', function () {
-    $this->envPath = bindFakeEnv();
     $admin = adminUser();
 
     Livewire::actingAs($admin)
@@ -148,7 +112,6 @@ it('requires host, port, username, from address, and from name', function () {
 });
 
 it('rejects a port outside the valid range', function () {
-    $this->envPath = bindFakeEnv();
     $admin = adminUser();
 
     Livewire::actingAs($admin)
@@ -160,4 +123,31 @@ it('rejects a port outside the valid range', function () {
         ->set('fromName', 'Kampus')
         ->call('save')
         ->assertHasErrors(['port']);
+});
+
+it('applies saved smtp settings to the runtime mail config on the next request', function () {
+    $admin = adminUser();
+
+    Livewire::actingAs($admin)
+        ->test(Pengaturan::class)
+        ->set('host', 'smtp.contoh.com')
+        ->set('port', '2525')
+        ->set('username', 'user@contoh.com')
+        ->set('encryption', 'smtps')
+        ->set('fromAddress', 'user@contoh.com')
+        ->set('fromName', 'Kampus Contoh')
+        ->call('save')
+        ->assertHasNoErrors();
+
+    // AppServiceProvider::boot() membaca ulang tabel settings di setiap bootstrap request —
+    // panggil method-nya langsung di sini untuk mensimulasikan itu (boot() sungguhan sudah jalan
+    // sekali sebelum baris di atas disimpan, jadi config belum ter-refresh otomatis di test ini).
+    (new AppServiceProvider(app()))->applyMailSettingsFromDatabase();
+
+    expect(config('mail.default'))->toBe('smtp');
+    expect(config('mail.mailers.smtp.host'))->toBe('smtp.contoh.com');
+    expect(config('mail.mailers.smtp.port'))->toBe(2525);
+    expect(config('mail.mailers.smtp.scheme'))->toBe('smtps');
+    expect(config('mail.from.address'))->toBe('user@contoh.com');
+    expect(config('mail.from.name'))->toBe('Kampus Contoh');
 });
