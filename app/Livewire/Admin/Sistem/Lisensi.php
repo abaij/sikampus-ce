@@ -3,6 +3,7 @@
 namespace App\Livewire\Admin\Sistem;
 
 use App\Models\Setting;
+use App\Services\InstallationReporter;
 use Livewire\Component;
 
 class Lisensi extends Component
@@ -26,6 +27,10 @@ class Lisensi extends Component
         $validated = $this->validate();
 
         Setting::updateOrCreate(['key' => 'app_license_key'], ['value' => $validated['licenseKey']]);
+
+        if ($validated['licenseKey'] !== '') {
+            app(InstallationReporter::class)->report($validated['licenseKey']);
+        }
 
         session()->flash('status', 'License key berhasil disimpan.');
     }
