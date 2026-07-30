@@ -115,6 +115,10 @@ use App\Livewire\Admin\Wisuda\Show as WisudaShow;
 use App\Livewire\Admin\Yudisium\Form as YudisiumForm;
 use App\Livewire\Admin\Yudisium\Index as YudisiumIndex;
 use App\Livewire\Admin\Yudisium\Show as YudisiumShow;
+use App\Livewire\Auth\Aktivasi;
+use App\Livewire\Auth\ForgotPassword;
+use App\Livewire\Auth\ResetPassword as ResetPasswordLivewire;
+use App\Livewire\Auth\VerifyEmail;
 use App\Livewire\Dosen\Arsip\Index as DosenArsipIndex;
 use App\Livewire\Dosen\Arsip\NilaiKelas as DosenArsipNilaiKelas;
 use App\Livewire\Dosen\Dashboard as DosenDashboard;
@@ -180,6 +184,14 @@ use Illuminate\Support\Facades\Route;
 // User::webDashboardRouteName().
 Route::get('/', [LoginController::class, 'create'])->name('login');
 Route::post('/', [LoginController::class, 'store']);
+
+// Aktivasi mandiri (dosen/mahasiswa yang belum pernah membuat akun) — publik, tanpa auth.
+// Lihat catatan di app/Livewire/Auth/Aktivasi.php soal hubungannya dengan ActivationController
+// (API, dipakai oleh siak-frontend) yang menjalankan alur data yang sama.
+Route::livewire('/aktivasi', Aktivasi::class)->name('aktivasi');
+Route::livewire('/verify-email', VerifyEmail::class)->name('verify-email');
+Route::livewire('/forgot-password', ForgotPassword::class)->name('forgot-password');
+Route::livewire('/reset-password', ResetPasswordLivewire::class)->name('reset-password');
 
 Route::post('/logout', [LoginController::class, 'destroy'])
     ->middleware('auth')

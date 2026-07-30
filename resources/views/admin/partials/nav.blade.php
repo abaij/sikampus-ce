@@ -84,6 +84,7 @@
                     ['route' => 'admin.pengguna.role.index', 'label' => 'Role'],
                     ['route' => 'admin.pengguna.permission.index', 'label' => 'Permission'],
                 ]],
+                //['route' => 'admin.pengaturan.umum', 'label' => 'Sistem']
             ],
         ],
     ];

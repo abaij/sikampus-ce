@@ -13,50 +13,46 @@ use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
-class VerifyEmailActivation extends Mailable implements ShouldQueue
+/**
+ * Dikirim dari App\Livewire\Auth\ForgotPassword lewat callback Password::sendResetLink(),
+ * BUKAN lewat notifikasi bawaan User::sendPasswordResetNotification() — supaya link di sini
+ * selalu mengarah ke route Livewire 'reset-password', terpisah dari
+ * ResetPassword::createUrlUsing() global (app/Providers/AppServiceProvider.php) yang tetap
+ * mengarah ke FRONTEND_URL untuk alur Next.js/API.
+ */
+class ResetPasswordMandiri extends Mailable implements ShouldQueue
 {
     use Queueable, SerializesModels;
 
     public $user;
 
-    public $verificationUrl;
+    public $resetUrl;
 
-    /**
-     * Create a new message instance.
-     */
-    public function __construct(User $user, string $verificationUrl)
+    public function __construct(User $user, string $resetUrl)
     {
         $this->user = $user;
-        $this->verificationUrl = $verificationUrl;
+        $this->resetUrl = $resetUrl;
     }
 
-    /**
-     * Get the message envelope.
-     */
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Verifikasi Email - Aktivasi Akun SIAK',
+            subject: 'Reset Password - SIAK',
         );
     }
 
-    /**
-     * Get the message content definition.
-     */
     public function content(): Content
     {
         return new Content(
-            view: 'emails.verify-email-activation',
+            view: 'emails.reset-password-mandiri',
             with: [
                 'user' => $this->user,
-                'verificationUrl' => $this->verificationUrl,
+                'resetUrl' => $this->resetUrl,
             ],
         );
     }
 
     /**
-     * Get the attachments for the message.
-     *
      * @return array<int, Attachment>
      */
     public function attachments(): array
@@ -71,7 +67,7 @@ class VerifyEmailActivation extends Mailable implements ShouldQueue
      */
     public function failed(Throwable $exception): void
     {
-        Log::channel('mail')->error('Gagal mengirim email verifikasi aktivasi', [
+        Log::channel('mail')->error('Gagal mengirim email reset password', [
             'to' => $this->user->email,
             'user_id' => $this->user->id,
             'exception' => $exception->getMessage(),

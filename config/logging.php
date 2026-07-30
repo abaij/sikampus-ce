@@ -73,6 +73,19 @@ return [
             'replace_placeholders' => true,
         ],
 
+        // Log terpisah khusus pengiriman email (aktivasi, reset password, dst) — supaya
+        // percobaan kirim/gagal kirim gampang ditelusuri tanpa harus menyaring laravel.log.
+        // Diisi lewat listener event Mail (App\Providers\AppServiceProvider::boot()) dan
+        // method failed() pada Mailable ShouldQueue (mis. VerifyEmailActivation,
+        // ResetPasswordMandiri).
+        'mail' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/mail.log'),
+            'level' => env('LOG_LEVEL', 'debug'),
+            'days' => env('LOG_DAILY_DAYS', 14),
+            'replace_placeholders' => true,
+        ],
+
         'slack' => [
             'driver' => 'slack',
             'url' => env('LOG_SLACK_WEBHOOK_URL'),

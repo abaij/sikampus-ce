@@ -81,6 +81,9 @@
                         <input type="checkbox" name="remember" value="1" class="size-4 rounded border-neutral-300 text-neutral-900 focus:ring-neutral-900/10" {{ old('remember') ? 'checked' : '' }} />
                         Ingat saya
                     </label>
+                    <a href="{{ route('forgot-password') }}" class="text-sm font-semibold text-neutral-600 transition hover:text-neutral-900">
+                        Lupa password?
+                    </a>
                 </div>
 
                 <button
@@ -92,6 +95,11 @@
                 </button>
             </form>
         </div>
+
+        <p class="mt-6 text-center text-sm text-neutral-500">
+            Dosen atau mahasiswa baru?
+            <a href="{{ route('aktivasi') }}" class="font-semibold text-neutral-900 hover:underline">Aktivasi akun di sini</a>
+        </p>
     </div>
 </div>
 @endsection

@@ -9,6 +9,10 @@ use App\Models\Semester;
 use App\Models\Setting;
 use App\Support\Plugins\PluginBootManager;
 use Illuminate\Auth\Notifications\ResetPassword;
+use Illuminate\Mail\Events\MessageSending;
+use Illuminate\Mail\Events\MessageSent;
+use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 
@@ -31,6 +35,26 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Log semua percobaan kirim email (aktivasi, reset password, dst) ke channel 'mail'
+        // (storage/logs/mail.log — lihat config/logging.php), terpisah dari laravel.log supaya
+        // gagal kirim gampang ditelusuri. Kegagalan pengiriman untuk Mailable ShouldQueue (mis.
+        // SMTP transport error) tidak lewat MessageSent — exception-nya terjadi lebih dulu — jadi
+        // ditangani lewat method failed() masing-masing Mailable (lihat
+        // app/Mail/VerifyEmailActivation.php, app/Mail/ResetPasswordMandiri.php).
+        Event::listen(function (MessageSending $event): void {
+            Log::channel('mail')->info('Mengirim email', [
+                'to' => collect($event->message->getTo())->map(fn ($address) => $address->getAddress())->all(),
+                'subject' => $event->message->getSubject(),
+            ]);
+        });
+
+        Event::listen(function (MessageSent $event): void {
+            Log::channel('mail')->info('Email berhasil dikirim', [
+                'to' => collect($event->message->getTo())->map(fn ($address) => $address->getAddress())->all(),
+                'subject' => $event->message->getSubject(),
+            ]);
+        });
+
         ResetPassword::createUrlUsing(function (object $user, string $token): string {
             $frontendUrl = rtrim((string) env('FRONTEND_URL', 'http://localhost:3000'), '/');
             $email = urlencode((string) $user->email);
@@ -44,7 +68,7 @@ class AppServiceProvider extends ServiceProvider
         // variabel @php di parent tidak pernah terlihat oleh section milik anak. Composer men-supply
         // variabel yang sama ke kedua view secara independen, jadi favicon, brand mark header,
         // footer, dan brand mark halaman login semuanya konsisten dari satu sumber.
-        View::composer(['layouts.web', 'layouts.dosen', 'layouts.mahasiswa', 'layouts.prodi', 'auth.login'], function ($view): void {
+        View::composer(['layouts.web', 'layouts.dosen', 'layouts.mahasiswa', 'layouts.prodi', 'auth.login', 'livewire.auth.aktivasi', 'livewire.auth.verify-email', 'livewire.auth.forgot-password', 'livewire.auth.reset-password'], function ($view): void {
             $univSettings = Setting::whereIn('key', ['app_univ_name', 'app_univ_logo'])->pluck('value', 'key');
             $namaPerguruanTinggi = trim((string) $univSettings->get('app_univ_name'));
             $logoPerguruanTinggi = trim((string) $univSettings->get('app_univ_logo'));
