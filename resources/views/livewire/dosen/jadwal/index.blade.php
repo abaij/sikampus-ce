@@ -14,94 +14,72 @@
         </div>
     </div>
 
-    @php
-        $viewMonthDate = \Carbon\CarbonImmutable::parse($viewMonth);
-        $events = $this->eventsByDate;
-        $today = \Carbon\CarbonImmutable::now()->format('Y-m-d');
-    @endphp
-
-    <div class="rounded-2xl bg-white p-4 shadow-border sm:p-6">
-        <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <h3 class="text-lg font-semibold text-neutral-900 capitalize">{{ $viewMonthDate->translatedFormat('F Y') }}</h3>
-            <div class="flex flex-wrap items-center gap-2">
-                <button
-                    type="button"
-                    wire:click="thisMonth"
-                    class="rounded-lg bg-neutral-50 px-3 py-1.5 text-xs font-medium text-neutral-700 shadow-border hover:bg-neutral-100"
-                >
-                    Bulan ini
-                </button>
-                <div class="flex items-center gap-1">
-                    <button
-                        type="button"
-                        wire:click="prevMonth"
-                        class="rounded-lg p-2 text-neutral-600 shadow-border hover:bg-neutral-50"
-                        aria-label="Bulan sebelumnya"
-                    >
-                        <i data-lucide="chevron-left" class="h-4 w-4" aria-hidden="true"></i>
-                    </button>
-                    <button
-                        type="button"
-                        wire:click="nextMonth"
-                        class="rounded-lg p-2 text-neutral-600 shadow-border hover:bg-neutral-50"
-                        aria-label="Bulan berikutnya"
-                    >
-                        <i data-lucide="chevron-right" class="h-4 w-4" aria-hidden="true"></i>
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <div class="grid grid-cols-7 gap-px overflow-hidden rounded-xl bg-neutral-200 ring-1 ring-neutral-200">
-            @foreach (['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'] as $h)
-                <div class="bg-neutral-100 px-1 py-2 text-center text-[10px] font-semibold uppercase tracking-wide text-neutral-600 sm:text-xs">
-                    {{ $h }}
-                </div>
-            @endforeach
-
-            @foreach ($this->monthGrid as $idx => $date)
-                @if (! $date)
-                    <div wire:key="empty-{{ $idx }}" class="min-h-[72px] bg-neutral-50/90 sm:min-h-[100px]"></div>
-                @else
-                    @php
-                        $key = $date->format('Y-m-d');
-                        $dayEvents = $events[$key] ?? [];
-                        $isToday = $key === $today;
-                        $maxTampil = 3;
-                    @endphp
-                    <div wire:key="day-{{ $key }}" class="flex min-h-[72px] flex-col border-t border-neutral-100 bg-white p-1 sm:min-h-[100px] {{ $isToday ? 'ring-inset ring-2 ring-sky-300/80' : '' }}">
-                        <div class="mb-0.5 text-right text-[11px] font-semibold tabular-nums sm:text-xs {{ $isToday ? 'text-sky-700' : 'text-neutral-700' }}">
-                            {{ $date->day }}
-                        </div>
-                        <div class="flex flex-1 flex-col gap-0.5 overflow-hidden">
-                            @foreach (array_slice($dayEvents, 0, $maxTampil) as $item)
-                                @php
-                                    $jam = $item['jam_mulai'] ? substr($item['jam_mulai'], 0, 5) : '—';
-                                    $href = $item['id_kelas'] && $item['id_jadwal']
-                                        ? route('dosen.jadwal.detail', ['kelasId' => $item['id_kelas'], 'jadwalId' => $item['id_jadwal'], 'id_semester' => $filterSemester !== '' ? $filterSemester : null])
-                                        : null;
-                                @endphp
-                                @if ($href)
-                                    <a
-                                        href="{{ $href }}"
-                                        title="{{ $item['nama_matkul'] }} · {{ $jam }}"
-                                        class="truncate rounded bg-sky-50 px-0.5 py-0.5 text-[9px] font-medium text-sky-900 ring-1 ring-sky-100 transition hover:bg-sky-100 hover:ring-sky-200 sm:text-[10px]"
-                                    >
-                                        <span class="tabular-nums">{{ $jam }}</span> {{ $item['nama_matkul'] }}
-                                    </a>
-                                @else
-                                    <span class="truncate rounded bg-neutral-100 px-0.5 py-0.5 text-[9px] text-neutral-500 sm:text-[10px]" title="{{ $item['nama_matkul'] }}">
-                                        {{ $jam }} {{ $item['nama_matkul'] }}
-                                    </span>
+    <div class="rounded-2xl bg-white shadow-border">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+                <thead class="bg-neutral-50 text-xs font-semibold uppercase tracking-wide text-neutral-500">
+                    <tr>
+                        <th class="px-4 py-3">Hari</th>
+                        <th class="px-4 py-3">Jam</th>
+                        <th class="px-4 py-3">Mata Kuliah</th>
+                        <th class="px-4 py-3">Kelas</th>
+                        <th class="px-4 py-3">Ruangan</th>
+                        <th class="px-4 py-3">Jenis</th>
+                        <th class="px-4 py-3 text-right">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-neutral-100">
+                    @forelse ($this->jadwalRows as $jadwalDosen)
+                        @php
+                            $jadwal = $jadwalDosen->jadwal;
+                            $kelas = $jadwal->kelas;
+                            $km = $kelas->kurikulumMatkul;
+                            $jamMulai = $jadwal->jam_mulai ? substr($jadwal->jam_mulai, 0, 5) : '—';
+                            $jamSelesai = $jadwal->jam_selesai ? substr($jadwal->jam_selesai, 0, 5) : null;
+                        @endphp
+                        <tr wire:key="jadwal-{{ $jadwalDosen->id }}">
+                            <td class="px-4 py-3 font-medium text-neutral-900">
+                                {{ $jadwal->hari ? ucfirst($jadwal->hari) : '—' }}
+                                @if ($jadwal->tanggal)
+                                    <div class="text-xs font-normal text-neutral-500">{{ $jadwal->tanggal->translatedFormat('j M Y') }}</div>
                                 @endif
-                            @endforeach
-                            @if (count($dayEvents) > $maxTampil)
-                                <span class="text-[9px] text-neutral-500 sm:text-[10px]">+{{ count($dayEvents) - $maxTampil }} lagi</span>
-                            @endif
-                        </div>
-                    </div>
-                @endif
-            @endforeach
+                            </td>
+                            <td class="px-4 py-3 tabular-nums text-neutral-700">
+                                {{ $jamMulai }}{{ $jamSelesai ? " – {$jamSelesai}" : '' }}
+                            </td>
+                            <td class="px-4 py-3">
+                                <div class="font-medium text-neutral-900">{{ $km?->namaMatkulLabel() ?? '—' }}</div>
+                                @if ($km?->kodeMatkulLabel())
+                                    <div class="text-xs text-neutral-500">{{ $km->kodeMatkulLabel() }}</div>
+                                @endif
+                            </td>
+                            <td class="px-4 py-3 text-neutral-600">
+                                {{ $kelas->kelompokKelas?->nama ?? '—' }}
+                                @if ($kelas->prodi)
+                                    <div class="text-xs text-neutral-500">
+                                        {{ $kelas->prodi->nama }}{{ $kelas->prodi->jenjang?->kode ? " ({$kelas->prodi->jenjang->kode})" : '' }}
+                                    </div>
+                                @endif
+                            </td>
+                            <td class="px-4 py-3 text-neutral-600">{{ $jadwal->ruangan?->nama ?? '—' }}</td>
+                            <td class="px-4 py-3 text-neutral-600">{{ $jadwal->jenisKuliah?->nama ?? '—' }}</td>
+                            <td class="px-4 py-3 text-right">
+                                <a
+                                    href="{{ route('dosen.jadwal.detail', ['kelasId' => $kelas->id, 'jadwalId' => $jadwal->id, 'id_semester' => $filterSemester !== '' ? $filterSemester : null]) }}"
+                                    class="inline-flex items-center justify-center rounded-lg p-2 text-neutral-500 transition hover:bg-neutral-100 hover:text-neutral-900"
+                                    title="Lihat detail jadwal"
+                                >
+                                    <i data-lucide="eye" class="h-4 w-4" aria-hidden="true"></i>
+                                </a>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="7" class="px-4 py-10 text-center text-neutral-500">Belum ada jadwal mengajar.</td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
         </div>
     </div>
 </div>

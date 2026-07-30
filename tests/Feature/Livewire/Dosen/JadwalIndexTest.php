@@ -7,7 +7,6 @@ use App\Models\JadwalDosen;
 use App\Models\Kelas;
 use App\Models\Semester;
 use App\Models\User;
-use Carbon\CarbonImmutable;
 use Livewire\Livewire;
 
 it('redirects unauthenticated users to the login page', function () {
@@ -20,53 +19,65 @@ it('forbids a non-dosen user', function () {
     $this->actingAs($mahasiswa)->get(route('dosen.jadwal'))->assertForbidden();
 });
 
-it('expands a recurring weekly jadwal into every matching date in the viewed month', function () {
+it('lists the active jadwal_dosen rows for the logged-in dosen as a flat table', function () {
     $dosenUser = dosenUser();
     $dosen = Dosen::where('id_user', $dosenUser->id)->firstOrFail();
 
     $semesterAktif = Semester::factory()->active()->create();
     $kelas = Kelas::factory()->create(['id_semester' => $semesterAktif->id]);
-    $jadwal = Jadwal::factory()->create(['id_kelas' => $kelas->id, 'hari' => 'senin', 'tanggal' => null, 'is_active' => true]);
+    $jadwal = Jadwal::factory()->create(['id_kelas' => $kelas->id, 'hari' => 'senin', 'is_active' => true]);
     JadwalDosen::create(['id_jadwal' => $jadwal->id, 'id_dosen' => $dosen->id, 'status' => 'active']);
 
-    $viewMonth = CarbonImmutable::now()->startOfMonth()->format('Y-m-d');
-    $events = Livewire::actingAs($dosenUser)
+    $rows = Livewire::actingAs($dosenUser)
         ->test(Index::class)
-        ->set('viewMonth', $viewMonth)
         ->instance()
-        ->eventsByDate();
+        ->jadwalRows();
 
-    $expectedMondays = 0;
-    $cursor = CarbonImmutable::parse($viewMonth);
-    while ($cursor->month === CarbonImmutable::parse($viewMonth)->month) {
-        if ($cursor->dayOfWeekIso === 1) {
-            $expectedMondays++;
-        }
-        $cursor = $cursor->addDay();
-    }
-
-    $totalEvents = collect($events)->sum(fn ($dayEvents) => count($dayEvents));
-    expect($totalEvents)->toBe($expectedMondays);
+    expect($rows)->toHaveCount(1);
+    expect($rows->first()->jadwal->id)->toBe($jadwal->id);
 });
 
-it('places an explicit-date jadwal only on that single date, not recurring', function () {
+it('sorts rows by hari then jam_mulai, not by a naive combined numeric key', function () {
     $dosenUser = dosenUser();
     $dosen = Dosen::where('id_user', $dosenUser->id)->firstOrFail();
 
     $semesterAktif = Semester::factory()->active()->create();
     $kelas = Kelas::factory()->create(['id_semester' => $semesterAktif->id]);
-    $tanggal = CarbonImmutable::now()->startOfMonth()->addDays(4);
-    $jadwal = Jadwal::factory()->create(['id_kelas' => $kelas->id, 'tanggal' => $tanggal->toDateString(), 'is_active' => true]);
-    JadwalDosen::create(['id_jadwal' => $jadwal->id, 'id_dosen' => $dosen->id, 'status' => 'active']);
 
-    $events = Livewire::actingAs($dosenUser)
+    // Senin sore harus tetap terurut sebelum Selasa pagi, walau formula angka tunggal
+    // ($hariNum * 10000 + jamMulai) yang dipakai JadwalDosenController::getMyJadwal akan
+    // salah urut di kasus ini (lihat catatan di Index::jadwalRows()).
+    $jadwalSeninSore = Jadwal::factory()->create(['id_kelas' => $kelas->id, 'hari' => 'senin', 'jam_mulai' => '18:00', 'is_active' => true]);
+    $jadwalSelasaPagi = Jadwal::factory()->create(['id_kelas' => $kelas->id, 'hari' => 'selasa', 'jam_mulai' => '07:00', 'is_active' => true]);
+
+    JadwalDosen::create(['id_jadwal' => $jadwalSeninSore->id, 'id_dosen' => $dosen->id, 'status' => 'active']);
+    JadwalDosen::create(['id_jadwal' => $jadwalSelasaPagi->id, 'id_dosen' => $dosen->id, 'status' => 'active']);
+
+    $rows = Livewire::actingAs($dosenUser)->test(Index::class)->instance()->jadwalRows();
+
+    expect($rows->pluck('id_jadwal')->all())->toBe([$jadwalSeninSore->id, $jadwalSelasaPagi->id]);
+});
+
+it('filters jadwal rows by the selected semester', function () {
+    $dosenUser = dosenUser();
+    $dosen = Dosen::where('id_user', $dosenUser->id)->firstOrFail();
+
+    $semesterA = Semester::factory()->create();
+    $semesterB = Semester::factory()->create();
+    $kelasA = Kelas::factory()->create(['id_semester' => $semesterA->id]);
+    $kelasB = Kelas::factory()->create(['id_semester' => $semesterB->id]);
+    $jadwalA = Jadwal::factory()->create(['id_kelas' => $kelasA->id, 'is_active' => true]);
+    $jadwalB = Jadwal::factory()->create(['id_kelas' => $kelasB->id, 'is_active' => true]);
+    JadwalDosen::create(['id_jadwal' => $jadwalA->id, 'id_dosen' => $dosen->id, 'status' => 'active']);
+    JadwalDosen::create(['id_jadwal' => $jadwalB->id, 'id_dosen' => $dosen->id, 'status' => 'active']);
+
+    $rows = Livewire::actingAs($dosenUser)
         ->test(Index::class)
-        ->set('viewMonth', $tanggal->startOfMonth()->format('Y-m-d'))
+        ->set('filterSemester', (string) $semesterB->id)
         ->instance()
-        ->eventsByDate();
+        ->jadwalRows();
 
-    expect($events)->toHaveKey($tanggal->format('Y-m-d'));
-    expect(collect($events)->sum(fn ($d) => count($d)))->toBe(1);
+    expect($rows->pluck('id_jadwal')->all())->toBe([$jadwalB->id]);
 });
 
 it('excludes jadwal_dosen rows that are not active', function () {
@@ -78,7 +89,22 @@ it('excludes jadwal_dosen rows that are not active', function () {
     $jadwal = Jadwal::factory()->create(['id_kelas' => $kelas->id, 'hari' => 'senin', 'is_active' => true]);
     JadwalDosen::create(['id_jadwal' => $jadwal->id, 'id_dosen' => $dosen->id, 'status' => 'inactive']);
 
-    $events = Livewire::actingAs($dosenUser)->test(Index::class)->instance()->eventsByDate();
+    $rows = Livewire::actingAs($dosenUser)->test(Index::class)->instance()->jadwalRows();
 
-    expect(collect($events)->sum(fn ($d) => count($d)))->toBe(0);
+    expect($rows)->toHaveCount(0);
+});
+
+it('links each row to the jadwal detail page', function () {
+    $dosenUser = dosenUser();
+    $dosen = Dosen::where('id_user', $dosenUser->id)->firstOrFail();
+
+    $semesterAktif = Semester::factory()->active()->create();
+    $kelas = Kelas::factory()->create(['id_semester' => $semesterAktif->id]);
+    $jadwal = Jadwal::factory()->create(['id_kelas' => $kelas->id, 'hari' => 'senin', 'is_active' => true]);
+    JadwalDosen::create(['id_jadwal' => $jadwal->id, 'id_dosen' => $dosen->id, 'status' => 'active']);
+
+    $this->actingAs($dosenUser)
+        ->get(route('dosen.jadwal'))
+        ->assertOk()
+        ->assertSee(route('dosen.jadwal.detail', ['kelasId' => $kelas->id, 'jadwalId' => $jadwal->id, 'id_semester' => $semesterAktif->id]), false);
 });
