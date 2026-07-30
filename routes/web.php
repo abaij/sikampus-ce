@@ -95,6 +95,8 @@ use App\Livewire\Admin\Ruangan\Form as RuanganForm;
 use App\Livewire\Admin\Ruangan\Index as RuanganIndex;
 use App\Livewire\Admin\Semester\Form as SemesterForm;
 use App\Livewire\Admin\Semester\Index as SemesterIndex;
+use App\Livewire\Admin\Sistem\Lisensi as SistemLisensi;
+use App\Livewire\Admin\Sistem\Pengaturan as SistemPengaturan;
 use App\Livewire\Admin\StatusAkademik\Form as StatusAkademikForm;
 use App\Livewire\Admin\StatusAkademik\Index as StatusAkademikIndex;
 use App\Livewire\Admin\StrukturBiaya\Form as StrukturBiayaForm;
@@ -548,6 +550,14 @@ Route::prefix('admin')->name('admin.')->group(function (): void {
 
         Route::livewire('pengguna/{id}/edit', PenggunaForm::class)->name('pengguna.edit');
         Route::livewire('pengguna/{id}', PenggunaShow::class)->name('pengguna.show');
+
+        // Menu Sistem — kredensial SMTP dianggap privilege-sensitive (bisa dipakai untuk
+        // menyadap email reset password, dst), jadi dibatasi Superadmin saja lewat middleware
+        // tambahan, bukan admin_akademik/admin_keuangan yang juga lolos role.admin.web.
+        Route::middleware('role.admin.superadmin')->group(function (): void {
+            Route::livewire('sistem/pengaturan', SistemPengaturan::class)->name('sistem.pengaturan');
+            Route::livewire('sistem/lisensi', SistemLisensi::class)->name('sistem.lisensi');
+        });
 
         Route::livewire('profil', AdminProfil::class)->name('profil');
     });

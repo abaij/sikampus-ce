@@ -84,7 +84,10 @@
                     ['route' => 'admin.pengguna.role.index', 'label' => 'Role'],
                     ['route' => 'admin.pengguna.permission.index', 'label' => 'Permission'],
                 ]],
-                //['route' => 'admin.pengaturan.umum', 'label' => 'Sistem']
+                ['label' => 'Sistem', 'children' => [
+                    ['route' => 'admin.sistem.pengaturan', 'label' => 'SMTP'],
+                    ['route' => 'admin.sistem.lisensi', 'label' => 'License Key'],
+                ]]
             ],
         ],
     ];

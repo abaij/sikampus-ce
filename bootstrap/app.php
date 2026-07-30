@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\EnsurePartnerApiKey;
 use App\Http\Middleware\EnsureUserHasKeuanganAccess;
+use App\Http\Middleware\EnsureUserHasSuperadminAccess;
 use App\Http\Middleware\EnsureUserIsAdmin;
 use App\Http\Middleware\EnsureUserIsAdminProdi;
 use App\Http\Middleware\EnsureUserIsAdminProdiWeb;
@@ -63,6 +64,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'role.admin.web' => EnsureUserIsAdminWeb::class,
             'role.superadmin' => EnsureUserIsSuperadmin::class,
             'role.admin.keuangan' => EnsureUserHasKeuanganAccess::class,
+            'role.admin.superadmin' => EnsureUserHasSuperadminAccess::class,
             'role.admin.prodi' => EnsureUserIsAdminProdi::class,
             'role.admin.prodi.web' => EnsureUserIsAdminProdiWeb::class,
             'role.mahasiswa' => EnsureUserIsMahasiswa::class,
