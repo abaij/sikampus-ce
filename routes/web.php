@@ -345,7 +345,9 @@ Route::prefix('admin')->name('admin.')->group(function (): void {
         ->middleware('auth')
         ->name('logout');
 
-    Route::middleware(['auth', 'role.admin.web'])->group(function (): void {
+    // role.admin.web = boleh masuk panel; panel.permission = boleh masuk modul yang mana
+    // (peta rute→permission di config/panel_access.php, dipakai juga oleh navbar).
+    Route::middleware(['auth', 'role.admin.web', 'panel.permission'])->group(function (): void {
         Route::livewire('/dashboard', AdminDashboard::class)->name('dashboard');
 
         // Menu Akademik

@@ -48,8 +48,8 @@ it('creates and updates a pengguna, then shows the detail page', function () {
 it('assigns a role and scope to a pengguna from the show page', function () {
     $admin = adminUser();
     $pengguna = User::factory()->create(['role' => 'admin', 'status' => 'active']);
-    $akademik = Role::create(['code' => 'akademik', 'name' => 'Akademik', 'guard_name' => 'web']);
-    $keuangan = Role::create(['code' => 'keuangan', 'name' => 'Keuangan', 'guard_name' => 'web']);
+    $akademik = Role::firstOrCreate(['name' => 'Akademik', 'guard_name' => 'web'], ['code' => 'akademik']);
+    $keuangan = Role::firstOrCreate(['name' => 'Keuangan', 'guard_name' => 'web'], ['code' => 'keuangan']);
 
     Livewire::actingAs($admin)
         ->test(Show::class, ['id' => $pengguna->id])

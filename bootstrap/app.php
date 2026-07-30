@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnsurePanelPermission;
 use App\Http\Middleware\EnsurePartnerApiKey;
 use App\Http\Middleware\EnsureUserHasKeuanganAccess;
 use App\Http\Middleware\EnsureUserHasSuperadminAccess;
@@ -62,6 +63,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'guest' => RedirectIfAuthenticated::class,
             'role.admin' => EnsureUserIsAdmin::class,
             'role.admin.web' => EnsureUserIsAdminWeb::class,
+            'panel.permission' => EnsurePanelPermission::class,
             'role.superadmin' => EnsureUserIsSuperadmin::class,
             'role.admin.keuangan' => EnsureUserHasKeuanganAccess::class,
             'role.admin.superadmin' => EnsureUserHasSuperadminAccess::class,

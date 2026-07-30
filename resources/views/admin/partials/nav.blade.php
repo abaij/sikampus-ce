@@ -92,6 +92,34 @@
         ],
     ];
 
+    // Sembunyikan menu yang rutenya memang akan ditolak middleware panel.permission, memakai
+    // peta yang sama (config/panel_access.php) supaya tampilan dan fungsi tidak pernah beda.
+    $navUser = auth()->user();
+    $adminNavGroups = collect($adminNavGroups)
+        ->map(function (array $group) use ($navUser) {
+            $group['items'] = collect($group['items'])
+                ->map(function (array $item) use ($navUser) {
+                    if (isset($item['children'])) {
+                        $item['children'] = array_values(array_filter(
+                            $item['children'],
+                            fn ($child) => \App\Support\PanelAccess::allows($navUser, $child['route'])
+                        ));
+                    }
+
+                    return $item;
+                })
+                ->filter(fn (array $item) => isset($item['children'])
+                    ? $item['children'] !== []
+                    : \App\Support\PanelAccess::allows($navUser, $item['route']))
+                ->values()
+                ->all();
+
+            return $group;
+        })
+        ->filter(fn (array $group) => $group['items'] !== [])
+        ->values()
+        ->all();
+
     // Item aktif kalau route-nya sendiri cocok, atau (untuk item yang punya submenu) salah satu child-nya cocok.
     $isItemActive = function (array $item) {
         if (isset($item['children'])) {

@@ -4,6 +4,7 @@ use App\Models\Dosen;
 use App\Models\Prodi;
 use App\Models\Role;
 use App\Models\User;
+use Database\Seeders\PermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
@@ -66,6 +67,10 @@ function adminUser(string $legacyRole = 'admin'): User
         'admin_keuangan' => 'Keuangan',
         default => 'Superadmin',
     };
+
+    // Seed permission + pemetaan role→permission yang sebenarnya, supaya test menguji batas
+    // modul yang benar-benar berlaku di produksi (middleware panel.permission + navbar).
+    (new PermissionSeeder)->run();
 
     $role = Role::firstOrCreate(
         ['name' => $spatieRoleName, 'guard_name' => 'web'],

@@ -7,9 +7,9 @@ use Livewire\Livewire;
 
 it('renders index and create form as full pages', function () {
     $admin = adminUser();
-    Role::create(['code' => 'keuangan', 'name' => 'Keuangan', 'guard_name' => 'web']);
+    Role::create(['code' => 'perpustakaan', 'name' => 'Perpustakaan', 'guard_name' => 'web']);
 
-    $this->actingAs($admin)->get(route('admin.pengguna.role.index'))->assertOk()->assertSee('Keuangan');
+    $this->actingAs($admin)->get(route('admin.pengguna.role.index'))->assertOk()->assertSee('Perpustakaan');
     $this->actingAs($admin)->get(route('admin.pengguna.role.create'))->assertOk()->assertSee('Tambah Role');
 });
 
