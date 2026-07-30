@@ -151,6 +151,8 @@ use App\Livewire\Mahasiswa\Nilai\Transkrip as MahasiswaNilaiTranskrip;
 use App\Livewire\Mahasiswa\Pembayaran\Index as MahasiswaPembayaranIndex;
 use App\Livewire\Mahasiswa\Perwalian\Index as MahasiswaPerwalianIndex;
 use App\Livewire\Mahasiswa\Profil as MahasiswaProfil;
+use App\Livewire\Mahasiswa\Survey\Index as MahasiswaSurveyIndex;
+use App\Livewire\Mahasiswa\Survey\Isi as MahasiswaSurveyIsi;
 use App\Livewire\Mahasiswa\Tagihan\Index as MahasiswaTagihanIndex;
 use App\Livewire\Mahasiswa\TugasAkhir\Index as MahasiswaTugasAkhirIndex;
 use App\Livewire\Mahasiswa\TugasAkhir\Pengajuan as MahasiswaTugasAkhirPengajuan;
@@ -318,7 +320,8 @@ Route::middleware(['auth', 'role.mahasiswa.web'])->group(function (): void {
     Route::livewire('/mahasiswa/pembayaran', MahasiswaPembayaranIndex::class)->name('mahasiswa.pembayaran');
     Route::livewire('/mahasiswa/keringanan-biaya', MahasiswaKeringananBiayaIndex::class)->name('mahasiswa.keringanan-biaya');
 
-    Route::view('/mahasiswa/survey', 'mahasiswa.coming-soon', ['title' => 'Survey'])->name('mahasiswa.survey');
+    Route::livewire('/mahasiswa/survey', MahasiswaSurveyIndex::class)->name('mahasiswa.survey');
+    Route::livewire('/mahasiswa/survey/{id}/isi', MahasiswaSurveyIsi::class)->name('mahasiswa.survey.isi');
 });
 
 // Panel admin (Livewire) — superadmin/akademik/keuangan. Login-nya sendiri sudah disatukan
