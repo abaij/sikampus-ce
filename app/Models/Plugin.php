@@ -1,0 +1,51 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
+
+class Plugin extends Model
+{
+    protected $fillable = [
+        'name',
+        'slug',
+        'version',
+        'description',
+        'provider_class',
+        'source_path',
+        'has_web_routes',
+        'has_api_routes',
+        'migrations_relative_path',
+        'checksum',
+        'enabled',
+        'id_user',
+        'installed_at',
+        'disabled_at',
+        'last_migrated_at',
+    ];
+
+    protected $casts = [
+        'has_web_routes' => 'boolean',
+        'has_api_routes' => 'boolean',
+        'enabled' => 'boolean',
+        'installed_at' => 'datetime',
+        'disabled_at' => 'datetime',
+        'last_migrated_at' => 'datetime',
+    ];
+
+    public function scopeEnabled(Builder $query): Builder
+    {
+        return $query->where('enabled', true);
+    }
+
+    public function sourceAbsolutePath(): string
+    {
+        return base_path($this->source_path);
+    }
+
+    public function migrationsAbsolutePath(): ?string
+    {
+        return $this->migrations_relative_path ? base_path($this->migrations_relative_path) : null;
+    }
+}

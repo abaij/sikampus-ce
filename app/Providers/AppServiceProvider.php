@@ -7,6 +7,7 @@ use App\Models\Mahasiswa;
 use App\Models\Prodi;
 use App\Models\Semester;
 use App\Models\Setting;
+use App\Support\Plugins\PluginBootManager;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
@@ -18,7 +19,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // Daftarkan service provider tiap plugin yang enabled (lihat tabel `plugins`
+        // dan app/Support/Plugins/PluginBootManager) sebelum Laravel mem-parse
+        // routes/web.php & routes/api.php, supaya route/migration milik plugin ikut
+        // ter-load lewat mekanisme native loadRoutesFrom()/loadMigrationsFrom().
+        PluginBootManager::bootEnabledPlugins($this->app);
     }
 
     /**

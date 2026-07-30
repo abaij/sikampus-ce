@@ -9,6 +9,7 @@ use App\Http\Controllers\Web\LoginController;
 use App\Http\Controllers\Web\MahasiswaDashboardController;
 use App\Http\Controllers\Web\NilaiExportController;
 use App\Http\Controllers\Web\SuperadminEnvConfigController;
+use App\Http\Controllers\Web\SuperadminPluginController;
 use App\Http\Controllers\Web\SuperadminTestUploadController;
 use App\Http\Controllers\Web\SuperadminWebLoginController;
 use App\Livewire\Admin\AturanAksesKeuangan\Form as AturanAksesKeuanganForm;
@@ -137,11 +138,28 @@ use App\Livewire\Dosen\TugasAkhir\Index as DosenTugasAkhirIndex;
 use App\Livewire\Dosen\TugasAkhir\Show as DosenTugasAkhirShow;
 use App\Livewire\Dosen\UjianSidang\Index as DosenUjianSidangIndex;
 use App\Livewire\Dosen\UjianSidang\Show as DosenUjianSidangShow;
+use App\Livewire\Mahasiswa\Jadwal\Detail as MahasiswaJadwalDetail;
+use App\Livewire\Mahasiswa\Jadwal\Index as MahasiswaJadwalIndex;
+use App\Livewire\Mahasiswa\Kehadiran\Index as MahasiswaKehadiranIndex;
+use App\Livewire\Mahasiswa\Krs\Index as MahasiswaKrsIndex;
+use App\Livewire\Mahasiswa\Krs\Pengajuan as MahasiswaKrsPengajuan;
+use App\Livewire\Mahasiswa\Nilai\Semester as MahasiswaNilaiSemester;
+use App\Livewire\Mahasiswa\Nilai\Transkrip as MahasiswaNilaiTranskrip;
+use App\Livewire\Mahasiswa\Perwalian\Index as MahasiswaPerwalianIndex;
 use App\Livewire\Mahasiswa\Profil as MahasiswaProfil;
+use App\Livewire\Mahasiswa\TugasAkhir\Index as MahasiswaTugasAkhirIndex;
+use App\Livewire\Mahasiswa\TugasAkhir\Pengajuan as MahasiswaTugasAkhirPengajuan;
+use App\Livewire\Mahasiswa\TugasAkhir\Show as MahasiswaTugasAkhirShow;
 use App\Livewire\Prodi\Dashboard as ProdiDashboard;
+use App\Livewire\Prodi\Dosen\Index as ProdiDosenIndex;
+use App\Livewire\Prodi\Dosen\Show as ProdiDosenShow;
 use App\Livewire\Prodi\JadwalKuliah\Index as ProdiJadwalKuliahIndex;
+use App\Livewire\Prodi\KonversiNilai\Index as ProdiKonversiNilaiIndex;
+use App\Livewire\Prodi\Krs\Index as ProdiKrsIndex;
 use App\Livewire\Prodi\Kurikulum\Index as ProdiKurikulumIndex;
 use App\Livewire\Prodi\Kurikulum\Show as ProdiKurikulumShow;
+use App\Livewire\Prodi\Mahasiswa\Index as ProdiMahasiswaIndex;
+use App\Livewire\Prodi\Mahasiswa\Show as ProdiMahasiswaShow;
 use App\Livewire\Prodi\Matkul\Index as ProdiMatkulIndex;
 use App\Livewire\Prodi\Matkul\Show as ProdiMatkulShow;
 use Illuminate\Support\Facades\Route;
@@ -166,6 +184,13 @@ Route::middleware(['auth', 'superadmin.web'])->group(function (): void {
     Route::view('/migrasi', 'superadmin.migrasi')->name('superadmin.migrasi');
     Route::get('/test-upload', [SuperadminTestUploadController::class, 'create'])->name('superadmin.test-upload');
     Route::post('/test-upload', [SuperadminTestUploadController::class, 'store'])->name('superadmin.test-upload.store');
+
+    Route::get('/plugins', [SuperadminPluginController::class, 'index'])->name('superadmin.plugins');
+    Route::post('/plugins', [SuperadminPluginController::class, 'store'])->name('superadmin.plugins.store');
+    Route::post('/plugins/{plugin:slug}/migrate', [SuperadminPluginController::class, 'migrate'])->name('superadmin.plugins.migrate');
+    Route::patch('/plugins/{plugin:slug}/enable', [SuperadminPluginController::class, 'enable'])->name('superadmin.plugins.enable');
+    Route::patch('/plugins/{plugin:slug}/disable', [SuperadminPluginController::class, 'disable'])->name('superadmin.plugins.disable');
+    Route::delete('/plugins/{plugin:slug}', [SuperadminPluginController::class, 'destroy'])->name('superadmin.plugins.destroy');
 });
 
 // Area dosen (sidebar, lihat resources/views/layouts/dosen.blade.php + dosen/partials/sidebar).
@@ -221,8 +246,6 @@ Route::middleware(['auth', 'role.dosen.web'])->group(function (): void {
 // (User::hasProdiScope()), diakses lewat tombol "Administrasi Prodi" di sidebar dosen. Cermin
 // dari grup route API 'prodi/*' (routes/api.php, middleware role.admin.prodi), yang read-only
 // kecuali approval/transfer-nilai konversi nilai dan update bobot penilaian kurikulum-matkul.
-// Modul yang belum diport menunjuk ke 'prodi.coming-soon' sampai dibangun (lihat
-// .claude/skills/siak-livewire-module).
 Route::middleware(['auth', 'role.admin.prodi.web'])->group(function (): void {
     Route::livewire('/prodi', ProdiDashboard::class)->name('prodi.dashboard');
 
@@ -231,15 +254,20 @@ Route::middleware(['auth', 'role.admin.prodi.web'])->group(function (): void {
     Route::livewire('/prodi/kurikulum/{id}', ProdiKurikulumShow::class)->name('prodi.kurikulum.show');
 
     Route::livewire('/prodi/jadwal-kuliah', ProdiJadwalKuliahIndex::class)->name('prodi.jadwal-kuliah');
-    Route::view('/prodi/krs', 'prodi.coming-soon', ['title' => 'KRS'])->name('prodi.krs');
-    Route::view('/prodi/konversi-nilai', 'prodi.coming-soon', ['title' => 'Konversi Nilai'])->name('prodi.konversi-nilai');
+    Route::livewire('/prodi/krs', ProdiKrsIndex::class)->name('prodi.krs');
+    Route::livewire('/prodi/konversi-nilai', ProdiKonversiNilaiIndex::class)->name('prodi.konversi-nilai');
 
     // Rute literal ('/prodi/matkul') harus di atas rute berparameter ('{id}').
     Route::livewire('/prodi/matkul', ProdiMatkulIndex::class)->name('prodi.matkul');
     Route::livewire('/prodi/matkul/{id}', ProdiMatkulShow::class)->name('prodi.matkul.show');
 
-    Route::view('/prodi/mahasiswa', 'prodi.coming-soon', ['title' => 'Mahasiswa'])->name('prodi.mahasiswa');
-    Route::view('/prodi/dosen', 'prodi.coming-soon', ['title' => 'Dosen'])->name('prodi.dosen');
+    // Rute literal ('/prodi/mahasiswa') harus di atas rute berparameter ('{id}').
+    Route::livewire('/prodi/mahasiswa', ProdiMahasiswaIndex::class)->name('prodi.mahasiswa');
+    Route::livewire('/prodi/mahasiswa/{id}', ProdiMahasiswaShow::class)->name('prodi.mahasiswa.show');
+
+    // Rute literal ('/prodi/dosen') harus di atas rute berparameter ('{id}').
+    Route::livewire('/prodi/dosen', ProdiDosenIndex::class)->name('prodi.dosen');
+    Route::livewire('/prodi/dosen/{id}', ProdiDosenShow::class)->name('prodi.dosen.show');
 });
 
 // Area mahasiswa (sidebar, lihat resources/views/layouts/mahasiswa.blade.php +
@@ -250,18 +278,25 @@ Route::middleware(['auth', 'role.mahasiswa.web'])->group(function (): void {
     Route::get('/mahasiswa/dashboard', [MahasiswaDashboardController::class, 'index'])->name('mahasiswa.dashboard');
     Route::livewire('/mahasiswa/profil', MahasiswaProfil::class)->name('mahasiswa.profil');
 
-    Route::view('/mahasiswa/jadwal', 'mahasiswa.coming-soon', ['title' => 'Jadwal'])->name('mahasiswa.jadwal');
-    Route::view('/mahasiswa/kehadiran', 'mahasiswa.coming-soon', ['title' => 'Kehadiran'])->name('mahasiswa.kehadiran');
+    // Rute literal ('/mahasiswa/jadwal') harus di atas rute berparameter ('{id}').
+    Route::livewire('/mahasiswa/jadwal', MahasiswaJadwalIndex::class)->name('mahasiswa.jadwal');
+    Route::livewire('/mahasiswa/jadwal/{id}', MahasiswaJadwalDetail::class)->name('mahasiswa.jadwal.detail');
 
-    Route::view('/mahasiswa/krs/pengajuan', 'mahasiswa.coming-soon', ['title' => 'Pengajuan KRS'])->name('mahasiswa.krs.pengajuan');
-    Route::view('/mahasiswa/krs', 'mahasiswa.coming-soon', ['title' => 'KRS'])->name('mahasiswa.krs');
+    Route::livewire('/mahasiswa/kehadiran', MahasiswaKehadiranIndex::class)->name('mahasiswa.kehadiran');
 
-    Route::view('/mahasiswa/bimbingan-akademik', 'mahasiswa.coming-soon', ['title' => 'Perwalian'])->name('mahasiswa.bimbingan-akademik');
+    // Rute literal ('/mahasiswa/krs/pengajuan') harus di atas rute yang lebih pendek ('/mahasiswa/krs').
+    Route::livewire('/mahasiswa/krs/pengajuan', MahasiswaKrsPengajuan::class)->name('mahasiswa.krs.pengajuan');
+    Route::livewire('/mahasiswa/krs', MahasiswaKrsIndex::class)->name('mahasiswa.krs');
 
-    Route::view('/mahasiswa/nilai/semester', 'mahasiswa.coming-soon', ['title' => 'Nilai Semester'])->name('mahasiswa.nilai.semester');
-    Route::view('/mahasiswa/nilai/transkrip', 'mahasiswa.coming-soon', ['title' => 'Transkrip'])->name('mahasiswa.nilai.transkrip');
+    Route::livewire('/mahasiswa/bimbingan-akademik', MahasiswaPerwalianIndex::class)->name('mahasiswa.bimbingan-akademik');
 
-    Route::view('/mahasiswa/akhir-studi/tugas-akhir', 'mahasiswa.coming-soon', ['title' => 'Tugas Akhir'])->name('mahasiswa.akhir-studi.tugas-akhir');
+    Route::livewire('/mahasiswa/nilai/semester', MahasiswaNilaiSemester::class)->name('mahasiswa.nilai.semester');
+    Route::livewire('/mahasiswa/nilai/transkrip', MahasiswaNilaiTranskrip::class)->name('mahasiswa.nilai.transkrip');
+
+    // Rute literal ('/tugas-akhir/pengajuan') harus di atas rute berparameter ('/tugas-akhir/{id}').
+    Route::livewire('/mahasiswa/akhir-studi/tugas-akhir', MahasiswaTugasAkhirIndex::class)->name('mahasiswa.akhir-studi.tugas-akhir');
+    Route::livewire('/mahasiswa/akhir-studi/tugas-akhir/pengajuan', MahasiswaTugasAkhirPengajuan::class)->name('mahasiswa.akhir-studi.tugas-akhir.pengajuan');
+    Route::livewire('/mahasiswa/akhir-studi/tugas-akhir/{id}', MahasiswaTugasAkhirShow::class)->name('mahasiswa.akhir-studi.tugas-akhir.show');
     Route::view('/mahasiswa/akhir-studi/bimbingan-tugas-akhir', 'mahasiswa.coming-soon', ['title' => 'Bimbingan Tugas Akhir'])->name('mahasiswa.akhir-studi.bimbingan-tugas-akhir');
     Route::view('/mahasiswa/akhir-studi/ujian-sidang', 'mahasiswa.coming-soon', ['title' => 'Ujian Sidang'])->name('mahasiswa.akhir-studi.ujian-sidang');
     Route::view('/mahasiswa/akhir-studi/yudisium-wisuda', 'mahasiswa.coming-soon', ['title' => 'Yudisium & Wisuda'])->name('mahasiswa.akhir-studi.yudisium-wisuda');

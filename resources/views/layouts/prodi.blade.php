@@ -165,14 +165,7 @@
 
     <div class="flex min-h-screen flex-1 flex-col">
         <header class="print:hidden sticky top-0 z-20 flex items-center justify-end border-b border-neutral-200 bg-white/90 px-4 py-3 backdrop-blur sm:px-6">
-            {{-- Notifikasi belum punya halaman di panel ini — ikon disabled dulu, bukan tautan
-                 palsu, supaya tidak menyesatkan. Sama seperti layouts.dosen. --}}
-            <span
-                title="Notifikasi (segera hadir)"
-                class="flex h-9 w-9 cursor-not-allowed items-center justify-center rounded-full text-neutral-300"
-            >
-                <i data-lucide="bell" class="h-5 w-5" aria-hidden="true"></i>
-            </span>
+            <livewire:notifikasi.bell />
         </header>
 
         <main class="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6">

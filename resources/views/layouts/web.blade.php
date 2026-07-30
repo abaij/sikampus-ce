@@ -107,6 +107,12 @@
                         >
                             Test Upload
                         </a>
+                        <a
+                            href="{{ route('superadmin.plugins') }}"
+                            class="inline-flex items-center rounded-lg px-3 py-2 text-sm font-medium transition {{ request()->routeIs('superadmin.plugins*') ? 'bg-neutral-100 text-neutral-800' : 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900' }}"
+                        >
+                            Plugin
+                        </a>
                     @endif
                 @endif
             </nav>
