@@ -57,7 +57,12 @@
         class="fixed inset-0 z-30 hidden bg-neutral-900/40 peer-checked:block lg:hidden"
     ></label>
 
-    <aside class="fixed inset-y-0 left-0 z-40 flex w-72 -translate-x-full flex-col border-r border-neutral-200 bg-white transition-transform duration-200 ease-in-out peer-checked:translate-x-0 lg:static lg:translate-x-0">
+    {{-- lg:sticky + lg:h-screen (bukan lg:static) supaya aside berhenti mengikuti tinggi konten
+         dan tetap terkunci ke viewport saat desktop — tanpa ini, nav di dalamnya yang panjang
+         (banyak menu/submenu) mendorong tinggi aside ikut tumbuh, dan overflow-y-auto pada <nav>
+         tidak pernah aktif karena aside sendiri tidak dibatasi tingginya, sehingga seluruh
+         halaman ikut discroll alih-alih hanya kontennya. Sama seperti layouts.dosen. --}}
+    <aside class="fixed inset-y-0 left-0 z-40 flex w-72 -translate-x-full flex-col border-r border-neutral-200 bg-white transition-transform duration-200 ease-in-out peer-checked:translate-x-0 lg:sticky lg:top-0 lg:h-screen lg:translate-x-0 lg:self-start">
         <div class="flex items-center gap-3 border-b border-neutral-200 p-5">
             @if ($logoPerguruanTinggiSrc)
                 <img
@@ -80,9 +85,17 @@
 
         <div class="border-b border-neutral-200 bg-neutral-50 p-4">
             <div class="flex items-center gap-3">
-                <div class="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-neutral-900 text-sm font-semibold text-white">
-                    {{ $userInitials }}
-                </div>
+                @if ($mahasiswaSidebarFotoUrl ?? null)
+                    <img
+                        src="{{ $mahasiswaSidebarFotoUrl }}"
+                        alt="{{ $authUser->name ?? '' }}"
+                        class="h-10 w-10 shrink-0 rounded-full object-cover ring-1 ring-neutral-200"
+                    />
+                @else
+                    <div class="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-neutral-900 text-sm font-semibold text-white">
+                        {{ $userInitials }}
+                    </div>
+                @endif
                 <div class="min-w-0">
                     <p class="truncate text-sm font-semibold text-neutral-900">{{ $authUser->name ?? '' }}</p>
                     @if ($mahasiswaSidebarNim ?? null)

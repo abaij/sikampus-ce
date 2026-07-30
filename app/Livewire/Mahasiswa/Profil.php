@@ -5,11 +5,16 @@ namespace App\Livewire\Mahasiswa;
 use App\Models\Mahasiswa;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Livewire\Component;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
+use Livewire\WithFileUploads;
 
 class Profil extends Component
 {
+    use WithFileUploads;
+
     public int $mahasiswaId;
 
     public string $nim = '';
@@ -32,6 +37,11 @@ class Profil extends Component
 
     public string $new_password_confirmation = '';
 
+    /** @var TemporaryUploadedFile|null */
+    public $foto_upload = null;
+
+    public ?string $foto = null;
+
     public function mount(): void
     {
         $mahasiswa = Mahasiswa::where('id_user', Auth::id())->firstOrFail();
@@ -44,6 +54,7 @@ class Profil extends Component
         $this->no_wa = (string) $mahasiswa->no_wa;
         $this->alamat = (string) $mahasiswa->alamat;
         $this->kode_pos = (string) $mahasiswa->kode_pos;
+        $this->foto = $mahasiswa->foto;
     }
 
     /**
@@ -102,6 +113,32 @@ class Profil extends Component
         $this->reset(['current_password', 'new_password', 'new_password_confirmation']);
 
         session()->flash('status', 'Password berhasil diubah.');
+    }
+
+    /**
+     * Sama dengan MahasiswaController::uploadMyFoto.
+     */
+    public function saveFoto(): void
+    {
+        $this->validate([
+            'foto_upload' => ['required', 'image', 'mimes:jpeg,jpg,png', 'max:5120'],
+        ]);
+
+        $mahasiswa = Mahasiswa::findOrFail($this->mahasiswaId);
+
+        if ($mahasiswa->foto) {
+            Storage::disk('public')->delete($mahasiswa->foto);
+        }
+
+        $filename = 'mahasiswa_'.$mahasiswa->id.'_'.time().'.'.$this->foto_upload->getClientOriginalExtension();
+        $path = $this->foto_upload->storeAs('mahasiswa/foto', $filename, 'public');
+
+        $mahasiswa->update(['foto' => $path]);
+
+        $this->foto = $path;
+        $this->foto_upload = null;
+
+        session()->flash('status', 'Foto berhasil diperbarui.');
     }
 
     public function render()

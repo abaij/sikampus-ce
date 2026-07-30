@@ -82,13 +82,16 @@ class AppServiceProvider extends ServiceProvider
             ]);
         });
 
-        // Sidebar mahasiswa (layouts.mahasiswa) butuh NIM untuk kartu info user — dibagikan
+        // Sidebar mahasiswa (layouts.mahasiswa) butuh NIM & foto untuk kartu info user — dibagikan
         // lewat composer dengan alasan sama seperti layouts.dosen di atas.
         View::composer('layouts.mahasiswa', function ($view): void {
             $user = auth()->user();
             $mahasiswa = $user ? Mahasiswa::where('id_user', $user->id)->first() : null;
 
-            $view->with('mahasiswaSidebarNim', $mahasiswa?->nim);
+            $view->with([
+                'mahasiswaSidebarNim' => $mahasiswa?->nim,
+                'mahasiswaSidebarFotoUrl' => $mahasiswa?->foto ? asset('storage/'.ltrim($mahasiswa->foto, '/')) : null,
+            ]);
         });
 
         // Sidebar portal prodi (layouts.prodi) butuh info dosen (nama/foto) + daftar prodi yang

@@ -3,7 +3,9 @@
 use App\Livewire\Mahasiswa\Profil;
 use App\Models\Mahasiswa;
 use App\Models\User;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 
 function mahasiswaUserWithProfile(array $userAttributes = [], array $mahasiswaAttributes = []): User
@@ -71,4 +73,31 @@ it('rejects the password change when the current password is wrong', function ()
         ->set('new_password_confirmation', 'password-baru')
         ->call('savePassword')
         ->assertHasErrors(['current_password']);
+});
+
+it('uploads a new foto', function () {
+    Storage::fake('public');
+    $mahasiswaUser = mahasiswaUserWithProfile();
+    $mahasiswa = Mahasiswa::where('id_user', $mahasiswaUser->id)->firstOrFail();
+
+    Livewire::actingAs($mahasiswaUser)
+        ->test(Profil::class)
+        ->set('foto_upload', UploadedFile::fake()->image('foto.jpg'))
+        ->call('saveFoto')
+        ->assertHasNoErrors();
+
+    $mahasiswa->refresh();
+    expect($mahasiswa->foto)->not->toBeNull();
+    Storage::disk('public')->assertExists($mahasiswa->foto);
+});
+
+it('rejects a non-image foto upload', function () {
+    Storage::fake('public');
+    $mahasiswaUser = mahasiswaUserWithProfile();
+
+    Livewire::actingAs($mahasiswaUser)
+        ->test(Profil::class)
+        ->set('foto_upload', UploadedFile::fake()->create('dokumen.pdf', 100))
+        ->call('saveFoto')
+        ->assertHasErrors(['foto_upload']);
 });
