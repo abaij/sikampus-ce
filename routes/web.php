@@ -143,18 +143,22 @@ use App\Livewire\Mahasiswa\BimbinganTugasAkhir\Show as MahasiswaBimbinganTugasAk
 use App\Livewire\Mahasiswa\Jadwal\Detail as MahasiswaJadwalDetail;
 use App\Livewire\Mahasiswa\Jadwal\Index as MahasiswaJadwalIndex;
 use App\Livewire\Mahasiswa\Kehadiran\Index as MahasiswaKehadiranIndex;
+use App\Livewire\Mahasiswa\KeringananBiaya\Index as MahasiswaKeringananBiayaIndex;
 use App\Livewire\Mahasiswa\Krs\Index as MahasiswaKrsIndex;
 use App\Livewire\Mahasiswa\Krs\Pengajuan as MahasiswaKrsPengajuan;
 use App\Livewire\Mahasiswa\Nilai\Semester as MahasiswaNilaiSemester;
 use App\Livewire\Mahasiswa\Nilai\Transkrip as MahasiswaNilaiTranskrip;
+use App\Livewire\Mahasiswa\Pembayaran\Index as MahasiswaPembayaranIndex;
 use App\Livewire\Mahasiswa\Perwalian\Index as MahasiswaPerwalianIndex;
 use App\Livewire\Mahasiswa\Profil as MahasiswaProfil;
+use App\Livewire\Mahasiswa\Tagihan\Index as MahasiswaTagihanIndex;
 use App\Livewire\Mahasiswa\TugasAkhir\Index as MahasiswaTugasAkhirIndex;
 use App\Livewire\Mahasiswa\TugasAkhir\Pengajuan as MahasiswaTugasAkhirPengajuan;
 use App\Livewire\Mahasiswa\TugasAkhir\Show as MahasiswaTugasAkhirShow;
 use App\Livewire\Mahasiswa\UjianSidang\Index as MahasiswaUjianSidangIndex;
 use App\Livewire\Mahasiswa\UjianSidang\Pengajuan as MahasiswaUjianSidangPengajuan;
 use App\Livewire\Mahasiswa\UjianSidang\Show as MahasiswaUjianSidangShow;
+use App\Livewire\Mahasiswa\YudisiumWisuda\Index as MahasiswaYudisiumWisudaIndex;
 use App\Livewire\Prodi\Dashboard as ProdiDashboard;
 use App\Livewire\Prodi\Dosen\Index as ProdiDosenIndex;
 use App\Livewire\Prodi\Dosen\Show as ProdiDosenShow;
@@ -308,11 +312,11 @@ Route::middleware(['auth', 'role.mahasiswa.web'])->group(function (): void {
     Route::livewire('/mahasiswa/akhir-studi/ujian-sidang', MahasiswaUjianSidangIndex::class)->name('mahasiswa.akhir-studi.ujian-sidang');
     Route::livewire('/mahasiswa/akhir-studi/ujian-sidang/pengajuan', MahasiswaUjianSidangPengajuan::class)->name('mahasiswa.akhir-studi.ujian-sidang.pengajuan');
     Route::livewire('/mahasiswa/akhir-studi/ujian-sidang/{id}', MahasiswaUjianSidangShow::class)->name('mahasiswa.akhir-studi.ujian-sidang.show');
-    Route::view('/mahasiswa/akhir-studi/yudisium-wisuda', 'mahasiswa.coming-soon', ['title' => 'Yudisium & Wisuda'])->name('mahasiswa.akhir-studi.yudisium-wisuda');
+    Route::livewire('/mahasiswa/akhir-studi/yudisium-wisuda', MahasiswaYudisiumWisudaIndex::class)->name('mahasiswa.akhir-studi.yudisium-wisuda');
 
-    Route::view('/mahasiswa/tagihan', 'mahasiswa.coming-soon', ['title' => 'Tagihan'])->name('mahasiswa.tagihan');
-    Route::view('/mahasiswa/pembayaran', 'mahasiswa.coming-soon', ['title' => 'Pembayaran'])->name('mahasiswa.pembayaran');
-    Route::view('/mahasiswa/keringanan-biaya', 'mahasiswa.coming-soon', ['title' => 'Keringanan Biaya'])->name('mahasiswa.keringanan-biaya');
+    Route::livewire('/mahasiswa/tagihan', MahasiswaTagihanIndex::class)->name('mahasiswa.tagihan');
+    Route::livewire('/mahasiswa/pembayaran', MahasiswaPembayaranIndex::class)->name('mahasiswa.pembayaran');
+    Route::livewire('/mahasiswa/keringanan-biaya', MahasiswaKeringananBiayaIndex::class)->name('mahasiswa.keringanan-biaya');
 
     Route::view('/mahasiswa/survey', 'mahasiswa.coming-soon', ['title' => 'Survey'])->name('mahasiswa.survey');
 });
