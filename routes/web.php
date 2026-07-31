@@ -1,10 +1,12 @@
 <?php
 
+use App\Http\Controllers\DosenController;
 use App\Http\Controllers\DosenWaliController;
 use App\Http\Controllers\MahasiswaController;
 use App\Http\Controllers\SurveyController;
 use App\Http\Controllers\Web\AdminWebLoginController;
 use App\Http\Controllers\Web\DosenBimbinganExportController;
+use App\Http\Controllers\Web\DosenExportController;
 use App\Http\Controllers\Web\KrsCetakController;
 use App\Http\Controllers\Web\LoginController;
 use App\Http\Controllers\Web\MahasiswaDashboardController;
@@ -18,6 +20,7 @@ use App\Livewire\Admin\AturanAksesKeuangan\Form as AturanAksesKeuanganForm;
 use App\Livewire\Admin\AturanAksesKeuangan\Index as AturanAksesKeuanganIndex;
 use App\Livewire\Admin\Dashboard as AdminDashboard;
 use App\Livewire\Admin\Dosen\Form as DosenForm;
+use App\Livewire\Admin\Dosen\Import as DosenImport;
 use App\Livewire\Admin\Dosen\Index as DosenIndex;
 use App\Livewire\Admin\Dosen\Show as DosenShow;
 use App\Livewire\Admin\DosenWali\Index as DosenWaliIndex;
@@ -425,8 +428,13 @@ Route::prefix('admin')->name('admin.')->group(function (): void {
         Route::livewire('akademik/wisuda/{id}', WisudaShow::class)->name('akademik.wisuda.show');
 
         // Menu Administrasi
+        // Rute literal (template/download, import) harus didaftarkan sebelum 'administrasi/dosen/{id}'
+        // supaya tidak tertangkap sebagai id — sama seperti pola di grup Mahasiswa di bawah.
         Route::livewire('administrasi/dosen', DosenIndex::class)->name('administrasi.dosen');
         Route::livewire('administrasi/dosen/create', DosenForm::class)->name('administrasi.dosen.create');
+        Route::get('administrasi/dosen/template/download', [DosenController::class, 'downloadTemplate'])->name('administrasi.dosen.template');
+        Route::get('administrasi/dosen/export', [DosenExportController::class, 'excel'])->name('administrasi.dosen.export');
+        Route::livewire('administrasi/dosen/import', DosenImport::class)->name('administrasi.dosen.import');
         Route::livewire('administrasi/dosen/{id}/edit', DosenForm::class)->name('administrasi.dosen.edit');
         Route::livewire('administrasi/dosen/{id}', DosenShow::class)->name('administrasi.dosen.show');
 

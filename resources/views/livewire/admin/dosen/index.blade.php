@@ -32,6 +32,24 @@
         </div>
     @endif
 
+    {{--
+        Tombol Export sengaja ditaruh di dalam <div> root (bukan @section('page_actions')) —
+        page_actions dirender layouts.web DI LUAR subtree yang di-morph Livewire, jadi href-nya
+        tidak akan pernah ikut ter-update saat filter berubah. Di sini href dihitung ulang setiap
+        render supaya file yang di-export selalu sesuai filter yang sedang dipilih.
+    --}}
+    <div class="mb-4 flex justify-end">
+        <a
+            href="{{ route('admin.administrasi.dosen.export', array_filter([
+                'search' => $search !== '' ? $search : null,
+            ])) }}"
+            class="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-medium text-neutral-700 shadow-border transition hover:bg-neutral-50"
+        >
+            <i data-lucide="download" class="h-4 w-4" aria-hidden="true"></i>
+            Export Excel
+        </a>
+    </div>
+
     <div class="rounded-2xl bg-white shadow-border">
         <div class="flex flex-wrap items-center gap-3 border-b border-neutral-200 p-4">
             <div class="relative flex-1 min-w-[200px]">

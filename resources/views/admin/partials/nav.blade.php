@@ -33,6 +33,7 @@
                 ['label' => 'Dosen', 'children' => [
                     ['route' => 'admin.administrasi.dosen', 'label' => 'Dosen'],
                     ['route' => 'admin.administrasi.dosen-wali', 'label' => 'Dosen Wali'],
+                    ['route' => 'admin.administrasi.dosen.import', 'label' => 'Import Dosen'],
                 ]],
                 ['label' => 'Mahasiswa', 'children' => [
                     ['route' => 'admin.administrasi.mahasiswa', 'label' => 'Mahasiswa'],
