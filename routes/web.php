@@ -1,12 +1,14 @@
 <?php
 
 use App\Http\Controllers\DosenWaliController;
+use App\Http\Controllers\MahasiswaController;
 use App\Http\Controllers\SurveyController;
 use App\Http\Controllers\Web\AdminWebLoginController;
 use App\Http\Controllers\Web\DosenBimbinganExportController;
 use App\Http\Controllers\Web\KrsCetakController;
 use App\Http\Controllers\Web\LoginController;
 use App\Http\Controllers\Web\MahasiswaDashboardController;
+use App\Http\Controllers\Web\MahasiswaExportController;
 use App\Http\Controllers\Web\NilaiExportController;
 use App\Http\Controllers\Web\SuperadminEnvConfigController;
 use App\Http\Controllers\Web\SuperadminPluginController;
@@ -61,6 +63,7 @@ use App\Livewire\Admin\Kurikulum\Form as KurikulumForm;
 use App\Livewire\Admin\Kurikulum\Index as KurikulumIndex;
 use App\Livewire\Admin\Kurikulum\Show as KurikulumShow;
 use App\Livewire\Admin\Mahasiswa\Form as MahasiswaForm;
+use App\Livewire\Admin\Mahasiswa\Import as MahasiswaImport;
 use App\Livewire\Admin\Mahasiswa\Index as MahasiswaIndex;
 use App\Livewire\Admin\Mahasiswa\Show as MahasiswaShow;
 use App\Livewire\Admin\Matkul\Form as MatkulForm;
@@ -434,7 +437,13 @@ Route::prefix('admin')->name('admin.')->group(function (): void {
         Route::livewire('administrasi/dosen-wali/{id}/bimbingan/{dosenWaliId}', DosenWaliRiwayat::class)->name('administrasi.dosen-wali.riwayat');
         Route::livewire('administrasi/dosen-wali/{id}', DosenWaliShow::class)->name('administrasi.dosen-wali.show');
 
+        // Rute literal (import, template/download, export) harus didaftarkan sebelum
+        // 'administrasi/mahasiswa/{id}' supaya tidak tertangkap sebagai id
+        // (lihat catatan di skill siak-livewire-module).
         Route::livewire('administrasi/mahasiswa', MahasiswaIndex::class)->name('administrasi.mahasiswa');
+        Route::get('administrasi/mahasiswa/template/download', [MahasiswaController::class, 'downloadTemplate'])->name('administrasi.mahasiswa.template');
+        Route::get('administrasi/mahasiswa/export', [MahasiswaExportController::class, 'excel'])->name('administrasi.mahasiswa.export');
+        Route::livewire('administrasi/mahasiswa/import', MahasiswaImport::class)->name('administrasi.mahasiswa.import');
         Route::livewire('administrasi/mahasiswa/{id}/edit', MahasiswaForm::class)->name('administrasi.mahasiswa.edit');
         Route::livewire('administrasi/mahasiswa/{id}', MahasiswaShow::class)->name('administrasi.mahasiswa.show');
 

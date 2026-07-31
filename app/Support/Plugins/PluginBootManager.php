@@ -2,19 +2,22 @@
 
 namespace App\Support\Plugins;
 
-use App\Models\Plugin;
 use Illuminate\Contracts\Foundation\Application;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Throwable;
 
 /**
  * Mendaftarkan service provider tiap plugin yang enabled saat boot aplikasi.
- * Dipanggil dari AppServiceProvider::register() — pada tahap ini Laravel belum
- * mem-parse routes/web.php atau routes/api.php (withRouting() menunda loadRoutes()
- * sampai SEMUA provider selesai register()+boot(), lihat RouteServiceProvider),
- * jadi loadRoutesFrom()/loadMigrationsFrom() yang dipanggil provider plugin di
- * boot()-nya dijamin selesai sebelum app coba resolve route apa pun.
+ * Dipanggil dari AppServiceProvider::register() lewat callback booting() — di
+ * titik itu SEMUA provider (termasuk DatabaseServiceProvider milik framework)
+ * sudah selesai register(), tapi belum tentu selesai boot(). Secara spesifik
+ * Model::$resolver (dipakai Eloquent) baru di-set di
+ * DatabaseServiceProvider::boot(), jadi query di sini SENGAJA pakai query
+ * builder mentah (DB::table) alih-alih Eloquent (App\Models\Plugin) — Eloquent
+ * akan gagal dengan "Call to a member function connection() on null" kalau
+ * dipanggil sebelum DatabaseServiceProvider::boot() jalan.
  */
 class PluginBootManager
 {
@@ -27,7 +30,7 @@ class PluginBootManager
                 return;
             }
 
-            $plugins = Plugin::enabled()->get();
+            $plugins = DB::table('plugins')->where('enabled', true)->get();
         } catch (Throwable $e) {
             return;
         }
@@ -47,10 +50,10 @@ class PluginBootManager
         }
     }
 
-    private static function registerAutoloader(Plugin $plugin): void
+    private static function registerAutoloader(object $plugin): void
     {
         $namespacePrefix = 'Plugins\\'.Str::studly($plugin->slug).'\\';
-        $srcDir = rtrim($plugin->sourceAbsolutePath(), '/').'/src/';
+        $srcDir = rtrim(base_path($plugin->source_path), '/').'/src/';
 
         spl_autoload_register(function (string $class) use ($namespacePrefix, $srcDir): void {
             if (! str_starts_with($class, $namespacePrefix)) {

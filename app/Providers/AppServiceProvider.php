@@ -7,6 +7,7 @@ use App\Models\Mahasiswa;
 use App\Models\Prodi;
 use App\Models\Semester;
 use App\Models\Setting;
+use App\Support\Plugins\DashboardWidgetRegistry;
 use App\Support\Plugins\PluginBootManager;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Mail\Events\MessageSending;
@@ -24,11 +25,29 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        // Registry widget dashboard superadmin (lihat DashboardWidgetRegistry) —
+        // singleton supaya semua plugin push() ke instance yang sama, lalu
+        // View::composer('dashboard', ...) di boot() di bawah membacanya sekali
+        // saat halaman dashboard dirender.
+        $this->app->singleton(DashboardWidgetRegistry::class);
+
         // Daftarkan service provider tiap plugin yang enabled (lihat tabel `plugins`
-        // dan app/Support/Plugins/PluginBootManager) sebelum Laravel mem-parse
-        // routes/web.php & routes/api.php, supaya route/migration milik plugin ikut
-        // ter-load lewat mekanisme native loadRoutesFrom()/loadMigrationsFrom().
-        PluginBootManager::bootEnabledPlugins($this->app);
+        // dan app/Support/Plugins/PluginBootManager) lewat callback booting(), BUKAN
+        // langsung di sini. Alasan: register() semua provider (termasuk
+        // DatabaseServiceProvider milik framework yang mem-bind 'db') belum tentu
+        // sudah selesai persis di titik ini — Schema::hasTable() di
+        // PluginBootManager bisa gagal dengan "Call to a member function
+        // connection() on null" kalau dipanggil terlalu dini. Application::boot()
+        // menembak bootingCallbacks SEBELUM loop boot() tiap provider dimulai (lihat
+        // Illuminate\Foundation\Application::boot()), jadi di titik itu SEMUA
+        // provider (termasuk DatabaseServiceProvider) sudah pasti selesai
+        // register()-nya, dan provider plugin yang baru kita daftarkan lewat
+        // $app->register() masih sempat ikut ke loop boot() yang sama karena loop-nya
+        // baru mulai setelah callback ini selesai — tetap sebelum Laravel mem-parse
+        // routes/web.php & routes/api.php (loadRoutes() ditunda sampai booted()).
+        $this->app->booting(function (): void {
+            PluginBootManager::bootEnabledPlugins($this->app);
+        });
     }
 
     /**
@@ -97,6 +116,14 @@ class AppServiceProvider extends ServiceProvider
             }
 
             $view->with(compact('namaPerguruanTinggi', 'logoPerguruanTinggiSrc'));
+        });
+
+        // Widget dashboard yang di-push plugin (lihat DashboardWidgetRegistry) — dibaca sekali di
+        // sini, bukan di dalam masing-masing provider plugin, supaya urutan boot antar provider
+        // (core vs plugin) tidak berpengaruh: composer ini baru benar-benar jalan saat view
+        // 'dashboard' dirender, jauh setelah SEMUA provider (termasuk milik plugin) selesai boot().
+        View::composer('dashboard', function ($view): void {
+            $view->with('pluginDashboardWidgets', $this->app->make(DashboardWidgetRegistry::class)->all());
         });
 
         // Hanya untuk navbar panel (layouts.web), bukan halaman login — semester aktif tidak relevan

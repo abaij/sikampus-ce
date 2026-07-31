@@ -36,6 +36,28 @@
         </div>
     @endif
 
+    {{--
+        Tombol Export sengaja ditaruh di dalam <div> root (bukan @section('page_actions')) —
+        page_actions dirender layouts.web DI LUAR subtree yang di-morph Livewire, jadi href-nya
+        tidak akan pernah ikut ter-update saat filter berubah. Di sini href dihitung ulang setiap
+        render supaya file yang di-export selalu sesuai filter yang sedang dipilih.
+    --}}
+    <div class="mb-4 flex justify-end">
+        <a
+            href="{{ route('admin.administrasi.mahasiswa.export', array_filter([
+                'search' => $search !== '' ? $search : null,
+                'id_prodi' => $filterProdi !== '' ? $filterProdi : null,
+                'id_kelompok_kelas' => $filterKelompokKelas !== '' ? $filterKelompokKelas : null,
+                'id_semester_masuk' => $filterSemesterMasuk !== '' ? $filterSemesterMasuk : null,
+                'id_status_akademik' => $filterStatusAkademik !== '' ? $filterStatusAkademik : null,
+            ])) }}"
+            class="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-medium text-neutral-700 shadow-border transition hover:bg-neutral-50"
+        >
+            <i data-lucide="download" class="h-4 w-4" aria-hidden="true"></i>
+            Export Excel
+        </a>
+    </div>
+
     <div class="rounded-2xl bg-white shadow-border">
         <div class="space-y-4 border-b border-neutral-200 p-4">
             <div class="relative">
@@ -51,39 +73,43 @@
             <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 <div>
                     <label class="mb-1 block text-xs font-semibold text-neutral-700">Prodi</label>
-                    <select wire:model.live="filterProdi" class="w-full rounded-lg px-3 py-2 text-sm outline-none focus:border-neutral-900 focus:ring-2 focus:ring-neutral-900/10 shadow-border">
-                        <option value="">Semua Prodi</option>
-                        @foreach ($this->prodiOptions as $opt)
-                            <option value="{{ $opt->id }}">{{ $opt->nama }}{{ $opt->jenjang ? ' - '.$opt->jenjang->kode : '' }}</option>
-                        @endforeach
-                    </select>
+                    <x-searchable-select
+                        model="filterProdi"
+                        :live="true"
+                        :options="$this->prodiOptions->mapWithKeys(fn ($opt) => [$opt->id => $opt->nama.($opt->jenjang ? ' - '.$opt->jenjang->kode : '')])->all()"
+                        placeholder="Semua Prodi"
+                    />
                 </div>
                 <div>
                     <label class="mb-1 block text-xs font-semibold text-neutral-700">Kelas Mahasiswa</label>
-                    <select wire:model.live="filterKelompokKelas" class="w-full rounded-lg px-3 py-2 text-sm outline-none focus:border-neutral-900 focus:ring-2 focus:ring-neutral-900/10 shadow-border">
-                        <option value="">Semua Kelas Mahasiswa</option>
-                        @foreach ($this->kelompokKelasOptions as $opt)
-                            <option value="{{ $opt->id }}">{{ $opt->nama }}</option>
-                        @endforeach
-                    </select>
+                    {{-- wire:key terikat filterProdi: x-searchable-select memakai wire:ignore, jadi
+                         kalau prodi berganti elemen ini harus benar-benar diganti (bukan di-patch)
+                         supaya opsi kelas mahasiswa yang baru (hasil filter prodi) ikut termuat. --}}
+                    <x-searchable-select
+                        wire:key="filter-kelompok-kelas-select-{{ $filterProdi }}"
+                        model="filterKelompokKelas"
+                        :live="true"
+                        :options="$this->kelompokKelasOptions"
+                        placeholder="Semua Kelas Mahasiswa"
+                    />
                 </div>
                 <div>
                     <label class="mb-1 block text-xs font-semibold text-neutral-700">Semester Masuk</label>
-                    <select wire:model.live="filterSemesterMasuk" class="w-full rounded-lg px-3 py-2 text-sm outline-none focus:border-neutral-900 focus:ring-2 focus:ring-neutral-900/10 shadow-border">
-                        <option value="">Semua Semester</option>
-                        @foreach ($this->semesterOptions as $opt)
-                            <option value="{{ $opt->id }}">{{ $opt->nama }}</option>
-                        @endforeach
-                    </select>
+                    <x-searchable-select
+                        model="filterSemesterMasuk"
+                        :live="true"
+                        :options="$this->semesterOptions"
+                        placeholder="Semua Semester"
+                    />
                 </div>
                 <div>
                     <label class="mb-1 block text-xs font-semibold text-neutral-700">Status Akademik</label>
-                    <select wire:model.live="filterStatusAkademik" class="w-full rounded-lg px-3 py-2 text-sm outline-none focus:border-neutral-900 focus:ring-2 focus:ring-neutral-900/10 shadow-border">
-                        <option value="">Semua Status</option>
-                        @foreach ($this->statusAkademikOptions as $opt)
-                            <option value="{{ $opt->id }}">{{ $opt->nama }}</option>
-                        @endforeach
-                    </select>
+                    <x-searchable-select
+                        model="filterStatusAkademik"
+                        :live="true"
+                        :options="$this->statusAkademikOptions"
+                        placeholder="Semua Status"
+                    />
                 </div>
             </div>
         </div>

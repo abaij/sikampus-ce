@@ -36,4 +36,9 @@
             Ini adalah halaman dashboard sesi web untuk superadmin. Anda dapat mengembangkan halaman ini mengarah ke modul administrasi atau tautan ke aplikasi frontend.
         </p>
     </div>
+
+    {{-- Widget yang di-push plugin lewat DashboardWidgetRegistry (lihat AppServiceProvider) --}}
+    @foreach (($pluginDashboardWidgets ?? []) as $pluginWidgetHtml)
+        {!! $pluginWidgetHtml !!}
+    @endforeach
 @endsection

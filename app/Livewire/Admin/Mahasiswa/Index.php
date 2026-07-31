@@ -47,6 +47,9 @@ class Index extends Component
 
     public function updatingFilterProdi(): void
     {
+        // Kelas mahasiswa terikat ke satu prodi — buang pilihan lama supaya tidak
+        // menyisakan filter kelas yang sudah tidak relevan dengan prodi yang baru dipilih.
+        $this->filterKelompokKelas = '';
         $this->resetPage();
     }
 
@@ -81,10 +84,20 @@ class Index extends Component
         return $query->get(['id', 'nama', 'kode', 'id_jenjang']);
     }
 
+    /**
+     * Disaring ke prodi yang sedang dipilih di filter Prodi — kelas mahasiswa dari prodi lain
+     * tidak relevan untuk ditampilkan sebagai opsi.
+     */
     #[Computed]
     public function kelompokKelasOptions()
     {
-        return KelompokKelas::orderBy('nama')->get(['id', 'nama']);
+        $query = KelompokKelas::orderBy('nama');
+
+        if ($this->filterProdi !== '') {
+            $query->where('id_prodi', (int) $this->filterProdi);
+        }
+
+        return $query->get(['id', 'nama']);
     }
 
     #[Computed]

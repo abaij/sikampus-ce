@@ -37,6 +37,7 @@
                 ['label' => 'Mahasiswa', 'children' => [
                     ['route' => 'admin.administrasi.mahasiswa', 'label' => 'Mahasiswa'],
                     ['route' => 'admin.administrasi.kelas-mahasiswa', 'label' => 'Kelas Mahasiswa'],
+                    ['route' => 'admin.administrasi.mahasiswa.import', 'label' => 'Import Mahasiswa'],
                 ]],
                 ['label' => 'Institusi', 'children' => [
                     ['route' => 'admin.fakultas.index', 'label' => 'Fakultas'],
