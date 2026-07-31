@@ -28,6 +28,16 @@
     ]])
 @endsection
 
+@section('page_actions')
+    <a
+        href="{{ route('admin.administrasi.mahasiswa.create') }}"
+        class="inline-flex items-center gap-2 rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-neutral-800"
+    >
+        <i data-lucide="plus" class="h-4 w-4" aria-hidden="true"></i>
+        Tambah Mahasiswa
+    </a>
+@endsection
+
 <div>
     @if (session('status'))
         <div class="mb-4 flex gap-3 rounded-lg border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
@@ -148,7 +158,7 @@
                             </td>
                             <td class="px-4 py-3 text-right">
                                 <a
-                                    href="{{ route('admin.administrasi.mahasiswa.show', $mhs->id) }}"
+                                    href="{{ route('admin.administrasi.mahasiswa.show', $mhs->id) }}{{ $returnQuery ? '?'.$returnQuery : '' }}"
                                     class="inline-flex items-center justify-center rounded-lg p-2 text-neutral-500 transition hover:bg-neutral-100 hover:text-neutral-900"
                                     title="Lihat Detail"
                                 >

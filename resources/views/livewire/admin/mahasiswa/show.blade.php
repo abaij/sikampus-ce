@@ -33,14 +33,14 @@
 
 @section('page_actions')
     <a
-        href="{{ route('admin.administrasi.mahasiswa') }}"
+        href="{{ $backUrl }}"
         class="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-medium text-neutral-700 shadow-border transition hover:bg-neutral-50"
     >
         <i data-lucide="arrow-left" class="h-4 w-4" aria-hidden="true"></i>
         Kembali
     </a>
     <a
-        href="{{ route('admin.administrasi.mahasiswa.edit', $mahasiswa->id) }}"
+        href="{{ route('admin.administrasi.mahasiswa.edit', $mahasiswa->id) }}{{ $returnQuery ? '?'.$returnQuery : '' }}"
         class="inline-flex items-center gap-2 rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-neutral-800"
     >
         <i data-lucide="pencil" class="h-4 w-4" aria-hidden="true"></i>

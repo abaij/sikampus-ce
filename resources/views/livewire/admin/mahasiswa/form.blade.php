@@ -1,5 +1,5 @@
-@section('title', 'Ubah Mahasiswa — ' . config('app.name'))
-@section('header_title', 'Ubah Mahasiswa')
+@section('title', ($mahasiswaId ? 'Ubah' : 'Tambah') . ' Mahasiswa — ' . config('app.name'))
+@section('header_title', ($mahasiswaId ? 'Ubah' : 'Tambah') . ' Mahasiswa')
 @section('header_icon', 'graduation-cap')
 
 @section('nav')
@@ -7,12 +7,12 @@
 @endsection
 
 @section('breadcrumb')
-    @include('admin.partials.breadcrumb', ['items' => [
+    @include('admin.partials.breadcrumb', ['items' => array_filter([
         ['label' => 'Administrasi'],
         ['label' => 'Mahasiswa', 'route' => route('admin.administrasi.mahasiswa')],
-        ['label' => $nama, 'route' => route('admin.administrasi.mahasiswa.show', $mahasiswaId)],
-        ['label' => 'Ubah'],
-    ]])
+        $mahasiswaId ? ['label' => $nama, 'route' => route('admin.administrasi.mahasiswa.show', $mahasiswaId)] : null,
+        ['label' => $mahasiswaId ? 'Ubah' : 'Tambah'],
+    ])])
 @endsection
 
 <div>
@@ -337,7 +337,7 @@
         </div>
 
         <div class="flex items-center justify-end gap-3">
-            <a href="{{ route('admin.administrasi.mahasiswa.show', $mahasiswaId) }}" class="rounded-lg px-4 py-2.5 text-sm font-medium text-neutral-700 transition hover:bg-neutral-50 shadow-border">
+            <a href="{{ $backUrl }}" class="rounded-lg px-4 py-2.5 text-sm font-medium text-neutral-700 transition hover:bg-neutral-50 shadow-border">
                 Batal
             </a>
             <button type="submit" class="inline-flex items-center gap-2 rounded-lg bg-neutral-900 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-neutral-800">

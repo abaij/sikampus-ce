@@ -88,14 +88,14 @@
                             <td class="px-4 py-3 text-right">
                                 <div class="inline-flex items-center gap-1">
                                     <a
-                                        href="{{ route('admin.administrasi.dosen.show', $dosen->id) }}"
+                                        href="{{ route('admin.administrasi.dosen.show', $dosen->id) }}{{ $returnQuery ? '?'.$returnQuery : '' }}"
                                         class="inline-flex items-center justify-center rounded-lg p-2 text-neutral-500 transition hover:bg-neutral-100 hover:text-neutral-900"
                                         title="Lihat"
                                     >
                                         <i data-lucide="eye" class="h-4 w-4" aria-hidden="true"></i>
                                     </a>
                                     <a
-                                        href="{{ route('admin.administrasi.dosen.edit', $dosen->id) }}"
+                                        href="{{ route('admin.administrasi.dosen.edit', $dosen->id) }}{{ $returnQuery ? '?'.$returnQuery : '' }}"
                                         class="inline-flex items-center justify-center rounded-lg p-2 text-neutral-500 transition hover:bg-neutral-100 hover:text-neutral-900"
                                         title="Ubah"
                                     >

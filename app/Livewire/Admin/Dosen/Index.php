@@ -65,9 +65,17 @@ class Index extends Component
 
         $dosenList = $query->orderBy('nama')->paginate($this->perPage);
 
+        // Diselipkan ke link "Lihat"/"Ubah" supaya tombol Kembali di halaman detail/ubah bisa
+        // mendarat di halaman/pencarian yang sama persis — lihat Dosen\Concerns\ForwardsIndexState.
+        $returnParams = array_filter([
+            'search' => $this->search !== '' ? $this->search : null,
+            'page' => $dosenList->currentPage() > 1 ? $dosenList->currentPage() : null,
+        ], fn ($value) => $value !== null);
+
         // ->extends() (bukan #[Layout] attribute) — lihat catatan di App\Livewire\Admin\Fakultas\Index::render()
         return view('livewire.admin.dosen.index', [
             'dosenList' => $dosenList,
+            'returnQuery' => http_build_query($returnParams),
         ])->extends('layouts.web');
     }
 }

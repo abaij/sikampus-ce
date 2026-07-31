@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Admin\Dosen;
 
+use App\Livewire\Admin\Dosen\Concerns\ForwardsIndexState;
 use App\Models\Agama;
 use App\Models\Dosen;
 use App\Models\Kota;
@@ -12,6 +13,8 @@ use Livewire\Component;
 
 class Form extends Component
 {
+    use ForwardsIndexState;
+
     public ?int $dosenId = null;
 
     public string $nama = '';
@@ -65,6 +68,7 @@ class Form extends Component
     public function mount(?int $id = null): void
     {
         $this->dosenId = $id;
+        $this->resolveBackUrl();
 
         if ($id === null) {
             return;
@@ -163,7 +167,7 @@ class Form extends Component
 
         session()->flash('status', 'Dosen berhasil disimpan.');
 
-        return redirect()->route('admin.administrasi.dosen');
+        return redirect($this->backUrl);
     }
 
     public function render()

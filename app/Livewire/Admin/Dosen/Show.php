@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Admin\Dosen;
 
+use App\Livewire\Admin\Dosen\Concerns\ForwardsIndexState;
 use App\Models\Dosen;
 use App\Models\DosenWali;
 use App\Models\KelasDosen;
@@ -13,7 +14,7 @@ use Livewire\WithPagination;
 
 class Show extends Component
 {
-    use WithPagination;
+    use ForwardsIndexState, WithPagination;
 
     public int $dosenId;
 
@@ -50,6 +51,8 @@ class Show extends Component
         $this->dosenId = $id;
 
         Dosen::findOrFail($id);
+
+        $this->resolveBackUrl();
 
         $semesterAktif = Semester::where('is_active', true)->first();
         $this->selectedSemester = $semesterAktif?->id;

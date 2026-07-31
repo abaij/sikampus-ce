@@ -154,9 +154,21 @@ class Index extends Component
 
         $mahasiswaList = $query->orderBy('nama')->paginate($this->perPage);
 
+        // Diselipkan ke link "Lihat Detail" supaya tombol Kembali di halaman detail bisa
+        // mendarat di halaman/filter yang sama persis — lihat Mahasiswa\Concerns\ForwardsIndexState.
+        $returnParams = array_filter([
+            'search' => $this->search !== '' ? $this->search : null,
+            'id_prodi' => $this->filterProdi !== '' ? $this->filterProdi : null,
+            'id_kelompok_kelas' => $this->filterKelompokKelas !== '' ? $this->filterKelompokKelas : null,
+            'id_semester_masuk' => $this->filterSemesterMasuk !== '' ? $this->filterSemesterMasuk : null,
+            'id_status_akademik' => $this->filterStatusAkademik !== '' ? $this->filterStatusAkademik : null,
+            'page' => $mahasiswaList->currentPage() > 1 ? $mahasiswaList->currentPage() : null,
+        ], fn ($value) => $value !== null);
+
         // ->extends() (bukan #[Layout] attribute) — lihat catatan di App\Livewire\Admin\Fakultas\Index::render()
         return view('livewire.admin.mahasiswa.index', [
             'mahasiswaList' => $mahasiswaList,
+            'returnQuery' => http_build_query($returnParams),
         ])->extends('layouts.web');
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Admin\Mahasiswa;
 
+use App\Livewire\Admin\Mahasiswa\Concerns\ForwardsIndexState;
 use App\Models\Krs;
 use App\Models\Mahasiswa;
 use App\Models\Nilai;
@@ -13,6 +14,8 @@ use Livewire\Component;
 
 class Show extends Component
 {
+    use ForwardsIndexState;
+
     public int $mahasiswaId;
 
     public string $activeTab = 'biodata';
@@ -26,6 +29,8 @@ class Show extends Component
         $mahasiswa = Mahasiswa::findOrFail($id);
 
         $this->authorizeScope($mahasiswa);
+
+        $this->resolveBackToIndexUrl();
     }
 
     public function setTab(string $tab): void

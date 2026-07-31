@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Admin\Mahasiswa;
 
+use App\Livewire\Admin\Mahasiswa\Concerns\ForwardsIndexState;
 use App\Models\JalurMasuk;
 use App\Models\JenisDaftar;
 use App\Models\KelompokKelas;
@@ -21,6 +22,8 @@ use Livewire\Component;
 
 class Form extends Component
 {
+    use ForwardsIndexState;
+
     public ?int $mahasiswaId = null;
 
     public string $nama = '';
@@ -127,9 +130,17 @@ class Form extends Component
 
     public string $no_kps = '';
 
-    public function mount(int $id): void
+    public function mount(?int $id = null): void
     {
         $this->mahasiswaId = $id;
+
+        if ($id === null) {
+            $this->resolveBackToIndexUrl();
+
+            return;
+        }
+
+        $this->resolveBackToShowUrl($id);
 
         $mahasiswa = Mahasiswa::findOrFail($id);
 
@@ -284,11 +295,17 @@ class Form extends Component
             $validated['jml_biaya_masuk'] = null;
         }
 
-        Mahasiswa::findOrFail($this->mahasiswaId)->update($validated);
+        if ($this->mahasiswaId) {
+            Mahasiswa::findOrFail($this->mahasiswaId)->update($validated);
+            $redirectUrl = $this->backUrl;
+        } else {
+            $mahasiswa = Mahasiswa::create($validated);
+            $redirectUrl = route('admin.administrasi.mahasiswa.show', $mahasiswa->id);
+        }
 
         session()->flash('status', 'Mahasiswa berhasil disimpan.');
 
-        return redirect()->route('admin.administrasi.mahasiswa.show', $this->mahasiswaId);
+        return redirect($redirectUrl);
     }
 
     public function render()

@@ -449,6 +449,7 @@ Route::prefix('admin')->name('admin.')->group(function (): void {
         // 'administrasi/mahasiswa/{id}' supaya tidak tertangkap sebagai id
         // (lihat catatan di skill siak-livewire-module).
         Route::livewire('administrasi/mahasiswa', MahasiswaIndex::class)->name('administrasi.mahasiswa');
+        Route::livewire('administrasi/mahasiswa/create', MahasiswaForm::class)->name('administrasi.mahasiswa.create');
         Route::get('administrasi/mahasiswa/template/download', [MahasiswaController::class, 'downloadTemplate'])->name('administrasi.mahasiswa.template');
         Route::get('administrasi/mahasiswa/export', [MahasiswaExportController::class, 'excel'])->name('administrasi.mahasiswa.export');
         Route::livewire('administrasi/mahasiswa/import', MahasiswaImport::class)->name('administrasi.mahasiswa.import');
