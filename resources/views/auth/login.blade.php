@@ -10,23 +10,24 @@
                 <img
                     src="{{ $logoPerguruanTinggiSrc }}"
                     alt="{{ $namaPerguruanTinggi !== '' ? $namaPerguruanTinggi : config('app.name') }}"
-                    class="mb-4 h-28 w-28 rounded-2xl bg-white object-contain shadow-border"
+                    class="mb-4 h-48 w-48 rounded-2xl bg-white object-contain shadow-border"
                 />
             @else
                 <div class="mb-4 flex h-28 w-28 items-center justify-center rounded-2xl bg-neutral-900 text-white shadow-lg shadow-neutral-900/10">
                     <i data-lucide="graduation-cap" class="h-16 w-16" aria-hidden="true"></i>
                 </div>
             @endif
-            <p class="text-[1.75rem] font-medium text-neutral-500">{{ $namaPerguruanTinggi !== '' ? $namaPerguruanTinggi : config('app.name') }}</p>
+            <p class="text-[1.75rem] font-bold text-neutral-500">{{ $namaPerguruanTinggi !== '' ? $namaPerguruanTinggi : config('app.name') }}</p>
         </div>
 
         <div class="w-full max-w-md md:w-3/5">
-            <div class="mb-6 text-center md:text-left">
-                <h1 class="text-2xl font-semibold tracking-tight text-neutral-900">Masuk</h1>
-                <p class="mt-2 text-sm text-neutral-600">Masuk dengan akun admin, dosen, atau mahasiswa Anda.</p>
-            </div>
-
             <div class="rounded-2xl bg-white p-8 shadow-border">
+
+                <div class="mb-6 text-center">
+                    <h1 class="text-2xl font-semibold tracking-tight text-neutral-900">Masuk</h1>
+                    <p class="mt-2 text-sm text-neutral-600">Masuk dengan akun admin, dosen, atau mahasiswa Anda.</p>
+                </div>
+
                 @if (session('error'))
                     <div class="mb-6 flex gap-3 rounded-lg border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-800">
                         <i data-lucide="circle-alert" class="h-5 w-5 shrink-0 text-red-600" aria-hidden="true"></i>
@@ -101,7 +102,7 @@
             </div>
 
             <p class="mt-6 text-center text-sm text-neutral-500">
-                Dosen atau mahasiswa baru?
+                Belum aktivasi akun Anda?
                 <a href="{{ route('aktivasi') }}" class="font-semibold text-neutral-900 hover:underline">Aktivasi akun di sini</a>
             </p>
         </div>
