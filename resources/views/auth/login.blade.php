@@ -10,7 +10,7 @@
                 <img
                     src="{{ $logoPerguruanTinggiSrc }}"
                     alt="{{ $namaPerguruanTinggi !== '' ? $namaPerguruanTinggi : config('app.name') }}"
-                    class="mb-4 h-48 w-48 rounded-2xl bg-white object-contain shadow-border"
+                    class="mb-4 h-48 w-48 rounded-2xl bg-white object-contain"
                 />
             @else
                 <div class="mb-4 flex h-28 w-28 items-center justify-center rounded-2xl bg-neutral-900 text-white shadow-lg shadow-neutral-900/10">
