@@ -18,6 +18,7 @@
                 </div>
             @endif
             <p class="text-[1.75rem] font-bold text-neutral-500">{{ $namaPerguruanTinggi !== '' ? $namaPerguruanTinggi : config('app.name') }}</p>
+            <p>{{ config('app.name') }}</p>
         </div>
 
         <div class="w-full max-w-md md:w-3/5">
