@@ -32,13 +32,15 @@
         <i data-lucide="arrow-left" class="h-4 w-4" aria-hidden="true"></i>
         Kembali
     </a>
-    <a
-        href="{{ route('admin.pengguna.edit', $pengguna->id) }}"
-        class="inline-flex items-center gap-2 rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-neutral-800"
-    >
-        <i data-lucide="pencil" class="h-4 w-4" aria-hidden="true"></i>
-        Ubah
-    </a>
+    @if (\App\Support\PanelAccess::can(auth()->user(), 'pengguna', 'manage'))
+        <a
+            href="{{ route('admin.pengguna.edit', $pengguna->id) }}"
+            class="inline-flex items-center gap-2 rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-neutral-800"
+        >
+            <i data-lucide="pencil" class="h-4 w-4" aria-hidden="true"></i>
+            Ubah
+        </a>
+    @endif
 @endsection
 
 <div>
@@ -319,15 +321,30 @@
                         <tbody class="divide-y divide-neutral-100">
                             @foreach ($permissionForm as $index => $row)
                                 <tr wire:key="perm-{{ $index }}">
-                                    <td class="px-4 py-3 font-medium text-neutral-900">{{ $row['resource'] }}</td>
+                                    <td class="px-4 py-3 font-medium text-neutral-900">
+                                        {{ $row['resource'] }}
+                                        @if ($row['mode'] === 'single')
+                                            <span class="ml-1 text-xs font-normal text-neutral-400">(akses penuh, belum granular)</span>
+                                        @elseif ($row['mode'] === 'view_plus_manage')
+                                            <span class="ml-1 text-xs font-normal text-neutral-400">(Read = lihat saja, Write = akses penuh)</span>
+                                        @endif
+                                    </td>
                                     <td class="px-4 py-3 text-center">
                                         <input type="checkbox" wire:model="permissionForm.{{ $index }}.read" {{ $isSuperadmin ? '' : 'disabled' }} class="size-4 rounded border-neutral-300 text-neutral-900 focus:ring-neutral-900/10" />
                                     </td>
                                     <td class="px-4 py-3 text-center">
-                                        <input type="checkbox" wire:model="permissionForm.{{ $index }}.write" {{ $isSuperadmin ? '' : 'disabled' }} class="size-4 rounded border-neutral-300 text-neutral-900 focus:ring-neutral-900/10" />
+                                        @if ($row['hasWrite'])
+                                            <input type="checkbox" wire:model="permissionForm.{{ $index }}.write" {{ $isSuperadmin ? '' : 'disabled' }} class="size-4 rounded border-neutral-300 text-neutral-900 focus:ring-neutral-900/10" />
+                                        @else
+                                            <span class="text-neutral-300">&mdash;</span>
+                                        @endif
                                     </td>
                                     <td class="px-4 py-3 text-center">
-                                        <input type="checkbox" wire:model="permissionForm.{{ $index }}.delete" {{ $isSuperadmin ? '' : 'disabled' }} class="size-4 rounded border-neutral-300 text-neutral-900 focus:ring-neutral-900/10" />
+                                        @if ($row['hasDelete'])
+                                            <input type="checkbox" wire:model="permissionForm.{{ $index }}.delete" {{ $isSuperadmin ? '' : 'disabled' }} class="size-4 rounded border-neutral-300 text-neutral-900 focus:ring-neutral-900/10" />
+                                        @else
+                                            <span class="text-neutral-300">&mdash;</span>
+                                        @endif
                                     </td>
                                 </tr>
                             @endforeach
@@ -338,16 +355,18 @@
         </div>
     @endif
 
-    <div class="mt-6">
-        <button
-            type="button"
-            wire:click="confirmDeleteUser"
-            class="inline-flex items-center gap-2 rounded-lg border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-600 transition hover:bg-rose-100"
-        >
-            <i data-lucide="trash-2" class="h-4 w-4" aria-hidden="true"></i>
-            Hapus Pengguna
-        </button>
-    </div>
+    @if (\App\Support\PanelAccess::can(auth()->user(), 'pengguna', 'manage'))
+        <div class="mt-6">
+            <button
+                type="button"
+                wire:click="confirmDeleteUser"
+                class="inline-flex items-center gap-2 rounded-lg border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-600 transition hover:bg-rose-100"
+            >
+                <i data-lucide="trash-2" class="h-4 w-4" aria-hidden="true"></i>
+                Hapus Pengguna
+            </button>
+        </div>
+    @endif
 
     {{-- Modal: Konfirmasi Hapus Pengguna --}}
     @if ($confirmingDelete)

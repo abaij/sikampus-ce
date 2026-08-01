@@ -73,7 +73,22 @@ return [
         'jenis-daftar' => 'manage jenis pendaftaran',
         'status-akademik' => 'manage status akademik',
 
-        // Pengaturan pengguna — permission-nya hanya dimiliki Superadmin.
+        // Pengaturan pengguna — permission-nya hanya dimiliki Superadmin secara default. Modul
+        // Pengguna sendiri (create/edit/hapus/assign role/assign permission) SENGAJA TIDAK dipecah
+        // granular penuh seperti modul lain di file ini: mengelola user itu sendiri adalah aksi
+        // privilege-escalation (mis. App\Livewire\Admin\Pengguna\Form::save() bisa mengangkat user
+        // baru jadi Superadmin lewat spatieRoleId, dan App\Livewire\Admin\Pengguna\Show punya aksi
+        // assign role/scope/permission yang sudah dikunci abort_unless(isSuperadminActor())
+        // terlepas dari permission apa pun) — memecahnya jadi create/update/delete akan membuka
+        // jalan staf yang diberi 'create pengguna' untuk membuat akun admin baru dan mengangkatnya
+        // sendiri jadi Superadmin. Role/Permission tetap satu permission 'manage role'/'manage
+        // permission', sama sekali tidak disentuh di sini.
+        //
+        // Satu pengecualian: 'view pengguna' (lihat route_permissions_granular di bawah) — melihat
+        // daftar/detail pengguna itu sendiri TIDAK membuka jalur privilege-escalation apa pun, jadi
+        // aman didelegasikan terpisah dari 'manage pengguna' (yang tetap dibutuhkan untuk
+        // create/edit/hapus, dijaga di App\Livewire\Admin\Pengguna\Show::confirmDeleteUser()/
+        // deleteUser() lewat App\Support\PanelAccess::can($user, 'pengguna', 'manage')).
         'pengguna.role' => 'manage role',
         'pengguna.permission' => 'manage permission',
         'pengguna' => 'manage pengguna',
@@ -237,5 +252,13 @@ return [
         'status-akademik.index' => 'view status akademik',
         'status-akademik.create' => 'create status akademik',
         'status-akademik.edit' => 'update status akademik',
+
+        // Pengecualian tunggal untuk modul Pengguna (lihat catatan panjang di route_permissions
+        // di atas) — cuma index/show yang dipecah, create/edit SENGAJA tidak diberi entri di sini
+        // sehingga tetap jatuh ke base 'pengguna' => 'manage pengguna' lewat longest-prefix-match.
+        // Hapus pengguna (method Livewire di halaman show, bukan rute sendiri) dijaga langsung di
+        // App\Livewire\Admin\Pengguna\Show pakai PanelAccess::can($user, 'pengguna', 'manage').
+        'pengguna.index' => 'view pengguna',
+        'pengguna.show' => 'view pengguna',
     ],
 ];

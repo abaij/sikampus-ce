@@ -7,6 +7,7 @@ use App\Models\Prodi;
 use App\Models\Role;
 use App\Models\User;
 use App\Models\UserRoleScope;
+use App\Support\PanelAccess;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Computed;
@@ -263,44 +264,74 @@ class Show extends Component
     }
 
     /**
-     * Sama dengan pola parsing nama permission di UserController::getPermissions.
+     * Sama dengan pola parsing nama permission di UserController::getPermissions — TIDAK lagi
+     * menormalisasi 'manage'/'view' jadi satu action 'read' di sini (lihat bug lama: 'manage X'
+     * dan 'view X' bertabrakan di bucket yang sama, jadi menyimpan hasil centang "Read" saja bisa
+     * diam-diam menyimpan 'manage X' — yang berarti akses PENUH, bukan cuma lihat). Normalisasi
+     * dipindah ke buildPermissionResourceMap(), yang membedakan resource granular (punya
+     * view/create/update/delete terpisah) dari resource yang cuma punya 'manage X' (mis. pengguna/
+     * role/permission/sistem — lihat catatan di config/panel_access.php).
      *
      * @return array{0: string, 1: string}
      */
     private function groupPermissionName(string $name): array
     {
         $parts = explode(' ', $name);
-        $actions = ['read', 'write', 'delete', 'view', 'manage', 'create', 'update'];
-
-        $resource = '';
-        $action = '';
+        $actions = ['view', 'manage', 'create', 'update', 'delete'];
 
         if (count($parts) >= 2) {
             if (in_array(strtolower($parts[0]), $actions)) {
-                $action = strtolower($parts[0]);
-                $resource = implode(' ', array_slice($parts, 1));
-            } else {
-                $lastPart = strtolower($parts[count($parts) - 1]);
-                if (in_array($lastPart, $actions)) {
-                    $action = $lastPart;
-                    $resource = implode(' ', array_slice($parts, 0, -1));
-                } else {
-                    $resource = $name;
-                    $action = 'manage';
-                }
+                return [implode(' ', array_slice($parts, 1)), strtolower($parts[0])];
             }
-        } else {
-            $resource = $name;
-            $action = 'manage';
+
+            $lastPart = strtolower($parts[count($parts) - 1]);
+            if (in_array($lastPart, $actions)) {
+                return [implode(' ', array_slice($parts, 0, -1)), $lastPart];
+            }
         }
 
-        if (in_array($action, ['view', 'manage'])) {
-            $action = 'read';
-        } elseif (in_array($action, ['create', 'update'])) {
-            $action = 'write';
+        return [$name, 'manage'];
+    }
+
+    /**
+     * Kelompokkan semua permission per resource dan tentukan mode tampilannya:
+     *
+     * - 'granular': punya create/update/delete terpisah (mis. tagihan) — 'manage X' SENGAJA
+     *   diabaikan sepenuhnya, karena begitu ada verb granular, itulah yang benar-benar dicek
+     *   App\Support\PanelAccess di mode granular; menawarkan 'manage X' lagi di sampingnya cuma
+     *   membuka jalan pintas yang melewati kontrol granular yang baru dibuat.
+     * - 'view_plus_manage': punya 'view X' TAPI create/update/delete-nya sengaja tidak dipecah,
+     *   cuma dibundel jadi satu 'manage X' (mis. pengguna — lihat catatan keamanan soal
+     *   spatieRoleId di config/panel_access.php). 'view X' murni lihat, 'manage X' akses penuh.
+     * - 'single': resource cuma punya SATU permission (biasanya 'manage X' — role/permission/
+     *   sistem; atau permission section-level lama yang cuma 'view X' tanpa verb lain sama sekali,
+     *   mis. 'view keuangan') — satu toggle indivisible.
+     *
+     * @return array<string, array{permissions: array<string, string>, mode: string}>
+     */
+    private function buildPermissionResourceMap(): array
+    {
+        $resources = [];
+
+        foreach (Permission::where('guard_name', 'web')->orderBy('name')->get() as $permission) {
+            [$resource, $action] = $this->groupPermissionName($permission->name);
+            $resources[$resource]['permissions'][$action] = $permission->name;
         }
 
-        return [$resource, $action];
+        foreach ($resources as $resource => $data) {
+            $permissions = $data['permissions'];
+            $hasWriteOrDelete = isset($permissions['create']) || isset($permissions['update']) || isset($permissions['delete']);
+
+            if ($hasWriteOrDelete) {
+                $resources[$resource]['mode'] = 'granular';
+            } elseif (isset($permissions['view']) && isset($permissions['manage'])) {
+                $resources[$resource]['mode'] = 'view_plus_manage';
+            } else {
+                $resources[$resource]['mode'] = 'single';
+            }
+        }
+
+        return $resources;
     }
 
     private function loadPermissionForm(): void
@@ -308,22 +339,58 @@ class Show extends Component
         $pengguna = $this->pengguna;
         $directPermissions = $pengguna->getDirectPermissions()->pluck('name')->toArray();
 
-        $allPermissions = Permission::where('guard_name', 'web')->orderBy('name')->get();
-
         $grouped = [];
-        foreach ($allPermissions as $permission) {
-            [$resource, $action] = $this->groupPermissionName($permission->name);
+        foreach ($this->buildPermissionResourceMap() as $resource => $data) {
+            $permissions = $data['permissions'];
 
-            if (! isset($grouped[$resource])) {
-                $grouped[$resource] = ['resource' => $resource, 'read' => false, 'write' => false, 'delete' => false];
+            if ($data['mode'] === 'granular') {
+                $grouped[] = [
+                    'resource' => $resource,
+                    'mode' => 'granular',
+                    'hasWrite' => isset($permissions['create']) || isset($permissions['update']),
+                    'hasDelete' => isset($permissions['delete']),
+                    'read' => isset($permissions['view']) && in_array($permissions['view'], $directPermissions, true),
+                    'write' => (isset($permissions['create']) && in_array($permissions['create'], $directPermissions, true))
+                        || (isset($permissions['update']) && in_array($permissions['update'], $directPermissions, true)),
+                    'delete' => isset($permissions['delete']) && in_array($permissions['delete'], $directPermissions, true),
+                ];
+
+                continue;
             }
 
-            if (in_array($permission->name, $directPermissions, true)) {
-                $grouped[$resource][$action] = true;
+            if ($data['mode'] === 'view_plus_manage') {
+                // Kolom Read = 'view X' (lihat saja), kolom Write = 'manage X' (akses penuh —
+                // create/update/delete dibundel jadi satu, sengaja tidak dipecah lagi).
+                $grouped[] = [
+                    'resource' => $resource,
+                    'mode' => 'view_plus_manage',
+                    'hasWrite' => true,
+                    'hasDelete' => false,
+                    'read' => in_array($permissions['view'], $directPermissions, true),
+                    'write' => in_array($permissions['manage'], $directPermissions, true),
+                    'delete' => false,
+                ];
+
+                continue;
             }
+
+            // Resource dengan satu permission saja (mis. role/permission/sistem, atau 'view
+            // keuangan' yang murni section-level) — direpresentasikan sebagai satu toggle (kolom
+            // Read), bukan tiga kolom terpisah yang menyiratkan bisa dipilih sebagian.
+            $singleName = $permissions['manage'] ?? $permissions['view'] ?? null;
+            $hasAccess = $singleName && in_array($singleName, $directPermissions, true);
+            $grouped[] = [
+                'resource' => $resource,
+                'mode' => 'single',
+                'hasWrite' => false,
+                'hasDelete' => false,
+                'read' => $hasAccess,
+                'write' => $hasAccess,
+                'delete' => $hasAccess,
+            ];
         }
 
-        $this->permissionForm = array_values($grouped);
+        $this->permissionForm = $grouped;
     }
 
     /**
@@ -334,25 +401,56 @@ class Show extends Component
         abort_unless($this->isSuperadminActor(), 403);
 
         $pengguna = $this->pengguna;
-
-        $allPermissions = Permission::where('guard_name', 'web')->get();
-        $permissionMap = [];
-        foreach ($allPermissions as $perm) {
-            [$resource, $action] = $this->groupPermissionName($perm->name);
-            $permissionMap[$resource][$action] = $perm->name;
-        }
+        $resourceMap = $this->buildPermissionResourceMap();
 
         $permissionsToAssign = [];
         foreach ($this->permissionForm as $row) {
-            $resource = $row['resource'];
-            if (! isset($permissionMap[$resource])) {
+            $data = $resourceMap[$row['resource']] ?? null;
+            if (! $data) {
                 continue;
             }
 
-            foreach (['read', 'write', 'delete'] as $action) {
-                if (! empty($row[$action]) && isset($permissionMap[$resource][$action])) {
-                    $permissionsToAssign[] = $permissionMap[$resource][$action];
+            $permissions = $data['permissions'];
+
+            if ($data['mode'] === 'granular') {
+                if (! empty($row['read']) && isset($permissions['view'])) {
+                    $permissionsToAssign[] = $permissions['view'];
                 }
+
+                if (! empty($row['write'])) {
+                    if (isset($permissions['create'])) {
+                        $permissionsToAssign[] = $permissions['create'];
+                    }
+                    if (isset($permissions['update'])) {
+                        $permissionsToAssign[] = $permissions['update'];
+                    }
+                }
+
+                if (! empty($row['delete']) && isset($permissions['delete'])) {
+                    $permissionsToAssign[] = $permissions['delete'];
+                }
+
+                continue;
+            }
+
+            if ($data['mode'] === 'view_plus_manage') {
+                if (! empty($row['write'])) {
+                    // 'manage X' mencakup akses lihat juga — centang Write otomatis memberi 'view
+                    // X' juga, supaya staf full-access tidak diam-diam kehilangan akses ke
+                    // halaman index/show-nya sendiri (rute itu mengecek 'view X' di mode granular).
+                    $permissionsToAssign[] = $permissions['manage'];
+                    $permissionsToAssign[] = $permissions['view'];
+                } elseif (! empty($row['read'])) {
+                    $permissionsToAssign[] = $permissions['view'];
+                }
+
+                continue;
+            }
+
+            // mode 'single'.
+            $singleName = $permissions['manage'] ?? $permissions['view'] ?? null;
+            if ($singleName !== null && (! empty($row['read']) || ! empty($row['write']) || ! empty($row['delete']))) {
+                $permissionsToAssign[] = $singleName;
             }
         }
 
@@ -365,6 +463,12 @@ class Show extends Component
 
     public function confirmDeleteUser(): void
     {
+        // "Hapus Pengguna" bukan cuma soal lihat — tombol pemicunya disembunyikan di Blade untuk
+        // pemegang 'view pengguna' saja, tapi method Livewire ini tetap bisa dipanggil langsung
+        // lewat request yang dipalsukan, jadi pengecekan di sini (dan di deleteUser()) yang jadi
+        // otoritas sebenarnya.
+        abort_unless(PanelAccess::can(Auth::user(), 'pengguna', 'manage'), 403, 'Anda tidak memiliki hak untuk menghapus pengguna.');
+
         $this->confirmingDelete = true;
     }
 
@@ -375,6 +479,8 @@ class Show extends Component
 
     public function deleteUser()
     {
+        abort_unless(PanelAccess::can(Auth::user(), 'pengguna', 'manage'), 403, 'Anda tidak memiliki hak untuk menghapus pengguna.');
+
         User::findOrFail($this->penggunaId)->delete();
 
         session()->flash('status', 'Pengguna berhasil dihapus.');

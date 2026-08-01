@@ -19,13 +19,15 @@
 @endsection
 
 @section('page_actions')
-    <a
-        href="{{ route('admin.pengguna.create') }}"
-        class="inline-flex items-center gap-2 rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-neutral-800"
-    >
-        <i data-lucide="plus" class="h-4 w-4" aria-hidden="true"></i>
-        Tambah Pengguna
-    </a>
+    @if (\App\Support\PanelAccess::can(auth()->user(), 'pengguna', 'manage'))
+        <a
+            href="{{ route('admin.pengguna.create') }}"
+            class="inline-flex items-center gap-2 rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-neutral-800"
+        >
+            <i data-lucide="plus" class="h-4 w-4" aria-hidden="true"></i>
+            Tambah Pengguna
+        </a>
+    @endif
 @endsection
 
 <div>

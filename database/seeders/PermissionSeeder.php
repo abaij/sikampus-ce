@@ -306,6 +306,11 @@ class PermissionSeeder extends Seeder
         // Buat permissions untuk menu pengaturan
         $pengaturanPermissions = [
             'view pengaturan',
+            // 'view pengguna' sengaja terpisah dari 'manage pengguna' (bukan dipecah penuh jadi
+            // create/update/delete — lihat catatan keamanan di config/panel_access.php soal
+            // spatieRoleId): melihat daftar/detail pengguna tidak membuka jalur privilege-escalation
+            // apa pun, jadi aman didelegasikan ke staf tanpa memberi mereka akses kelola penuh.
+            'view pengguna',
             'manage pengguna',
             'manage role',
             'manage permission',
