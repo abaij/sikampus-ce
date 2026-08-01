@@ -21,10 +21,12 @@
             <i data-lucide="arrow-left" class="h-4 w-4" aria-hidden="true"></i>
             Daftar
         </a>
-        <a href="{{ route('admin.keuangan.pembayaran.edit', $pembayaran->id) }}{{ $returnQuery ? '?'.$returnQuery : '' }}" class="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-medium text-neutral-700 shadow-border transition hover:bg-neutral-50">
-            <i data-lucide="pencil" class="h-4 w-4" aria-hidden="true"></i>
-            Ubah
-        </a>
+        @if (\App\Support\PanelAccess::can(auth()->user(), 'pembayaran', 'update'))
+            <a href="{{ route('admin.keuangan.pembayaran.edit', $pembayaran->id) }}{{ $returnQuery ? '?'.$returnQuery : '' }}" class="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-medium text-neutral-700 shadow-border transition hover:bg-neutral-50">
+                <i data-lucide="pencil" class="h-4 w-4" aria-hidden="true"></i>
+                Ubah
+            </a>
+        @endif
     </div>
 @endsection
 
@@ -38,15 +40,17 @@
     @error('approve') <p class="mb-4 rounded-lg border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">{{ $message }}</p> @enderror
 
     <div class="mb-6 flex flex-wrap items-center justify-end gap-2">
-        <button
-            type="button"
-            wire:click="confirmDelete"
-            class="inline-flex items-center gap-2 rounded-lg border border-rose-200 bg-white px-4 py-2 text-sm font-medium text-rose-700 shadow-sm transition hover:bg-rose-50"
-        >
-            <i data-lucide="trash-2" class="h-4 w-4" aria-hidden="true"></i>
-            Hapus
-        </button>
-        @if (! $pembayaran->approved_at)
+        @if (\App\Support\PanelAccess::can(auth()->user(), 'pembayaran', 'delete'))
+            <button
+                type="button"
+                wire:click="confirmDelete"
+                class="inline-flex items-center gap-2 rounded-lg border border-rose-200 bg-white px-4 py-2 text-sm font-medium text-rose-700 shadow-sm transition hover:bg-rose-50"
+            >
+                <i data-lucide="trash-2" class="h-4 w-4" aria-hidden="true"></i>
+                Hapus
+            </button>
+        @endif
+        @if (! $pembayaran->approved_at && \App\Support\PanelAccess::can(auth()->user(), 'pembayaran', 'approve'))
             <button
                 type="button"
                 wire:click="approve"

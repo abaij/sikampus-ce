@@ -39,13 +39,15 @@
         <i data-lucide="arrow-left" class="h-4 w-4" aria-hidden="true"></i>
         Kembali
     </a>
-    <a
-        href="{{ route('admin.administrasi.mahasiswa.edit', $mahasiswa->id) }}{{ $returnQuery ? '?'.$returnQuery : '' }}"
-        class="inline-flex items-center gap-2 rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-neutral-800"
-    >
-        <i data-lucide="pencil" class="h-4 w-4" aria-hidden="true"></i>
-        Ubah
-    </a>
+    @if (\App\Support\PanelAccess::can(auth()->user(), 'mahasiswa', 'update'))
+        <a
+            href="{{ route('admin.administrasi.mahasiswa.edit', $mahasiswa->id) }}{{ $returnQuery ? '?'.$returnQuery : '' }}"
+            class="inline-flex items-center gap-2 rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-neutral-800"
+        >
+            <i data-lucide="pencil" class="h-4 w-4" aria-hidden="true"></i>
+            Ubah
+        </a>
+    @endif
 @endsection
 
 <div>
@@ -346,16 +348,18 @@
                 </div>
             </div>
 
-            <div class="mt-6 border-t border-neutral-200 pt-6">
-                <button
-                    type="button"
-                    wire:click="confirmDeleteMahasiswa"
-                    class="inline-flex items-center gap-2 rounded-lg border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-600 transition hover:bg-rose-100"
-                >
-                    <i data-lucide="trash-2" class="h-4 w-4" aria-hidden="true"></i>
-                    Hapus Mahasiswa
-                </button>
-            </div>
+            @if (\App\Support\PanelAccess::can(auth()->user(), 'mahasiswa', 'delete'))
+                <div class="mt-6 border-t border-neutral-200 pt-6">
+                    <button
+                        type="button"
+                        wire:click="confirmDeleteMahasiswa"
+                        class="inline-flex items-center gap-2 rounded-lg border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-600 transition hover:bg-rose-100"
+                    >
+                        <i data-lucide="trash-2" class="h-4 w-4" aria-hidden="true"></i>
+                        Hapus Mahasiswa
+                    </button>
+                </div>
+            @endif
         </div>
     @endif
 

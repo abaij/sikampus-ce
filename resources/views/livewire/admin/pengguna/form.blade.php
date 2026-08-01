@@ -81,6 +81,21 @@
                 </div>
             @endif
 
+            @if (! $penggunaId && $role === 'admin')
+                <div class="mt-5">
+                    <label class="mb-1.5 block text-sm font-medium text-neutral-700">Peran Admin (Role) *</label>
+                    <x-searchable-select
+                        model="spatieRoleId"
+                        :live="true"
+                        :options="$this->spatieRoleOptions"
+                        optionLabel="name"
+                        placeholder="— Pilih peran admin —"
+                    />
+                    <p class="mt-1.5 text-xs text-neutral-500">Menentukan menu dan permission yang otomatis dimiliki akun ini (mis. Akademik hanya dapat mengelola modul Akademik &amp; Administrasi, Keuangan hanya modul Keuangan). Bisa diubah lagi lewat tab Role setelah pengguna dibuat.</p>
+                    @error('spatieRoleId') <p class="mt-1.5 text-sm text-red-600">{{ $message }}</p> @enderror
+                </div>
+            @endif
+
             @if (! $penggunaId && $role === 'dosen')
                 <div class="mt-5">
                     <label class="mb-1.5 block text-sm font-medium text-neutral-700">Pilih Dosen *</label>

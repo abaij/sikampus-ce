@@ -19,13 +19,15 @@
 
 @section('page_actions')
     <div class="flex items-center gap-2">
-        <a
-            href="{{ route('admin.keuangan.kategori-biaya.edit', $kategoriBiaya->id) }}"
-            class="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-medium text-neutral-700 shadow-border transition hover:bg-neutral-50"
-        >
-            <i data-lucide="pencil" class="h-4 w-4" aria-hidden="true"></i>
-            Ubah
-        </a>
+        @if (\App\Support\PanelAccess::can(auth()->user(), 'kategori biaya', 'update'))
+            <a
+                href="{{ route('admin.keuangan.kategori-biaya.edit', $kategoriBiaya->id) }}"
+                class="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-medium text-neutral-700 shadow-border transition hover:bg-neutral-50"
+            >
+                <i data-lucide="pencil" class="h-4 w-4" aria-hidden="true"></i>
+                Ubah
+            </a>
+        @endif
         <a
             href="{{ route('admin.keuangan.kategori-biaya') }}"
             class="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-medium text-neutral-700 shadow-border transition hover:bg-neutral-50"
@@ -51,14 +53,16 @@
 
     <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
         <h2 class="text-base font-semibold text-neutral-900">Mahasiswa dalam kategori biaya ini</h2>
-        <button
-            type="button"
-            wire:click="openModal"
-            class="inline-flex shrink-0 items-center gap-2 rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-neutral-800"
-        >
-            <i data-lucide="plus" class="h-4 w-4" aria-hidden="true"></i>
-            Tambah Mahasiswa
-        </button>
+        @if (\App\Support\PanelAccess::can(auth()->user(), 'kategori biaya', 'update'))
+            <button
+                type="button"
+                wire:click="openModal"
+                class="inline-flex shrink-0 items-center gap-2 rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-neutral-800"
+            >
+                <i data-lucide="plus" class="h-4 w-4" aria-hidden="true"></i>
+                Tambah Mahasiswa
+            </button>
+        @endif
     </div>
 
     <div class="rounded-2xl bg-white shadow-border">

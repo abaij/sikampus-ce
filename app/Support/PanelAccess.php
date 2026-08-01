@@ -23,10 +23,19 @@ class PanelAccess
 
         $key = substr($routeName, strlen('admin.'));
 
+        $map = config('panel_access.route_permissions', []);
+
+        if (config('access.granular_permissions')) {
+            // Entri granular menang atas entri dasar untuk prefix yang sama (mis. 'keuangan.tagihan'
+            // yang di mode dasar berarti 'manage tagihan', di mode granular jadi 'view tagihan'),
+            // dan menambah entri baru yang tidak ada di peta dasar (mis. '...tagihan.create').
+            $map = array_merge($map, config('panel_access.route_permissions_granular', []));
+        }
+
         $best = null;
         $bestLength = -1;
 
-        foreach (config('panel_access.route_permissions', []) as $prefix => $permission) {
+        foreach ($map as $prefix => $permission) {
             if ($key !== $prefix && ! str_starts_with($key, $prefix.'.')) {
                 continue;
             }
@@ -38,6 +47,32 @@ class PanelAccess
         }
 
         return $best;
+    }
+
+    /**
+     * Cek hak akses granular per resource+aksi (mis. 'tagihan' + 'delete') — dipakai di dalam
+     * komponen Livewire untuk aksi yang tidak lewat rute sendiri (tombol Hapus di halaman index,
+     * yang jalan lewat method Livewire, bukan GET ke rute baru sehingga tidak lewat
+     * EnsurePanelPermission lagi) dan di Blade untuk menyembunyikan tombol Tambah/Ubah/Hapus.
+     *
+     * Di mode dasar (GRANULAR_PERMISSIONS=false) semua aksi disamakan ke satu permission
+     * "manage {resource}" supaya perilakunya identik dengan skema yang sudah berjalan.
+     */
+    public static function can(?User $user, string $resource, string $action): bool
+    {
+        if (! $user instanceof User) {
+            return false;
+        }
+
+        if ($user->isSuperadmin()) {
+            return true;
+        }
+
+        if (! config('access.granular_permissions')) {
+            return $user->can("manage {$resource}");
+        }
+
+        return $user->can("{$action} {$resource}");
     }
 
     /**

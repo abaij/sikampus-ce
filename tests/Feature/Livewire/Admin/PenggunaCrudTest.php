@@ -16,6 +16,7 @@ it('renders index and create form as full pages', function () {
 
 it('creates and updates a pengguna, then shows the detail page', function () {
     $admin = adminUser();
+    $superadminRole = Role::where('name', 'Superadmin')->firstOrFail();
 
     Livewire::actingAs($admin)
         ->test(Form::class)
@@ -23,6 +24,7 @@ it('creates and updates a pengguna, then shows the detail page', function () {
         ->set('email', 'citra@example.com')
         ->set('password', 'password123')
         ->set('role', 'admin')
+        ->set('spatieRoleId', $superadminRole->id)
         ->call('save')
         ->assertRedirect();
 
@@ -73,6 +75,44 @@ it('assigns a role and scope to a pengguna from the show page', function () {
         ->call('deleteRole', 'keuangan');
 
     expect($pengguna->fresh()->hasRole('Keuangan'))->toBeTrue();
+});
+
+it('automatically assigns the chosen spatie role — and its permissions — when creating an admin account', function () {
+    $admin = adminUser();
+    $keuanganRole = Role::where('name', 'Keuangan')->firstOrFail();
+
+    Livewire::actingAs($admin)
+        ->test(Form::class)
+        ->set('name', 'Dedi Keuangan')
+        ->set('email', 'dedi.keuangan@example.com')
+        ->set('password', 'password123')
+        ->set('role', 'admin')
+        ->set('spatieRoleId', $keuanganRole->id)
+        ->call('save')
+        ->assertRedirect();
+
+    $pengguna = User::where('email', 'dedi.keuangan@example.com')->firstOrFail();
+
+    expect($pengguna->hasRole('Keuangan'))->toBeTrue();
+    expect($pengguna->hasRole('Akademik'))->toBeFalse();
+    // Permission diwarisi dari role_has_permissions (diseed PermissionSeeder), bukan disalin manual.
+    expect($pengguna->can('manage tagihan'))->toBeTrue();
+    expect($pengguna->can('manage mata kuliah'))->toBeFalse();
+});
+
+it('requires a spatie role when creating an admin-type account', function () {
+    $admin = adminUser();
+
+    Livewire::actingAs($admin)
+        ->test(Form::class)
+        ->set('name', 'Tanpa Role')
+        ->set('email', 'tanpa.role@example.com')
+        ->set('password', 'password123')
+        ->set('role', 'admin')
+        ->call('save')
+        ->assertHasErrors(['spatieRoleId' => 'required']);
+
+    expect(User::where('email', 'tanpa.role@example.com')->exists())->toBeFalse();
 });
 
 it('deletes a pengguna from the show page', function () {

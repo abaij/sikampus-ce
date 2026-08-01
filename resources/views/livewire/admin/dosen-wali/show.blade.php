@@ -51,16 +51,18 @@
         Kuota bimbingan akademik: <span class="font-medium text-neutral-900">{{ $dosen->kuota_bimbingan_akademik ?? 0 }}</span>
     </div>
 
-    <div class="mb-6 flex flex-wrap items-center justify-end gap-2">
-        <button
-            type="button"
-            wire:click="openModal"
-            class="inline-flex shrink-0 items-center gap-2 rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-neutral-800"
-        >
-            <i data-lucide="plus" class="h-4 w-4" aria-hidden="true"></i>
-            Tambah Mahasiswa Bimbingan
-        </button>
-    </div>
+    @if (\App\Support\PanelAccess::can(auth()->user(), 'dosen wali', 'update'))
+        <div class="mb-6 flex flex-wrap items-center justify-end gap-2">
+            <button
+                type="button"
+                wire:click="openModal"
+                class="inline-flex shrink-0 items-center gap-2 rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-neutral-800"
+            >
+                <i data-lucide="plus" class="h-4 w-4" aria-hidden="true"></i>
+                Tambah Mahasiswa Bimbingan
+            </button>
+        </div>
+    @endif
 
     <div class="rounded-2xl bg-white shadow-border">
         <div class="flex flex-wrap items-center gap-3 border-b border-neutral-200 p-4">
@@ -109,14 +111,16 @@
                                     >
                                         <i data-lucide="eye" class="h-4 w-4" aria-hidden="true"></i>
                                     </a>
-                                    <button
-                                        type="button"
-                                        wire:click="confirmDelete({{ $item->id }})"
-                                        class="inline-flex items-center justify-center rounded-lg p-2 text-rose-500 transition hover:bg-rose-50 hover:text-rose-700"
-                                        title="Hapus"
-                                    >
-                                        <i data-lucide="trash-2" class="h-4 w-4" aria-hidden="true"></i>
-                                    </button>
+                                    @if (\App\Support\PanelAccess::can(auth()->user(), 'dosen wali', 'delete'))
+                                        <button
+                                            type="button"
+                                            wire:click="confirmDelete({{ $item->id }})"
+                                            class="inline-flex items-center justify-center rounded-lg p-2 text-rose-500 transition hover:bg-rose-50 hover:text-rose-700"
+                                            title="Hapus"
+                                        >
+                                            <i data-lucide="trash-2" class="h-4 w-4" aria-hidden="true"></i>
+                                        </button>
+                                    @endif
                                 </div>
                             </td>
                         </tr>

@@ -8,6 +8,7 @@ use App\Models\Mahasiswa;
 use App\Models\Nilai;
 use App\Models\Semester;
 use App\Models\StatusMahasiswa;
+use App\Support\PanelAccess;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
@@ -181,6 +182,11 @@ class Show extends Component
 
     public function confirmDeleteMahasiswa(): void
     {
+        // Tombol pemicu ini disembunyikan di Blade untuk user tanpa hak hapus, tapi method
+        // Livewire tetap bisa dipanggil langsung lewat request yang dipalsukan — pengecekan di
+        // sini dan di deleteMahasiswa() adalah otoritas sebenarnya, bukan sekadar UI.
+        abort_unless(PanelAccess::can(Auth::user(), 'mahasiswa', 'delete'), 403, 'Anda tidak memiliki hak untuk menghapus mahasiswa.');
+
         $this->confirmingMahasiswaDelete = true;
     }
 
@@ -195,6 +201,8 @@ class Show extends Component
      */
     public function deleteMahasiswa()
     {
+        abort_unless(PanelAccess::can(Auth::user(), 'mahasiswa', 'delete'), 403, 'Anda tidak memiliki hak untuk menghapus mahasiswa.');
+
         $mahasiswa = Mahasiswa::findOrFail($this->mahasiswaId);
 
         $this->authorizeScope($mahasiswa);

@@ -3,6 +3,8 @@
 namespace App\Livewire\Admin\JalurMasuk;
 
 use App\Models\JalurMasuk;
+use App\Support\PanelAccess;
+use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -30,6 +32,8 @@ class Index extends Component
 
     public function confirmDelete(int $id): void
     {
+        abort_unless(PanelAccess::can(Auth::user(), 'jalur masuk', 'delete'), 403, 'Anda tidak memiliki hak untuk menghapus jalur masuk.');
+
         $this->confirmingDeleteId = $id;
     }
 
@@ -40,6 +44,8 @@ class Index extends Component
 
     public function delete(): void
     {
+        abort_unless(PanelAccess::can(Auth::user(), 'jalur masuk', 'delete'), 403, 'Anda tidak memiliki hak untuk menghapus jalur masuk.');
+
         if (! $this->confirmingDeleteId) {
             return;
         }

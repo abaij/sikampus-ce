@@ -5,6 +5,8 @@ namespace App\Livewire\Admin;
 use App\Models\Kota;
 use App\Models\Provinsi;
 use App\Models\Setting;
+use App\Support\PanelAccess;
+use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
 use Livewire\WithFileUploads;
@@ -113,6 +115,10 @@ class PerguruanTinggi extends Component
      */
     public function save(): void
     {
+        // Halaman ini satu rute untuk lihat+ubah — tidak ada rute edit terpisah untuk dijaga
+        // middleware, jadi pengecekan hak ubah dilakukan langsung di sini.
+        abort_unless(PanelAccess::can(Auth::user(), 'perguruan tinggi', 'update'), 403, 'Anda tidak memiliki hak untuk mengubah data perguruan tinggi.');
+
         $this->validate([
             'nama' => ['required', 'string', 'max:255'],
             'alamat' => ['nullable', 'string'],

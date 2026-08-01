@@ -8,6 +8,7 @@ use App\Models\Semester;
 use App\Models\Tagihan;
 use App\Services\KeringananBiayaKreditService;
 use App\Services\StatusPembayaranTagihan;
+use App\Support\PanelAccess;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
@@ -154,6 +155,11 @@ class Index extends Component
 
     public function confirmDelete(int $id): void
     {
+        // Tombol pemicu ini disembunyikan di Blade untuk user tanpa hak hapus, tapi method
+        // Livewire tetap bisa dipanggil langsung lewat request yang dipalsukan — pengecekan di
+        // sini dan di delete() adalah otoritas sebenarnya, bukan sekadar UI.
+        abort_unless(PanelAccess::can(Auth::user(), 'tagihan', 'delete'), 403, 'Anda tidak memiliki hak untuk menghapus tagihan.');
+
         $this->confirmingDeleteId = $id;
     }
 
@@ -167,6 +173,8 @@ class Index extends Component
      */
     public function delete(): void
     {
+        abort_unless(PanelAccess::can(Auth::user(), 'tagihan', 'delete'), 403, 'Anda tidak memiliki hak untuk menghapus tagihan.');
+
         if (! $this->confirmingDeleteId) {
             return;
         }

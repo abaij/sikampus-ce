@@ -3,6 +3,8 @@
 namespace App\Livewire\Admin\AturanAksesKeuangan;
 
 use App\Models\AturanAksesKeuangan;
+use App\Support\PanelAccess;
+use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -23,6 +25,11 @@ class Index extends Component
 
     public function confirmDelete(int $id): void
     {
+        // Tombol pemicu ini disembunyikan di Blade untuk user tanpa hak hapus, tapi method
+        // Livewire tetap bisa dipanggil langsung lewat request yang dipalsukan — pengecekan di
+        // sini dan di delete() adalah otoritas sebenarnya, bukan sekadar UI.
+        abort_unless(PanelAccess::can(Auth::user(), 'aturan akses keuangan', 'delete'), 403, 'Anda tidak memiliki hak untuk menghapus aturan akses keuangan.');
+
         $this->confirmingDeleteId = $id;
     }
 
@@ -38,6 +45,8 @@ class Index extends Component
      */
     public function delete(): void
     {
+        abort_unless(PanelAccess::can(Auth::user(), 'aturan akses keuangan', 'delete'), 403, 'Anda tidak memiliki hak untuk menghapus aturan akses keuangan.');
+
         if (! $this->confirmingDeleteId) {
             return;
         }

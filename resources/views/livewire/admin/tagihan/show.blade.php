@@ -29,13 +29,15 @@
 
 @section('page_actions')
     <div class="flex items-center gap-2">
-        <a
-            href="{{ route('admin.keuangan.tagihan.edit', $tagihan->id) }}{{ $returnQuery ? '?'.$returnQuery : '' }}"
-            class="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-medium text-neutral-700 shadow-border transition hover:bg-neutral-50"
-        >
-            <i data-lucide="pencil" class="h-4 w-4" aria-hidden="true"></i>
-            Ubah
-        </a>
+        @if (\App\Support\PanelAccess::can(auth()->user(), 'tagihan', 'update'))
+            <a
+                href="{{ route('admin.keuangan.tagihan.edit', $tagihan->id) }}{{ $returnQuery ? '?'.$returnQuery : '' }}"
+                class="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-medium text-neutral-700 shadow-border transition hover:bg-neutral-50"
+            >
+                <i data-lucide="pencil" class="h-4 w-4" aria-hidden="true"></i>
+                Ubah
+            </a>
+        @endif
         <a
             href="{{ $backUrl }}"
             class="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-medium text-neutral-700 shadow-border transition hover:bg-neutral-50"

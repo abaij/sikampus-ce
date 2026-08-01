@@ -27,13 +27,15 @@
         <i data-lucide="arrow-left" class="h-4 w-4" aria-hidden="true"></i>
         Kembali
     </a>
-    <a
-        href="{{ route('admin.administrasi.survey.edit', $survey->id) }}{{ $returnQuery ? '?'.$returnQuery : '' }}"
-        class="inline-flex items-center gap-2 rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-neutral-800"
-    >
-        <i data-lucide="pencil" class="h-4 w-4" aria-hidden="true"></i>
-        Ubah
-    </a>
+    @if (\App\Support\PanelAccess::can(auth()->user(), 'survey', 'update'))
+        <a
+            href="{{ route('admin.administrasi.survey.edit', $survey->id) }}{{ $returnQuery ? '?'.$returnQuery : '' }}"
+            class="inline-flex items-center gap-2 rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-neutral-800"
+        >
+            <i data-lucide="pencil" class="h-4 w-4" aria-hidden="true"></i>
+            Ubah
+        </a>
+    @endif
 @endsection
 
 {{-- Tombol aksi (modal, hapus, dst) sengaja berada di dalam badan komponen, bukan di section
@@ -110,14 +112,16 @@
         <div class="rounded-2xl bg-white p-6 shadow-border">
             <div class="mb-4 flex items-center justify-between">
                 <h3 class="text-sm font-semibold text-neutral-900">Pertanyaan Survey</h3>
-                <button
-                    type="button"
-                    wire:click="openAddQuestion"
-                    class="inline-flex items-center gap-2 rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-neutral-800"
-                >
-                    <i data-lucide="plus" class="h-4 w-4" aria-hidden="true"></i>
-                    Tambah Pertanyaan
-                </button>
+                @if (\App\Support\PanelAccess::can(auth()->user(), 'survey', 'update'))
+                    <button
+                        type="button"
+                        wire:click="openAddQuestion"
+                        class="inline-flex items-center gap-2 rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-neutral-800"
+                    >
+                        <i data-lucide="plus" class="h-4 w-4" aria-hidden="true"></i>
+                        Tambah Pertanyaan
+                    </button>
+                @endif
             </div>
 
             @php $questions = $this->questions; @endphp
@@ -143,14 +147,18 @@
                             @if (in_array($question->id, $expandedQuestions, true))
                                 <div class="border-t border-neutral-200 bg-neutral-50 p-4">
                                     <div class="mb-3 flex justify-end gap-2">
-                                        <button type="button" wire:click="openEditQuestion({{ $question->id }})" class="inline-flex items-center gap-2 rounded-lg bg-white px-3 py-2 text-sm font-medium text-neutral-700 shadow-border transition hover:bg-neutral-50">
-                                            <i data-lucide="pencil" class="h-4 w-4" aria-hidden="true"></i>
-                                            Ubah
-                                        </button>
-                                        <button type="button" wire:click="confirmDeleteQuestion({{ $question->id }})" class="inline-flex items-center gap-2 rounded-lg border border-rose-200 bg-white px-3 py-2 text-sm font-medium text-rose-600 transition hover:bg-rose-50">
-                                            <i data-lucide="trash-2" class="h-4 w-4" aria-hidden="true"></i>
-                                            Hapus
-                                        </button>
+                                        @if (\App\Support\PanelAccess::can(auth()->user(), 'survey', 'update'))
+                                            <button type="button" wire:click="openEditQuestion({{ $question->id }})" class="inline-flex items-center gap-2 rounded-lg bg-white px-3 py-2 text-sm font-medium text-neutral-700 shadow-border transition hover:bg-neutral-50">
+                                                <i data-lucide="pencil" class="h-4 w-4" aria-hidden="true"></i>
+                                                Ubah
+                                            </button>
+                                        @endif
+                                        @if (\App\Support\PanelAccess::can(auth()->user(), 'survey', 'delete'))
+                                            <button type="button" wire:click="confirmDeleteQuestion({{ $question->id }})" class="inline-flex items-center gap-2 rounded-lg border border-rose-200 bg-white px-3 py-2 text-sm font-medium text-rose-600 transition hover:bg-rose-50">
+                                                <i data-lucide="trash-2" class="h-4 w-4" aria-hidden="true"></i>
+                                                Hapus
+                                            </button>
+                                        @endif
                                     </div>
 
                                     @if ($question->options->isNotEmpty())

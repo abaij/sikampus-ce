@@ -5,6 +5,7 @@ namespace App\Livewire\Admin\DosenWali;
 use App\Models\Dosen;
 use App\Models\DosenWali;
 use App\Models\Mahasiswa;
+use App\Support\PanelAccess;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Url;
 use Livewire\Component;
@@ -36,6 +37,12 @@ class Index extends Component
 
     public function openKuotaModal(): void
     {
+        // Tombol pemicu Set Kuota dan input import disembunyikan di Blade untuk user tanpa hak
+        // ubah, tapi method Livewire tetap bisa dipanggil langsung lewat request yang
+        // dipalsukan — pengecekan di sini (dan di applyKuota/updatedImportFile) adalah otoritas
+        // sebenarnya, bukan sekadar UI.
+        abort_unless(PanelAccess::can(Auth::user(), 'dosen wali', 'update'), 403, 'Anda tidak memiliki hak untuk mengubah data dosen wali.');
+
         $this->resetValidation();
         $this->kuotaInput = '';
         $this->showKuotaModal = true;
@@ -52,6 +59,8 @@ class Index extends Component
      */
     public function applyKuota(): void
     {
+        abort_unless(PanelAccess::can(Auth::user(), 'dosen wali', 'update'), 403, 'Anda tidak memiliki hak untuk mengubah data dosen wali.');
+
         $this->validate([
             'kuotaInput' => ['required', 'integer', 'min:0'],
         ], [], ['kuotaInput' => 'kuota']);
@@ -74,6 +83,8 @@ class Index extends Component
      */
     public function updatedImportFile(): void
     {
+        abort_unless(PanelAccess::can(Auth::user(), 'dosen wali', 'update'), 403, 'Anda tidak memiliki hak untuk mengubah data dosen wali.');
+
         session()->forget(['import_errors']);
 
         $this->validate([

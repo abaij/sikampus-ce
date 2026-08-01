@@ -5,6 +5,7 @@ namespace App\Livewire\Admin\Pembayaran;
 use App\Livewire\Admin\Pembayaran\Concerns\ForwardsIndexState;
 use App\Models\Notifikasi;
 use App\Models\Pembayaran;
+use App\Support\PanelAccess;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Livewire\Component;
@@ -45,6 +46,11 @@ class Show extends Component
 
     public function confirmDelete(): void
     {
+        // Tombol pemicu ini disembunyikan di Blade untuk user tanpa hak hapus, tapi method
+        // Livewire tetap bisa dipanggil langsung lewat request yang dipalsukan — pengecekan di
+        // sini dan di delete()/approve() adalah otoritas sebenarnya, bukan sekadar UI.
+        abort_unless(PanelAccess::can(Auth::user(), 'pembayaran', 'delete'), 403, 'Anda tidak memiliki hak untuk menghapus pembayaran.');
+
         $this->confirmingDelete = true;
     }
 
@@ -58,6 +64,8 @@ class Show extends Component
      */
     public function delete()
     {
+        abort_unless(PanelAccess::can(Auth::user(), 'pembayaran', 'delete'), 403, 'Anda tidak memiliki hak untuk menghapus pembayaran.');
+
         $tagihan = $this->pembayaran->tagihan;
 
         DB::transaction(function () use ($tagihan) {
@@ -80,6 +88,8 @@ class Show extends Component
      */
     public function approve(): void
     {
+        abort_unless(PanelAccess::can(Auth::user(), 'pembayaran', 'approve'), 403, 'Anda tidak memiliki hak untuk menyetujui pembayaran.');
+
         if ($this->pembayaran->approved_at !== null) {
             $this->addError('approve', 'Pembayaran sudah disetujui sebelumnya.');
 

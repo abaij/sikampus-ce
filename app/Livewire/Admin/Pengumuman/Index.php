@@ -3,6 +3,8 @@
 namespace App\Livewire\Admin\Pengumuman;
 
 use App\Models\Pengumuman;
+use App\Support\PanelAccess;
+use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -52,6 +54,11 @@ class Index extends Component
 
     public function confirmDelete(int $id): void
     {
+        // Tombol pemicu ini disembunyikan di Blade untuk user tanpa hak hapus, tapi method
+        // Livewire tetap bisa dipanggil langsung lewat request yang dipalsukan — pengecekan di
+        // sini dan di delete() adalah otoritas sebenarnya, bukan sekadar UI.
+        abort_unless(PanelAccess::can(Auth::user(), 'pengumuman', 'delete'), 403, 'Anda tidak memiliki hak untuk menghapus pengumuman.');
+
         $this->confirmingDeleteId = $id;
     }
 
@@ -65,6 +72,8 @@ class Index extends Component
      */
     public function delete(): void
     {
+        abort_unless(PanelAccess::can(Auth::user(), 'pengumuman', 'delete'), 403, 'Anda tidak memiliki hak untuk menghapus pengumuman.');
+
         if (! $this->confirmingDeleteId) {
             return;
         }

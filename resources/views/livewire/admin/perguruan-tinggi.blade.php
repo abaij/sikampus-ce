@@ -120,11 +120,13 @@
             @error('logoUpload') <p class="mt-1.5 text-sm text-red-600">{{ $message }}</p> @enderror
         </div>
 
-        <div class="flex items-center justify-end gap-3">
-            <button type="submit" class="inline-flex items-center gap-2 rounded-lg bg-neutral-900 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-neutral-800">
-                <i data-lucide="save" class="h-4 w-4" aria-hidden="true"></i>
-                Simpan
-            </button>
-        </div>
+        @if (\App\Support\PanelAccess::can(auth()->user(), 'perguruan tinggi', 'update'))
+            <div class="flex items-center justify-end gap-3">
+                <button type="submit" class="inline-flex items-center gap-2 rounded-lg bg-neutral-900 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-neutral-800">
+                    <i data-lucide="save" class="h-4 w-4" aria-hidden="true"></i>
+                    Simpan
+                </button>
+            </div>
+        @endif
     </form>
 </div>

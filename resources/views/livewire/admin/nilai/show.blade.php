@@ -182,14 +182,16 @@
                             </td>
                             <td class="px-4 py-3 text-right">
                                 <div class="inline-flex items-center gap-1">
-                                    <a
-                                        href="{{ route('admin.akademik.nilai.edit', [$mahasiswaId, $krs->id]) }}"
-                                        class="inline-flex items-center justify-center rounded-lg p-2 text-neutral-500 transition hover:bg-neutral-100 hover:text-neutral-900"
-                                        title="{{ $nilai ? 'Ubah Nilai' : 'Input Nilai' }}"
-                                    >
-                                        <i data-lucide="pencil" class="h-4 w-4" aria-hidden="true"></i>
-                                    </a>
-                                    @if ($nilai)
+                                    @if (\App\Support\PanelAccess::can(auth()->user(), 'nilai', 'update'))
+                                        <a
+                                            href="{{ route('admin.akademik.nilai.edit', [$mahasiswaId, $krs->id]) }}"
+                                            class="inline-flex items-center justify-center rounded-lg p-2 text-neutral-500 transition hover:bg-neutral-100 hover:text-neutral-900"
+                                            title="{{ $nilai ? 'Ubah Nilai' : 'Input Nilai' }}"
+                                        >
+                                            <i data-lucide="pencil" class="h-4 w-4" aria-hidden="true"></i>
+                                        </a>
+                                    @endif
+                                    @if ($nilai && \App\Support\PanelAccess::can(auth()->user(), 'nilai', 'delete'))
                                         <button
                                             type="button"
                                             wire:click="confirmDelete({{ $nilai->id }})"

@@ -3,6 +3,7 @@
 namespace App\Livewire\Admin\KeringananBiaya;
 
 use App\Models\KeringananBiaya;
+use App\Support\PanelAccess;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Component;
@@ -42,6 +43,11 @@ class Index extends Component
 
     public function confirmDelete(int $id): void
     {
+        // Tombol pemicu ini disembunyikan di Blade untuk user tanpa hak hapus, tapi method
+        // Livewire tetap bisa dipanggil langsung lewat request yang dipalsukan — pengecekan di
+        // sini dan di delete() adalah otoritas sebenarnya, bukan sekadar UI.
+        abort_unless(PanelAccess::can(Auth::user(), 'keringanan biaya', 'delete'), 403, 'Anda tidak memiliki hak untuk menghapus keringanan biaya.');
+
         $this->confirmingDeleteId = $id;
     }
 
@@ -56,6 +62,8 @@ class Index extends Component
      */
     public function delete(): void
     {
+        abort_unless(PanelAccess::can(Auth::user(), 'keringanan biaya', 'delete'), 403, 'Anda tidak memiliki hak untuk menghapus keringanan biaya.');
+
         if (! $this->confirmingDeleteId) {
             return;
         }

@@ -3,6 +3,8 @@
 namespace App\Livewire\Admin\Semester;
 
 use App\Models\Semester;
+use App\Support\PanelAccess;
+use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -23,6 +25,8 @@ class Index extends Component
 
     public function confirmDelete(int $id): void
     {
+        abort_unless(PanelAccess::can(Auth::user(), 'semester', 'delete'), 403, 'Anda tidak memiliki hak untuk menghapus semester.');
+
         $this->confirmingDeleteId = $id;
     }
 
@@ -33,6 +37,8 @@ class Index extends Component
 
     public function delete(): void
     {
+        abort_unless(PanelAccess::can(Auth::user(), 'semester', 'delete'), 403, 'Anda tidak memiliki hak untuk menghapus semester.');
+
         if (! $this->confirmingDeleteId) {
             return;
         }

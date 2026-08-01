@@ -8,6 +8,8 @@ use App\Models\DosenWali;
 use App\Models\KelasDosen;
 use App\Models\Mahasiswa;
 use App\Models\Semester;
+use App\Support\PanelAccess;
+use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -146,6 +148,14 @@ class Show extends Component
 
     public function openModal(?int $id = null): void
     {
+        // Tombol pemicu tambah/ubah/hapus bimbingan dan hapus dosen disembunyikan di Blade untuk
+        // user tanpa hak, tapi method Livewire tetap bisa dipanggil langsung lewat request yang
+        // dipalsukan — pengecekan di sini dan di saveBimbingan/confirmDeleteBimbingan/
+        // deleteBimbingan/confirmDeleteDosen/deleteDosen adalah otoritas sebenarnya, bukan
+        // sekadar UI. Bimbingan (dosen wali) dan Dosen adalah dua resource/permission berbeda
+        // walau diakses dari halaman yang sama.
+        abort_unless(PanelAccess::can(Auth::user(), 'dosen wali', 'update'), 403, 'Anda tidak memiliki hak untuk mengubah data bimbingan.');
+
         $this->resetValidation();
 
         if ($id) {
@@ -183,6 +193,8 @@ class Show extends Component
 
     public function saveBimbingan(): void
     {
+        abort_unless(PanelAccess::can(Auth::user(), 'dosen wali', 'update'), 403, 'Anda tidak memiliki hak untuk mengubah data bimbingan.');
+
         $this->validate([
             'selectedMahasiswaId' => ['required', 'integer', 'exists:mahasiswa,id'],
             'bimbinganStatus' => ['required', 'string', 'in:active,inactive'],
@@ -211,6 +223,8 @@ class Show extends Component
 
     public function confirmDeleteBimbingan(int $id): void
     {
+        abort_unless(PanelAccess::can(Auth::user(), 'dosen wali', 'delete'), 403, 'Anda tidak memiliki hak untuk menghapus data bimbingan.');
+
         $this->confirmingBimbinganDeleteId = $id;
     }
 
@@ -221,6 +235,8 @@ class Show extends Component
 
     public function deleteBimbingan(): void
     {
+        abort_unless(PanelAccess::can(Auth::user(), 'dosen wali', 'delete'), 403, 'Anda tidak memiliki hak untuk menghapus data bimbingan.');
+
         if (! $this->confirmingBimbinganDeleteId) {
             return;
         }
@@ -233,6 +249,8 @@ class Show extends Component
 
     public function confirmDeleteDosen(): void
     {
+        abort_unless(PanelAccess::can(Auth::user(), 'dosen', 'delete'), 403, 'Anda tidak memiliki hak untuk menghapus dosen.');
+
         $this->confirmingDosenDelete = true;
     }
 
@@ -243,6 +261,8 @@ class Show extends Component
 
     public function deleteDosen()
     {
+        abort_unless(PanelAccess::can(Auth::user(), 'dosen', 'delete'), 403, 'Anda tidak memiliki hak untuk menghapus dosen.');
+
         Dosen::findOrFail($this->dosenId)->delete();
 
         session()->flash('status', 'Dosen berhasil dihapus.');

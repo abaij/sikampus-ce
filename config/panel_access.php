@@ -82,4 +82,160 @@ return [
         // entri ini yang membuat menunya ikut hilang dari navbar untuk non-superadmin.
         'sistem' => 'manage sistem',
     ],
+
+    /*
+    |----------------------------------------------------------------------
+    | Peta granular (khusus GRANULAR_PERMISSIONS=true, lihat config/access.php)
+    |----------------------------------------------------------------------
+    |
+    | Dipakai App\Support\PanelAccess::permissionFor() di ATAS peta dasar (route_permissions)
+    | saat flag menyala — array_merge dengan peta ini di posisi kedua, jadi entri dengan prefix
+    | yang SAMA (mis. 'keuangan.tagihan') menimpa nilai dasarnya, dan entri dengan prefix baru
+    | (mis. 'keuangan.tagihan.create') menambah pemisahan per aksi yang tidak ada di peta dasar.
+    | "Longest prefix wins" tetap berlaku sama seperti peta dasar.
+    |
+    | Baru dipetakan untuk modul Keuangan > Tagihan (pilot). Modul lain masih ikut peta dasar
+    | (satu permission "manage X" untuk semua aksi) walau flag ini true, sampai ditambahkan juga
+    | di sini.
+    |
+    */
+    'route_permissions_granular' => [
+        'keuangan.tagihan' => 'view tagihan', // index + show (tidak ada entri lebih spesifik)
+        'keuangan.tagihan.create' => 'create tagihan',
+        'keuangan.tagihan.generate' => 'create tagihan',
+        'keuangan.tagihan.edit' => 'update tagihan',
+
+        // index + show + laporan-pelunasan (tidak ada entri lebih spesifik untuk ketiganya —
+        // laporan-pelunasan murni laporan, cukup 'view'). Aksi Hapus/ACC pembayaran tidak lewat
+        // rute sendiri (method Livewire di halaman show), jadi dijaga langsung di
+        // App\Livewire\Admin\Pembayaran\Show, bukan lewat peta ini.
+        'keuangan.pembayaran' => 'view pembayaran',
+        'keuangan.pembayaran.create' => 'create pembayaran',
+        'keuangan.pembayaran.edit' => 'update pembayaran',
+
+        // index + show + export + cetak (tidak ada entri lebih spesifik untuk ketiganya — semua
+        // aksi baca). Tidak ada rute create tersendiri (lihat komentar $nilaiGranularPermissions
+        // di PermissionSeeder) — 'akademik.nilai.edit' mencakup isi-baru maupun koreksi
+        // sekaligus. Aksi Hapus nilai tidak lewat rute sendiri (method Livewire di halaman show),
+        // dijaga langsung di App\Livewire\Admin\Nilai\Show.
+        'akademik.nilai' => 'view nilai',
+        'akademik.nilai.edit' => 'update nilai',
+
+        // Aksi Hapus tidak lewat rute sendiri (method Livewire di halaman index), dijaga
+        // langsung di App\Livewire\Admin\StrukturBiaya\Index.
+        'keuangan.struktur-biaya' => 'view struktur biaya',
+        'keuangan.struktur-biaya.create' => 'create struktur biaya',
+        'keuangan.struktur-biaya.edit' => 'update struktur biaya',
+
+        // Aksi Hapus tidak lewat rute sendiri (method Livewire di halaman index), dijaga
+        // langsung di App\Livewire\Admin\KomponenBiaya\Index.
+        'keuangan.komponen-biaya' => 'view komponen biaya',
+        'keuangan.komponen-biaya.create' => 'create komponen biaya',
+        'keuangan.komponen-biaya.edit' => 'update komponen biaya',
+
+        // Aksi Hapus tidak lewat rute sendiri (method Livewire di halaman index), dijaga
+        // langsung di App\Livewire\Admin\AturanAksesKeuangan\Index.
+        'keuangan.aturan-akses-keuangan' => 'view aturan akses keuangan',
+        'keuangan.aturan-akses-keuangan.create' => 'create aturan akses keuangan',
+        'keuangan.aturan-akses-keuangan.edit' => 'update aturan akses keuangan',
+
+        // index + show (tidak ada entri lebih spesifik untuk show — halaman itu murni
+        // menampilkan mahasiswa dalam kategori ini). Aksi "Tambah Mahasiswa" di halaman show
+        // tidak lewat rute sendiri (method Livewire), dijaga langsung di
+        // App\Livewire\Admin\KategoriBiaya\Show pakai 'update kategori biaya'.
+        'keuangan.kategori-biaya' => 'view kategori biaya',
+        'keuangan.kategori-biaya.create' => 'create kategori biaya',
+        'keuangan.kategori-biaya.edit' => 'update kategori biaya',
+
+        // Aksi Hapus tidak lewat rute sendiri (method Livewire di halaman index), dijaga
+        // langsung di App\Livewire\Admin\KeringananBiaya\Index.
+        'keuangan.keringanan-biaya' => 'view keringanan biaya',
+        'keuangan.keringanan-biaya.create' => 'create keringanan biaya',
+        'keuangan.keringanan-biaya.edit' => 'update keringanan biaya',
+
+        // Aksi Hapus tidak lewat rute sendiri (method Livewire di halaman index), dijaga
+        // langsung di App\Livewire\Admin\JenisKeringananBiaya\Index.
+        'keuangan.jenis-keringanan-biaya' => 'view jenis keringanan biaya',
+        'keuangan.jenis-keringanan-biaya.create' => 'create jenis keringanan biaya',
+        'keuangan.jenis-keringanan-biaya.edit' => 'update jenis keringanan biaya',
+
+        // Aksi Hapus tidak lewat rute sendiri (method Livewire di halaman index), dijaga
+        // langsung di App\Livewire\Admin\Fakultas\Index.
+        'fakultas.index' => 'view fakultas',
+        'fakultas.create' => 'create fakultas',
+        'fakultas.edit' => 'update fakultas',
+
+        'prodi.index' => 'view prodi',
+        'prodi.create' => 'create prodi',
+        'prodi.edit' => 'update prodi',
+
+        'jenjang.index' => 'view jenjang',
+        'jenjang.create' => 'create jenjang',
+        'jenjang.edit' => 'update jenjang',
+
+        // Halaman settings singleton — 'update' menjaga method save() itu sendiri (dipanggil di
+        // App\Livewire\Admin\PerguruanTinggi, bukan lewat rute terpisah), 'view' menjaga rute.
+        'perguruan-tinggi' => 'view perguruan tinggi',
+
+        'administrasi.ruangan' => 'view ruangan',
+        'administrasi.ruangan.create' => 'create ruangan',
+        'administrasi.ruangan.edit' => 'update ruangan',
+
+        'administrasi.pengumuman' => 'view pengumuman',
+        'administrasi.pengumuman.create' => 'create pengumuman',
+        'administrasi.pengumuman.edit' => 'update pengumuman',
+
+        'administrasi.kelas-mahasiswa' => 'view grup mahasiswa',
+        'administrasi.kelas-mahasiswa.create' => 'create grup mahasiswa',
+        'administrasi.kelas-mahasiswa.edit' => 'update grup mahasiswa',
+
+        // index/show/statistik-export (tidak ada entri lebih spesifik untuk ketiganya — semua
+        // aksi baca). Manajemen pertanyaan survey tidak lewat rute sendiri (method Livewire di
+        // halaman show), dijaga langsung di App\Livewire\Admin\Survey\Show pakai 'update'/'delete'.
+        'administrasi.survey' => 'view survey',
+        'administrasi.survey.create' => 'create survey',
+        'administrasi.survey.edit' => 'update survey',
+
+        // index/show/template/export (tidak ada entri lebih spesifik — semua aksi baca). Hapus
+        // dari halaman show (bukan cuma index) tidak lewat rute sendiri, dijaga langsung di
+        // App\Livewire\Admin\Dosen\Show::deleteDosen(). Import dianggap 'create' (data massal).
+        'administrasi.dosen' => 'view dosen',
+        'administrasi.dosen.create' => 'create dosen',
+        'administrasi.dosen.edit' => 'update dosen',
+        'administrasi.dosen.import' => 'create dosen',
+
+        // index/show/riwayat/template (tidak ada entri lebih spesifik — semua aksi baca). Tidak
+        // ada rute create/edit tersendiri — penugasan bimbingan (tambah/hapus, Set Kuota massal,
+        // import) semuanya method Livewire, dijaga langsung di App\Livewire\Admin\DosenWali\Index
+        // dan \Show (dan pintu yang sama di App\Livewire\Admin\Dosen\Show).
+        'administrasi.dosen-wali' => 'view dosen wali',
+
+        // index/show/template/export (tidak ada entri lebih spesifik — semua aksi baca). Hapus
+        // dari halaman show tidak lewat rute sendiri, dijaga langsung di
+        // App\Livewire\Admin\Mahasiswa\Show::deleteMahasiswa(). Import dianggap 'create'.
+        'administrasi.mahasiswa' => 'view mahasiswa',
+        'administrasi.mahasiswa.create' => 'create mahasiswa',
+        'administrasi.mahasiswa.edit' => 'update mahasiswa',
+        'administrasi.mahasiswa.import' => 'create mahasiswa',
+
+        // Pengaturan akademik — menunya di bawah "Pengaturan" tapi permission-nya tetap milik
+        // grup akademik/administrasi (lihat komentar di route_permissions di atas). Aksi Hapus
+        // tidak lewat rute sendiri (method Livewire di halaman index), dijaga langsung di
+        // masing-masing App\Livewire\Admin\{Semester,JalurMasuk,JenisDaftar,StatusAkademik}\Index.
+        'semester.index' => 'view semester',
+        'semester.create' => 'create semester',
+        'semester.edit' => 'update semester',
+
+        'jalur-masuk.index' => 'view jalur masuk',
+        'jalur-masuk.create' => 'create jalur masuk',
+        'jalur-masuk.edit' => 'update jalur masuk',
+
+        'jenis-daftar.index' => 'view jenis pendaftaran',
+        'jenis-daftar.create' => 'create jenis pendaftaran',
+        'jenis-daftar.edit' => 'update jenis pendaftaran',
+
+        'status-akademik.index' => 'view status akademik',
+        'status-akademik.create' => 'create status akademik',
+        'status-akademik.edit' => 'update status akademik',
+    ],
 ];

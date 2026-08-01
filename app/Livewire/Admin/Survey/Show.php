@@ -8,7 +8,9 @@ use App\Models\Survey;
 use App\Models\SurveyQuestion;
 use App\Models\SurveyQuestionOption;
 use App\Models\SurveyResponseDetail;
+use App\Support\PanelAccess;
 use Illuminate\Database\QueryException;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
@@ -104,6 +106,12 @@ class Show extends Component
 
     public function openAddQuestion(): void
     {
+        // Tombol-tombol pemicu manajemen pertanyaan disembunyikan di Blade untuk user tanpa hak
+        // ubah/hapus, tapi method Livewire tetap bisa dipanggil langsung lewat request yang
+        // dipalsukan — pengecekan di sini (dan di openEditQuestion/saveQuestion/
+        // confirmDeleteQuestion/deleteQuestion) adalah otoritas sebenarnya, bukan sekadar UI.
+        abort_unless(PanelAccess::can(Auth::user(), 'survey', 'update'), 403, 'Anda tidak memiliki hak untuk mengubah survey.');
+
         $this->resetValidation();
         $this->editingQuestionId = null;
         $this->qPertanyaan = '';
@@ -114,6 +122,8 @@ class Show extends Component
 
     public function openEditQuestion(int $id): void
     {
+        abort_unless(PanelAccess::can(Auth::user(), 'survey', 'update'), 403, 'Anda tidak memiliki hak untuk mengubah survey.');
+
         $this->resetValidation();
 
         $question = SurveyQuestion::with('options')->findOrFail($id);
@@ -154,6 +164,8 @@ class Show extends Component
 
     public function saveQuestion(): void
     {
+        abort_unless(PanelAccess::can(Auth::user(), 'survey', 'update'), 403, 'Anda tidak memiliki hak untuk mengubah survey.');
+
         $this->validate($this->questionRules());
 
         if ($this->qTipe === 'essay') {
@@ -214,6 +226,8 @@ class Show extends Component
 
     public function confirmDeleteQuestion(int $id): void
     {
+        abort_unless(PanelAccess::can(Auth::user(), 'survey', 'delete'), 403, 'Anda tidak memiliki hak untuk menghapus pertanyaan survey.');
+
         $this->confirmingQuestionDeleteId = $id;
     }
 
@@ -224,6 +238,8 @@ class Show extends Component
 
     public function deleteQuestion(): void
     {
+        abort_unless(PanelAccess::can(Auth::user(), 'survey', 'delete'), 403, 'Anda tidak memiliki hak untuk menghapus pertanyaan survey.');
+
         if (! $this->confirmingQuestionDeleteId) {
             return;
         }

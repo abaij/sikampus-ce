@@ -4,6 +4,7 @@ namespace App\Livewire\Admin\Pengguna;
 
 use App\Models\Dosen;
 use App\Models\Mahasiswa;
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -22,6 +23,12 @@ class Form extends Component
     public string $password = '';
 
     public ?string $role = null;
+
+    // Hanya dipakai saat create tipe akun 'admin' — menentukan role Spatie (Superadmin/Akademik/
+    // Keuangan) yang otomatis di-assign begitu user dibuat, supaya akun admin baru langsung punya
+    // permission modulnya (lewat role_has_permissions) tanpa perlu mampir dulu ke tab Role di
+    // halaman Show (yang tetap jadi tempat mengubah role/scope untuk user yang sudah ada).
+    public ?int $spatieRoleId = null;
 
     public string $status = 'active';
 
@@ -71,6 +78,7 @@ class Form extends Component
         $this->id_mahasiswa = null;
         $this->id_dosen = null;
         $this->mahasiswaSearch = '';
+        $this->spatieRoleId = null;
     }
 
     #[Computed]
@@ -101,6 +109,12 @@ class Form extends Component
     public function dosenOptions()
     {
         return Dosen::whereNull('id_user')->orderBy('nama')->get(['id', 'nama', 'kode_dosen']);
+    }
+
+    #[Computed]
+    public function spatieRoleOptions()
+    {
+        return Role::orderBy('name')->get(['id', 'code', 'name']);
     }
 
     public function selectMahasiswa(int $id): void
@@ -173,6 +187,10 @@ class Form extends Component
         $rules['password'] = ['required', 'string', 'min:8'];
         $rules['id_mahasiswa'] = ['nullable', 'integer', 'exists:mahasiswa,id'];
         $rules['id_dosen'] = ['nullable', 'integer', 'exists:dosen,id'];
+
+        if ($this->role === 'admin') {
+            $rules['spatieRoleId'] = ['required', 'integer', 'exists:roles,id'];
+        }
 
         return $rules;
     }
@@ -264,7 +282,7 @@ class Form extends Component
         $validated['password'] = Hash::make($validated['password']);
         $validated['status'] = $validated['status'] ?? 'active';
         $validated['email_verified_at'] = now();
-        unset($validated['id_mahasiswa'], $validated['id_dosen']);
+        unset($validated['id_mahasiswa'], $validated['id_dosen'], $validated['spatieRoleId']);
 
         DB::beginTransaction();
         try {
@@ -276,6 +294,14 @@ class Form extends Component
 
             if ($validated['role'] === 'dosen' && $this->id_dosen) {
                 Dosen::find($this->id_dosen)?->update(['id_user' => $pengguna->id]);
+            }
+
+            // Assign role Spatie di sini (bukan menyalin permission satu-satu) supaya permission
+            // modulnya otomatis mengikuti apa pun yang ada di role_has_permissions saat ini —
+            // termasuk kalau daftar permission role tsb berubah di kemudian hari lewat PermissionSeeder
+            // atau halaman Role.
+            if ($validated['role'] === 'admin' && $this->spatieRoleId) {
+                $pengguna->assignRole(Role::findOrFail($this->spatieRoleId));
             }
 
             DB::commit();

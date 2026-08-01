@@ -32,23 +32,25 @@
 @endsection
 
 <div>
-    <div class="mb-6 flex flex-wrap items-center justify-end gap-2">
-        <label class="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-medium text-neutral-700 shadow-border transition hover:bg-neutral-50">
-            <i data-lucide="upload" class="h-4 w-4" aria-hidden="true"></i>
-            <span wire:loading.remove wire:target="importFile">Import</span>
-            <span wire:loading wire:target="importFile">Mengimport...</span>
-            <input type="file" wire:model="importFile" accept=".xlsx,.xls" class="hidden" />
-        </label>
+    @if (\App\Support\PanelAccess::can(auth()->user(), 'dosen wali', 'update'))
+        <div class="mb-6 flex flex-wrap items-center justify-end gap-2">
+            <label class="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-medium text-neutral-700 shadow-border transition hover:bg-neutral-50">
+                <i data-lucide="upload" class="h-4 w-4" aria-hidden="true"></i>
+                <span wire:loading.remove wire:target="importFile">Import</span>
+                <span wire:loading wire:target="importFile">Mengimport...</span>
+                <input type="file" wire:model="importFile" accept=".xlsx,.xls" class="hidden" />
+            </label>
 
-        <button
-            type="button"
-            wire:click="openKuotaModal"
-            class="inline-flex items-center gap-2 rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-neutral-800"
-        >
-            <i data-lucide="settings" class="h-4 w-4" aria-hidden="true"></i>
-            Tetapkan Kuota
-        </button>
-    </div>
+            <button
+                type="button"
+                wire:click="openKuotaModal"
+                class="inline-flex items-center gap-2 rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-neutral-800"
+            >
+                <i data-lucide="settings" class="h-4 w-4" aria-hidden="true"></i>
+                Tetapkan Kuota
+            </button>
+        </div>
+    @endif
 
     @if (session('status'))
         <div class="mb-4 flex gap-3 rounded-lg border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">

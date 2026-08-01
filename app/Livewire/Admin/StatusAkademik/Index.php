@@ -4,6 +4,8 @@ namespace App\Livewire\Admin\StatusAkademik;
 
 use App\Models\Mahasiswa;
 use App\Models\StatusAkademik;
+use App\Support\PanelAccess;
+use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -26,6 +28,8 @@ class Index extends Component
 
     public function confirmDelete(int $id): void
     {
+        abort_unless(PanelAccess::can(Auth::user(), 'status akademik', 'delete'), 403, 'Anda tidak memiliki hak untuk menghapus status akademik.');
+
         $this->confirmingDeleteId = $id;
         $this->deleteError = '';
     }
@@ -41,6 +45,8 @@ class Index extends Component
      */
     public function delete(): void
     {
+        abort_unless(PanelAccess::can(Auth::user(), 'status akademik', 'delete'), 403, 'Anda tidak memiliki hak untuk menghapus status akademik.');
+
         if (! $this->confirmingDeleteId) {
             return;
         }

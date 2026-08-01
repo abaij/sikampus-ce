@@ -6,6 +6,7 @@ use App\Livewire\Admin\DosenWali\Concerns\ForwardsIndexState;
 use App\Models\Dosen;
 use App\Models\DosenWali;
 use App\Models\Mahasiswa;
+use App\Support\PanelAccess;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Url;
@@ -125,6 +126,11 @@ class Show extends Component
 
     public function openModal(): void
     {
+        // Tombol pemicu ini disembunyikan di Blade untuk user tanpa hak ubah, tapi method
+        // Livewire tetap bisa dipanggil langsung lewat request yang dipalsukan — pengecekan di
+        // sini dan di save()/confirmDelete()/delete() adalah otoritas sebenarnya, bukan sekadar UI.
+        abort_unless(PanelAccess::can(Auth::user(), 'dosen wali', 'update'), 403, 'Anda tidak memiliki hak untuk mengubah data bimbingan.');
+
         $this->resetValidation();
         $this->selectedMahasiswaId = null;
         $this->selectedMahasiswaLabel = '';
@@ -150,6 +156,8 @@ class Show extends Component
      */
     public function save(): void
     {
+        abort_unless(PanelAccess::can(Auth::user(), 'dosen wali', 'update'), 403, 'Anda tidak memiliki hak untuk mengubah data bimbingan.');
+
         $this->validate([
             'selectedMahasiswaId' => ['required', 'integer', 'exists:mahasiswa,id'],
         ], [], ['selectedMahasiswaId' => 'mahasiswa']);
@@ -203,6 +211,8 @@ class Show extends Component
 
     public function confirmDelete(int $id): void
     {
+        abort_unless(PanelAccess::can(Auth::user(), 'dosen wali', 'delete'), 403, 'Anda tidak memiliki hak untuk menghapus data bimbingan.');
+
         $this->confirmingDeleteId = $id;
     }
 
@@ -216,6 +226,8 @@ class Show extends Component
      */
     public function delete(): void
     {
+        abort_unless(PanelAccess::can(Auth::user(), 'dosen wali', 'delete'), 403, 'Anda tidak memiliki hak untuk menghapus data bimbingan.');
+
         if (! $this->confirmingDeleteId) {
             return;
         }

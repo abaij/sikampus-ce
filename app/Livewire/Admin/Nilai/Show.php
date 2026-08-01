@@ -8,6 +8,7 @@ use App\Models\Nilai;
 use App\Models\NilaiRevisi;
 use App\Models\Semester;
 use App\Services\SemesterService;
+use App\Support\PanelAccess;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Computed;
@@ -161,6 +162,11 @@ class Show extends Component
 
     public function confirmDelete(int $nilaiId): void
     {
+        // Tombol pemicu ini disembunyikan di Blade untuk user tanpa hak hapus, tapi method
+        // Livewire tetap bisa dipanggil langsung lewat request yang dipalsukan — pengecekan di
+        // sini dan di delete() adalah otoritas sebenarnya, bukan sekadar UI.
+        abort_unless(PanelAccess::can(Auth::user(), 'nilai', 'delete'), 403, 'Anda tidak memiliki hak untuk menghapus nilai.');
+
         $this->confirmDeleteId = $nilaiId;
     }
 
@@ -175,6 +181,8 @@ class Show extends Component
      */
     public function delete(): void
     {
+        abort_unless(PanelAccess::can(Auth::user(), 'nilai', 'delete'), 403, 'Anda tidak memiliki hak untuk menghapus nilai.');
+
         if (! $this->confirmDeleteId) {
             return;
         }

@@ -6,6 +6,8 @@ use App\Models\KategoriBiaya;
 use App\Models\KategoriBiayaMahasiswa;
 use App\Models\Mahasiswa;
 use App\Models\Semester;
+use App\Support\PanelAccess;
+use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -118,6 +120,11 @@ class Show extends Component
 
     public function openModal(): void
     {
+        // Tombol pemicu ini disembunyikan di Blade untuk user tanpa hak ubah, tapi method
+        // Livewire tetap bisa dipanggil langsung lewat request yang dipalsukan — pengecekan di
+        // sini dan di save() adalah otoritas sebenarnya, bukan sekadar UI.
+        abort_unless(PanelAccess::can(Auth::user(), 'kategori biaya', 'update'), 403, 'Anda tidak memiliki hak untuk mengubah kategori biaya.');
+
         $this->resetValidation();
         $this->selectedMahasiswaId = null;
         $this->selectedMahasiswaLabel = '';
@@ -143,6 +150,8 @@ class Show extends Component
      */
     public function save(): void
     {
+        abort_unless(PanelAccess::can(Auth::user(), 'kategori biaya', 'update'), 403, 'Anda tidak memiliki hak untuk mengubah kategori biaya.');
+
         $this->validate([
             'selectedMahasiswaId' => ['required', 'integer', 'exists:mahasiswa,id'],
             'selectedSemesterId' => ['required', 'integer', 'exists:semester,id'],

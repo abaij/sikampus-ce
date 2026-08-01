@@ -15,13 +15,15 @@
 @endsection
 
 @section('page_actions')
-    <a
-        href="{{ route('admin.jalur-masuk.create') }}"
-        class="inline-flex items-center gap-2 rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-neutral-800"
-    >
-        <i data-lucide="plus" class="h-4 w-4" aria-hidden="true"></i>
-        Tambah Jalur Masuk
-    </a>
+    @if (\App\Support\PanelAccess::can(auth()->user(), 'jalur masuk', 'create'))
+        <a
+            href="{{ route('admin.jalur-masuk.create') }}"
+            class="inline-flex items-center gap-2 rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-neutral-800"
+        >
+            <i data-lucide="plus" class="h-4 w-4" aria-hidden="true"></i>
+            Tambah Jalur Masuk
+        </a>
+    @endif
 @endsection
 
 <div>
@@ -77,21 +79,25 @@
                             </td>
                             <td class="px-4 py-3 text-right">
                                 <div class="inline-flex items-center gap-1">
-                                    <a
-                                        href="{{ route('admin.jalur-masuk.edit', $jalurMasuk->id) }}"
-                                        class="inline-flex items-center justify-center rounded-lg p-2 text-neutral-500 transition hover:bg-neutral-100 hover:text-neutral-900"
-                                        title="Ubah"
-                                    >
-                                        <i data-lucide="pencil" class="h-4 w-4" aria-hidden="true"></i>
-                                    </a>
-                                    <button
-                                        type="button"
-                                        wire:click="confirmDelete({{ $jalurMasuk->id }})"
-                                        class="inline-flex items-center justify-center rounded-lg p-2 text-rose-500 transition hover:bg-rose-50 hover:text-rose-700"
-                                        title="Hapus"
-                                    >
-                                        <i data-lucide="trash-2" class="h-4 w-4" aria-hidden="true"></i>
-                                    </button>
+                                    @if (\App\Support\PanelAccess::can(auth()->user(), 'jalur masuk', 'update'))
+                                        <a
+                                            href="{{ route('admin.jalur-masuk.edit', $jalurMasuk->id) }}"
+                                            class="inline-flex items-center justify-center rounded-lg p-2 text-neutral-500 transition hover:bg-neutral-100 hover:text-neutral-900"
+                                            title="Ubah"
+                                        >
+                                            <i data-lucide="pencil" class="h-4 w-4" aria-hidden="true"></i>
+                                        </a>
+                                    @endif
+                                    @if (\App\Support\PanelAccess::can(auth()->user(), 'jalur masuk', 'delete'))
+                                        <button
+                                            type="button"
+                                            wire:click="confirmDelete({{ $jalurMasuk->id }})"
+                                            class="inline-flex items-center justify-center rounded-lg p-2 text-rose-500 transition hover:bg-rose-50 hover:text-rose-700"
+                                            title="Hapus"
+                                        >
+                                            <i data-lucide="trash-2" class="h-4 w-4" aria-hidden="true"></i>
+                                        </button>
+                                    @endif
                                 </div>
                             </td>
                         </tr>
