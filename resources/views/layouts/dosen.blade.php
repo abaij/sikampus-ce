@@ -211,6 +211,23 @@
     document.addEventListener('livewire:init', function () {
         Livewire.hook('morph.updated', renderLucideIcons);
         Livewire.hook('morph.added', renderLucideIcons);
+
+        // Sesi/token kedaluwarsa (419) saat submit form Livewire — pesan Bahasa Indonesia yang
+        // konsisten dengan resources/views/errors/419.blade.php (form biasa/non-Livewire).
+        // Lihat layouts/web.blade.php untuk penjelasan lengkap; duplikasi ini mengikuti pola
+        // layout lain di aplikasi yang masing-masing berdiri sendiri, bukan hasil extends layout Blade lain.
+        let sessionExpiredAlertShown = false;
+        Livewire.hook('request', ({ fail }) => {
+            fail(({ status, preventDefault }) => {
+                if (status !== 419 || sessionExpiredAlertShown) {
+                    return;
+                }
+                sessionExpiredAlertShown = true;
+                preventDefault();
+                alert('Sesi Anda sudah berakhir. Halaman akan dimuat ulang, silakan coba lagi.');
+                window.location.reload();
+            });
+        });
     });
 
     document.addEventListener('livewire:navigated', renderLucideIcons);

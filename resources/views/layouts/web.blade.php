@@ -244,6 +244,25 @@
     document.addEventListener('livewire:init', function () {
         Livewire.hook('morph.updated', renderLucideIcons);
         Livewire.hook('morph.added', renderLucideIcons);
+
+        // Setiap aksi Livewire (submit form, klik tombol, dsb) yang gagal karena sesi/token
+        // kedaluwarsa (419) ditangani di sini — berlaku untuk semua komponen Livewire di
+        // seluruh aplikasi, bukan per halaman. Livewire sendiri sebenarnya sudah punya
+        // penanganan bawaan untuk ini (confirm() berbahasa Inggris), tapi kita ganti dengan
+        // pesan Bahasa Indonesia yang konsisten dengan resources/views/errors/419.blade.php
+        // (dipakai form biasa/non-Livewire seperti login dan konfigurasi superadmin).
+        let sessionExpiredAlertShown = false;
+        Livewire.hook('request', ({ fail }) => {
+            fail(({ status, preventDefault }) => {
+                if (status !== 419 || sessionExpiredAlertShown) {
+                    return;
+                }
+                sessionExpiredAlertShown = true;
+                preventDefault();
+                alert('Sesi Anda sudah berakhir. Halaman akan dimuat ulang, silakan coba lagi.');
+                window.location.reload();
+            });
+        });
     });
 
     document.addEventListener('livewire:navigated', renderLucideIcons);
