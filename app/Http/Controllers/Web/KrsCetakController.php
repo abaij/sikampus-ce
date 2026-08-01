@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
-use App\Models\Dosen;
 use App\Models\Jadwal;
 use App\Models\Krs;
 use App\Models\Mahasiswa;
@@ -50,12 +49,14 @@ class KrsCetakController extends Controller
             abort(404, 'Semester aktif tidak ditemukan. Pilih semester terlebih dahulu sebelum mencetak.');
         }
 
-        $dosenWaliNama = DB::table('dosen_wali')
+        $dosenWaliRow = DB::table('dosen_wali')
             ->join('dosen', 'dosen_wali.id_dosen', '=', 'dosen.id')
             ->where('dosen_wali.id_mahasiswa', $mahasiswa->id)
             ->where('dosen_wali.status', 'active')
             ->whereNull('dosen_wali.deleted_at')
-            ->value('dosen.nama');
+            ->select('dosen.nama', 'dosen.gelar_depan', 'dosen.gelar_belakang')
+            ->first();
+        $dosenWaliNama = $this->namaLengkapDosen($dosenWaliRow);
 
         $krsList = Krs::with([
             'kelas.kurikulumMatkul.matkul',
@@ -129,14 +130,14 @@ class KrsCetakController extends Controller
             'nim' => $mahasiswa->nim,
             'angkatan' => $mahasiswa->semester_masuk->nama ?? '-',
             'semester_ke' => $semesterKe ?? '-',
-            'dosen_wali' => $dosenWaliNama ?: '-',
+            'dosen_wali' => $dosenWaliNama,
             'ip_sebelumnya' => $ipSemesterSebelumnya !== null ? number_format($ipSemesterSebelumnya, 2) : '-',
             'ipk' => $ipk !== null ? number_format($ipk, 2) : '-',
             'total_sks' => $totalSks,
             'rows' => $rows,
             'total_mk' => $totalMk,
             'status_ringkasan' => $totalMk === 0 ? '-' : ($semuaDisetujui ? 'Disetujui' : 'Menunggu Persetujuan'),
-            'ketua_prodi' => $mahasiswa->prodi->kaprodi->nama ?? null,
+            'ketua_prodi' => $mahasiswa->prodi->kaprodi ? $this->namaLengkapDosen($mahasiswa->prodi->kaprodi) : null,
             'dokumen_nomor' => $dokumenNomor,
         ]);
 
@@ -226,9 +227,11 @@ class KrsCetakController extends Controller
 
     /**
      * Format "{gelar depan} Nama, gelar belakang" — sama persis dengan pola yang sudah dipakai di
-     * resources/views/livewire/admin/dosen/index.blade.php dan show.blade.php.
+     * resources/views/livewire/admin/dosen/index.blade.php dan show.blade.php. Menerima object apa
+     * saja yang punya properti nama/gelar_depan/gelar_belakang (model Eloquent Dosen dari relasi
+     * dosenPic, atau baris stdClass dari raw query dosen_wali) — bukan cuma model Dosen.
      */
-    private function namaLengkapDosen(?Dosen $dosen): string
+    private function namaLengkapDosen(?object $dosen): string
     {
         if (! $dosen) {
             return '-';

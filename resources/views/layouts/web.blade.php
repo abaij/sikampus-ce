@@ -55,7 +55,7 @@
 @endphp
 @hasSection('header_title')
 <div class="min-h-screen">
-    <header class="print:hidden border-b border-neutral-200 bg-white shadow-sm">
+    <header class="relative print:hidden border-b border-neutral-200 bg-white shadow-sm">
         <div class="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-x-4 gap-y-3 px-4 py-4 sm:px-6">
             <a
                 href="{{ route($dashboardRouteName) }}"
