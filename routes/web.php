@@ -62,6 +62,8 @@ use App\Livewire\Admin\KonversiNilai\Show as KonversiNilaiShow;
 use App\Livewire\Admin\Krs\Form as KrsForm;
 use App\Livewire\Admin\Krs\Index as KrsIndex;
 use App\Livewire\Admin\Krs\Show as KrsShow;
+use App\Livewire\Admin\Ktm\Form as KtmForm;
+use App\Livewire\Admin\Ktm\Index as KtmIndex;
 use App\Livewire\Admin\Kurikulum\Form as KurikulumForm;
 use App\Livewire\Admin\Kurikulum\Index as KurikulumIndex;
 use App\Livewire\Admin\Kurikulum\Show as KurikulumShow;
@@ -158,6 +160,7 @@ use App\Livewire\Mahasiswa\Kehadiran\Index as MahasiswaKehadiranIndex;
 use App\Livewire\Mahasiswa\KeringananBiaya\Index as MahasiswaKeringananBiayaIndex;
 use App\Livewire\Mahasiswa\Krs\Index as MahasiswaKrsIndex;
 use App\Livewire\Mahasiswa\Krs\Pengajuan as MahasiswaKrsPengajuan;
+use App\Livewire\Mahasiswa\Ktm as MahasiswaKtm;
 use App\Livewire\Mahasiswa\Nilai\Semester as MahasiswaNilaiSemester;
 use App\Livewire\Mahasiswa\Nilai\Transkrip as MahasiswaNilaiTranskrip;
 use App\Livewire\Mahasiswa\Pembayaran\Index as MahasiswaPembayaranIndex;
@@ -315,6 +318,8 @@ Route::middleware(['auth', 'role.mahasiswa.web'])->group(function (): void {
 
     Route::livewire('/mahasiswa/kehadiran', MahasiswaKehadiranIndex::class)->name('mahasiswa.kehadiran');
 
+    Route::livewire('/mahasiswa/ktm', MahasiswaKtm::class)->name('mahasiswa.ktm');
+
     // Rute literal ('/mahasiswa/krs/pengajuan') harus di atas rute yang lebih pendek ('/mahasiswa/krs').
     Route::livewire('/mahasiswa/krs/pengajuan', MahasiswaKrsPengajuan::class)->name('mahasiswa.krs.pengajuan');
     Route::livewire('/mahasiswa/krs', MahasiswaKrsIndex::class)->name('mahasiswa.krs');
@@ -459,6 +464,11 @@ Route::prefix('admin')->name('admin.')->group(function (): void {
         Route::livewire('administrasi/kelas-mahasiswa', KelompokKelasIndex::class)->name('administrasi.kelas-mahasiswa');
         Route::livewire('administrasi/kelas-mahasiswa/create', KelompokKelasForm::class)->name('administrasi.kelas-mahasiswa.create');
         Route::livewire('administrasi/kelas-mahasiswa/{id}/edit', KelompokKelasForm::class)->name('administrasi.kelas-mahasiswa.edit');
+
+        // Rute literal ('create') harus di atas rute berparameter ('{id}/edit').
+        Route::livewire('administrasi/ktm', KtmIndex::class)->name('administrasi.ktm');
+        Route::livewire('administrasi/ktm/create', KtmForm::class)->name('administrasi.ktm.create');
+        Route::livewire('administrasi/ktm/{id}/edit', KtmForm::class)->name('administrasi.ktm.edit');
 
         Route::livewire('administrasi/ruangan', RuanganIndex::class)->name('administrasi.ruangan');
         Route::livewire('administrasi/ruangan/create', RuanganForm::class)->name('administrasi.ruangan.create');

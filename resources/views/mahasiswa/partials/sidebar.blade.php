@@ -30,6 +30,7 @@
             ['route' => 'mahasiswa.keringanan-biaya', 'label' => 'Keringanan Biaya'],
         ]],
         ['route' => 'mahasiswa.survey', 'label' => 'Survey', 'icon' => 'clipboard-list'],
+        ['route' => 'mahasiswa.ktm', 'label' => 'KTM', 'icon' => 'id-card'],
         ['route' => 'mahasiswa.profil', 'label' => 'Profil', 'icon' => 'user'],
     ];
 

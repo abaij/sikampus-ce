@@ -278,6 +278,7 @@ class PermissionSeeder extends Seeder
         $administrasiPermissions = [
             'view administrasi',
             'manage mahasiswa',
+            'manage ktm',
             'manage grup mahasiswa',
             'manage dosen',
             'manage dosen wali',

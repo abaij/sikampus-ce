@@ -45,6 +45,7 @@ return [
         'administrasi.dosen' => 'manage dosen',
         'administrasi.dosen-wali' => 'manage dosen wali',
         'administrasi.mahasiswa' => 'manage mahasiswa',
+        'administrasi.ktm' => 'manage ktm',
         'administrasi.kelas-mahasiswa' => 'manage grup mahasiswa',
         'administrasi.ruangan' => 'manage ruangan',
         'administrasi.survey' => 'manage survey',
