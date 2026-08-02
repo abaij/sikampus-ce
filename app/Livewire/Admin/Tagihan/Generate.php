@@ -3,11 +3,12 @@
 namespace App\Livewire\Admin\Tagihan;
 
 use App\Models\Mahasiswa;
+use App\Models\Semester;
 use App\Models\StrukturBiaya;
-use App\Models\Tagihan;
-use App\Models\TagihanRinci;
+use App\Services\JadwalTagihanTahap;
+use App\Services\PenerapanTagihanTahap;
+use App\Services\SeriNomorDokumen;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Computed;
@@ -25,6 +26,11 @@ class Generate extends Component
     public string $opsiTahap = 'all';
 
     public string $selectedTahap = '';
+
+    // Terikat <input type="date">, jadi string. Kosong = pakai tanggal mulai periode.
+    public string $tanggalTagihan = '';
+
+    public string $tanggalJatuhTempo = '';
 
     /**
      * @return array<int>|null null = tanpa batasan scope
@@ -143,43 +149,46 @@ class Generate extends Component
         $this->confirmingGroupAvailableTahap = [];
         $this->opsiTahap = 'all';
         $this->selectedTahap = '';
+        $this->tanggalTagihan = '';
+        $this->tanggalJatuhTempo = '';
         $this->resetErrorBag();
     }
 
     /**
-     * Estimasi jadwal tagihan yang akan dibuat — meniru getScheduleByTahap/updateJadwalInfo di
-     * halaman frontend generate tagihan.
+     * Jadwal untuk grup yang sedang dikonfirmasi — null kalau basis tanggalnya belum bisa
+     * ditentukan (periode tanpa tanggal mulai dan operator belum mengisi tanggal).
      */
-    public function jadwalPreview(): string
+    private function jadwal(): ?JadwalTagihanTahap
     {
-        if ($this->opsiTahap !== 'specific' || $this->selectedTahap === '') {
-            return 'Semua tahapan diproses. Tiap tahap akan dibuat tanggal tagihan 1 dan jatuh tempo 15 sesuai bulan tahap.';
-        }
+        $group = $this->confirmingGroupKey
+            ? $this->groupedStrukturBiaya->firstWhere('key', $this->confirmingGroupKey)
+            : null;
 
-        $tahap = (int) $this->selectedTahap;
-        $baseMonth = Carbon::now()->startOfMonth();
-        $monthOffset = max(0, $tahap - 1);
-        $tanggalTagihan = $baseMonth->copy()->addMonths($monthOffset)->day(1);
-        $tanggalJatuhTempo = $baseMonth->copy()->addMonths($monthOffset)->day(15);
-
-        return "Tahap {$tahap}: Tanggal tagihan {$tanggalTagihan->translatedFormat('d F Y')} • Jatuh tempo {$tanggalJatuhTempo->translatedFormat('d F Y')}.";
+        return JadwalTagihanTahap::resolve(
+            $group ? Semester::find($group['id_periode']) : null,
+            $this->tanggalTagihan,
+            $this->tanggalJatuhTempo,
+        );
     }
 
     /**
-     * Sama persis dengan TagihanController::generateNoTagihan.
+     * Pratinjau jadwal di modal. Tanggalnya berasal dari periode yang ditagih atau dari isian
+     * operator — dulu selalu dihitung dari bulan berjalan, sehingga menyesatkan untuk periode lama.
      */
-    private function generateNoTagihan(): string
+    public function jadwalPreview(): string
     {
-        $date = date('Ymd');
-        $prefix = "INV-{$date}-";
+        $jadwal = $this->jadwal();
 
-        $lastTagihan = Tagihan::where('no_tagihan', 'like', "{$prefix}%")
-            ->orderBy('no_tagihan', 'desc')
-            ->first();
+        if (! $jadwal) {
+            return JadwalTagihanTahap::pesanTanggalTidakDiketahui();
+        }
 
-        $newNumber = $lastTagihan ? ((int) substr($lastTagihan->no_tagihan, -4)) + 1 : 1;
+        if ($this->opsiTahap !== 'specific' || $this->selectedTahap === '') {
+            return 'Semua tahapan diproses; tahap ke-n digeser n-1 bulan. '
+                .$jadwal->ringkasanTahap(1).' '.$jadwal->keteranganSumber();
+        }
 
-        return $prefix.str_pad((string) $newNumber, 4, '0', STR_PAD_LEFT);
+        return $jadwal->ringkasanTahap((int) $this->selectedTahap).' '.$jadwal->keteranganSumber();
     }
 
     /**
@@ -201,6 +210,20 @@ class Generate extends Component
 
         if ($this->opsiTahap === 'specific' && $this->selectedTahap === '') {
             $this->addError('selectedTahap', 'Tahap wajib dipilih jika opsi tahap tertentu dipakai.');
+
+            return;
+        }
+
+        if ($this->tanggalJatuhTempo !== '' && $this->tanggalTagihan !== ''
+            && $this->tanggalJatuhTempo < $this->tanggalTagihan) {
+            $this->addError('tanggalJatuhTempo', 'Jatuh tempo tidak boleh mendahului tanggal tagihan.');
+
+            return;
+        }
+
+        $jadwal = $this->jadwal();
+        if (! $jadwal) {
+            $this->addError('tanggalTagihan', JadwalTagihanTahap::pesanTanggalTidakDiketahui());
 
             return;
         }
@@ -272,10 +295,19 @@ class Generate extends Component
         }
 
         $keteranganBase = 'Generate otomatis dari struktur biaya';
+        // Sama seperti di controller: nomor dokumen dikunci sekali lalu dilanjutkan di memori,
+        // dan tagihan yang sudah ada dipramuat dalam satu query.
+        $seriNomor = SeriNomorDokumen::tagihan();
+        $tagihanTerpasang = PenerapanTagihanTahap::pramuat(
+            (int) $group['id_periode'],
+            $mahasiswaList->pluck('id')->map(fn ($id) => (int) $id)->all(),
+        );
+
         $createdCount = 0;
+        $updatedCount = 0;
         $skippedCount = 0;
 
-        DB::transaction(function () use ($mahasiswaList, $strukturRows, $group, $specificTahap, $keteranganBase, &$createdCount, &$skippedCount) {
+        DB::transaction(function () use ($mahasiswaList, $strukturRows, $group, $specificTahap, $keteranganBase, $jadwal, $seriNomor, $tagihanTerpasang, &$createdCount, &$updatedCount, &$skippedCount) {
             foreach ($mahasiswaList as $mahasiswa) {
                 $activeKategoriId = optional($mahasiswa->kategori_biaya_mahasiswa->first())->id_kategori_biaya;
 
@@ -328,50 +360,45 @@ class Generate extends Component
                         continue;
                     }
 
-                    $baseMonth = Carbon::now()->startOfMonth();
-                    $monthOffset = max(0, ((int) $tahap) - 1);
-                    $tanggalTagihan = $baseMonth->copy()->addMonths($monthOffset)->day(1)->toDateString();
-                    $tanggalJatuhTempo = $baseMonth->copy()->addMonths($monthOffset)->day(15)->toDateString();
-                    $keterangan = "{$keteranganBase} [TAHAP:{$tahap}]";
+                    // Sama persis dengan TagihanController::generateFromStrukturBiaya: tahap
+                    // disimpan di kolomnya, dan komponen yang belum tercatat digabungkan ke
+                    // tagihan tahap ini alih-alih membuat seluruh generate dilewati.
+                    $penerapan = PenerapanTagihanTahap::terapkan(
+                        (int) $mahasiswa->id,
+                        (int) $group['id_periode'],
+                        (int) $tahap,
+                        $rincian,
+                        $jadwal->untukTahap((int) $tahap),
+                        $keteranganBase,
+                        fn () => $seriNomor->berikutnya(),
+                        $tagihanTerpasang->get(PenerapanTagihanTahap::kunciPramuat((int) $mahasiswa->id, (int) $tahap)),
+                        sudahDipramuat: true,
+                    );
 
-                    $existsSameTahap = Tagihan::where('id_mahasiswa', $mahasiswa->id)
-                        ->where('id_semester', $group['id_periode'])
-                        ->where('keterangan', 'like', "%[TAHAP:{$tahap}]%")
-                        ->exists();
-
-                    if ($existsSameTahap) {
-                        $skippedCount++;
-
-                        continue;
+                    if ($penerapan['hasil'] === PenerapanTagihanTahap::DIBUAT) {
+                        $tagihanTerpasang->put(
+                            PenerapanTagihanTahap::kunciPramuat((int) $mahasiswa->id, (int) $tahap),
+                            $penerapan['tagihan'],
+                        );
                     }
 
-                    $total = (float) $rincian->sum('nominal');
-                    $tagihan = Tagihan::create([
-                        'id_mahasiswa' => $mahasiswa->id,
-                        'id_semester' => $group['id_periode'],
-                        'no_tagihan' => $this->generateNoTagihan(),
-                        'total' => $total,
-                        'status' => 'unpaid',
-                        'tanggal_tagihan' => $tanggalTagihan,
-                        'tanggal_jatuh_tempo' => $tanggalJatuhTempo,
-                        'keterangan' => $keterangan,
-                    ]);
-
-                    foreach ($rincian as $row) {
-                        TagihanRinci::create([
-                            'id_tagihan' => $tagihan->id,
-                            'id_komponen_biaya' => $row['id_komponen_biaya'],
-                            'nominal' => $row['nominal'],
-                        ]);
-                    }
-
-                    $createdCount++;
+                    match ($penerapan['hasil']) {
+                        PenerapanTagihanTahap::DIBUAT => $createdCount++,
+                        PenerapanTagihanTahap::DITAMBAH => $updatedCount++,
+                        default => $skippedCount++,
+                    };
                 }
             }
         });
 
         $this->closeGenerateModal();
-        session()->flash('status', "Generate selesai. Berhasil: {$createdCount}, Dilewati: {$skippedCount}.");
+        $pesan = "Generate selesai. Berhasil: {$createdCount}";
+        if ($updatedCount > 0) {
+            $pesan .= ", Ditambahkan ke tagihan yang sudah ada: {$updatedCount}";
+        }
+        $pesan .= ", Dilewati: {$skippedCount}.";
+
+        session()->flash('status', $pesan);
     }
 
     public function render()

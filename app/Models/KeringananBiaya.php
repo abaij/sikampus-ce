@@ -2,12 +2,15 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\MencatatPelaku;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
+
 class KeringananBiaya extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, MencatatPelaku, SoftDeletes;
 
     protected $table = 'keringanan_biaya';
 
@@ -49,22 +52,22 @@ class KeringananBiaya extends Model
         return $base.'/storage/'.ltrim($this->file_lampiran, '/');
     }
 
-    public function jenisKeringananBiaya(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    public function jenisKeringananBiaya(): BelongsTo
     {
         return $this->belongsTo(JenisKeringananBiaya::class, 'id_jenis_keringanan_biaya');
     }
 
-    public function mahasiswa(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    public function mahasiswa(): BelongsTo
     {
         return $this->belongsTo(Mahasiswa::class, 'id_mahasiswa');
     }
 
-    public function semester(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    public function semester(): BelongsTo
     {
         return $this->belongsTo(Semester::class, 'id_semester');
     }
 
-    public function aturanAksesKeuangan(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    public function aturanAksesKeuangan(): BelongsTo
     {
         return $this->belongsTo(AturanAksesKeuangan::class, 'id_aturan_akses_keuangan');
     }

@@ -1,12 +1,12 @@
-# SIAK Backend
+# Sikampus Public License
 
-Backend **SIAK (Sistem Informasi Akademik)** — sebuah REST API berbasis Laravel 12 untuk sistem
+**Sikampus** — sebuah aplikasi sistem informasi akademik berbasis Laravel 12 untuk sistem
 informasi akademik perguruan tinggi, dilengkapi modul **PMB (Penerimaan Mahasiswa Baru)** yang
 terintegrasi di dalamnya.
 
 ## 1. Gambaran Sekilas
 
-SIAK Backend menyediakan API yang dikonsumsi oleh aplikasi frontend terpisah (mahasiswa, dosen, dan
+Sikampus menyediakan API yang dikonsumsi oleh aplikasi frontend terpisah (mahasiswa, dosen, dan
 panel admin), serta panel web berbasis Blade + Livewire yang ringan khusus untuk superadmin (edit
 konfigurasi environment, memicu migrasi database, dan pengujian upload file).
 

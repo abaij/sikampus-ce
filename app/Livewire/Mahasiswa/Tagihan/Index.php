@@ -6,8 +6,10 @@ use App\Models\Mahasiswa;
 use App\Models\Pembayaran;
 use App\Models\Tagihan;
 use App\Services\KeringananBiayaKreditService;
+use App\Services\PenomoranDokumen;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
@@ -138,40 +140,28 @@ class Index extends Component
         $filename = 'bukti_tagihan_'.$tagihan->id.'_'.time().'_'.uniqid('', true).'.'.$file->getClientOriginalExtension();
         $path = $file->storeAs('pembayaran/bukti', $filename, 'public');
 
-        $mahasiswa = Mahasiswa::find($this->mahasiswaId);
-
-        Pembayaran::create([
-            'id_tagihan' => $tagihan->id,
-            'no_pembayaran' => $this->generateNoPembayaran(),
-            'nominal' => $nominal,
-            'tanggal_pembayaran' => now(),
-            'metode_pembayaran' => 'upload_mahasiswa',
-            'bukti_bayar' => $path,
-            'keterangan' => null,
-            'approved_at' => null,
-            'approved_by' => null,
-            'created_by' => $mahasiswa->nama,
-        ]);
+        // Dibungkus transaksi supaya penguncian nomor di PenomoranDokumen benar-benar berlaku:
+        // ini jalur paling ramai (banyak mahasiswa mengunggah bukti bersamaan saat masa
+        // pembayaran), dan tanpa transaksi lockForUpdate langsung dilepas begitu query selesai.
+        // `created_by` diisi otomatis oleh trait MencatatPelaku dengan pengenal user mahasiswa.
+        DB::transaction(function () use ($tagihan, $nominal, $path): void {
+            Pembayaran::create([
+                'id_tagihan' => $tagihan->id,
+                'no_pembayaran' => PenomoranDokumen::pembayaran(),
+                'nominal' => $nominal,
+                'tanggal_pembayaran' => now(),
+                'metode_pembayaran' => 'upload_mahasiswa',
+                'bukti_bayar' => $path,
+                'keterangan' => null,
+                'approved_at' => null,
+                'approved_by' => null,
+            ]);
+        });
 
         $this->payModalTagihanId = null;
         $this->resetValidation();
         unset($this->tagihanList);
         session()->flash('status', 'Bukti pembayaran berhasil dikirim dan menunggu verifikasi.');
-    }
-
-    /**
-     * Sama persis dengan PembayaranController::generateNoPembayaran.
-     */
-    private function generateNoPembayaran(): string
-    {
-        $prefix = 'PAY-'.now()->format('Ymd').'-';
-        $last = Pembayaran::where('no_pembayaran', 'like', "{$prefix}%")
-            ->orderByDesc('no_pembayaran')
-            ->value('no_pembayaran');
-
-        $seq = $last ? ((int) substr($last, -4)) + 1 : 1;
-
-        return $prefix.str_pad((string) $seq, 4, '0', STR_PAD_LEFT);
     }
 
     public function render()

@@ -2,13 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\MencatatPelaku;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Pembayaran extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, MencatatPelaku, SoftDeletes;
 
     protected $table = 'pembayaran';
 

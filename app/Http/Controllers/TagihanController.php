@@ -11,8 +11,12 @@ use App\Models\StrukturBiaya;
 use App\Models\Tagihan;
 use App\Models\TagihanRinci;
 use App\Models\User;
+use App\Services\JadwalTagihanTahap;
 use App\Services\KeringananBiayaKreditService;
 use App\Services\KeuanganAksesMahasiswaService;
+use App\Services\PenerapanTagihanTahap;
+use App\Services\PenomoranDokumen;
+use App\Services\SeriNomorDokumen;
 use App\Services\StatusPembayaranTagihan;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
@@ -29,33 +33,6 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class TagihanController extends Controller
 {
-    /**
-     * Generate nomor tagihan otomatis
-     * Format: INV-YYYYMMDD-XXXX
-     * Contoh: INV-20260113-0001
-     */
-    private function generateNoTagihan(): string
-    {
-        $date = date('Ymd');
-        $prefix = "INV-{$date}-";
-
-        // Get the last tagihan number for today
-        $lastTagihan = Tagihan::where('no_tagihan', 'like', "{$prefix}%")
-            ->orderBy('no_tagihan', 'desc')
-            ->first();
-
-        if ($lastTagihan) {
-            // Extract the number part and increment
-            $lastNumber = (int) substr($lastTagihan->no_tagihan, -4);
-            $newNumber = $lastNumber + 1;
-        } else {
-            // First tagihan of the day
-            $newNumber = 1;
-        }
-
-        return $prefix.str_pad($newNumber, 4, '0', STR_PAD_LEFT);
-    }
-
     /**
      * Status tampilan admin. Rumusnya tinggal satu, di StatusPembayaranTagihan.
      *
@@ -631,9 +608,33 @@ class TagihanController extends Controller
 
         $keteranganBase = $validated['keterangan'] ?? 'Generate otomatis dari struktur biaya';
 
+        // Tanggal berasal dari periode yang ditagih atau dari isian operator — tidak lagi dari
+        // Carbon::now(), yang membuat tagihan periode lama bertanggal hari generate dijalankan.
+        $jadwal = JadwalTagihanTahap::resolve(
+            Semester::find($validated['id_periode']),
+            $validated['tanggal_tagihan'] ?? null,
+            $validated['tanggal_jatuh_tempo'] ?? null,
+        );
+
+        if (! $jadwal) {
+            return response()->json([
+                'message' => JadwalTagihanTahap::pesanTanggalTidakDiketahui(),
+            ], 422);
+        }
+
+        // Dua pramuat untuk memangkas query berulang di dalam loop: nomor dokumen dikunci
+        // sekali lalu dilanjutkan di memori, dan tagihan yang sudah ada diambil dalam satu query.
+        $seriNomor = SeriNomorDokumen::tagihan();
+        $tagihanTerpasang = PenerapanTagihanTahap::pramuat(
+            (int) $validated['id_periode'],
+            $mahasiswaList->pluck('id')->map(fn ($id) => (int) $id)->all(),
+        );
+
         $createdCount = 0;
+        $updatedCount = 0;
         $skippedCount = 0;
         $detailSkipped = [];
+        $detailDitambah = [];
 
         DB::beginTransaction();
         try {
@@ -723,62 +724,66 @@ class TagihanController extends Controller
                         continue;
                     }
 
-                    $baseMonth = Carbon::now()->startOfMonth();
-                    $monthOffset = max(0, ((int) $tahap) - 1);
-                    $tanggalTagihan = $baseMonth->copy()->addMonths($monthOffset)->day(1)->toDateString();
-                    $tanggalJatuhTempo = $baseMonth->copy()->addMonths($monthOffset)->day(15)->toDateString();
-                    $keterangan = $keteranganBase;
-
-                    // Dulu deteksi kembar membaca penanda teks "[TAHAP:n]" di kolom keterangan
-                    // yang bebas diedit siapa saja; sekarang memakai kolom tahap.
-                    if ($this->tagihanKembarExists(
+                    // Komponen yang belum tercatat digabungkan ke tagihan tahap ini; dulu
+                    // seluruh generate dilewati begitu tahapnya sudah punya tagihan, sehingga
+                    // komponen biaya kedua tidak pernah tertagih.
+                    $penerapan = PenerapanTagihanTahap::terapkan(
                         (int) $mahasiswa->id,
                         (int) $validated['id_periode'],
-                        (int) $tahap
-                    )) {
+                        (int) $tahap,
+                        $rincian,
+                        $jadwal->untukTahap((int) $tahap),
+                        $keteranganBase,
+                        fn () => $seriNomor->berikutnya(),
+                        $tagihanTerpasang->get(PenerapanTagihanTahap::kunciPramuat((int) $mahasiswa->id, (int) $tahap)),
+                        sudahDipramuat: true,
+                    );
+
+                    if ($penerapan['hasil'] === PenerapanTagihanTahap::DIBUAT) {
+                        $tagihanTerpasang->put(
+                            PenerapanTagihanTahap::kunciPramuat((int) $mahasiswa->id, (int) $tahap),
+                            $penerapan['tagihan'],
+                        );
+                    }
+
+                    if ($penerapan['hasil'] === PenerapanTagihanTahap::DIBUAT) {
+                        $createdCount++;
+                    } elseif ($penerapan['hasil'] === PenerapanTagihanTahap::DITAMBAH) {
+                        $updatedCount++;
+                        $detailDitambah[] = [
+                            'id_mahasiswa' => $mahasiswa->id,
+                            'nim' => $mahasiswa->nim,
+                            'nama' => $mahasiswa->nama,
+                            'no_tagihan' => $penerapan['tagihan']->no_tagihan,
+                            'komponen_baru' => $penerapan['komponen_baru'],
+                        ];
+                    } else {
                         $skippedCount++;
                         $detailSkipped[] = [
                             'id_mahasiswa' => $mahasiswa->id,
                             'nim' => $mahasiswa->nim,
                             'nama' => $mahasiswa->nama,
-                            'reason' => "Tagihan tahap {$tahap} untuk periode ini sudah ada",
+                            'reason' => $penerapan['alasan'],
                         ];
-
-                        continue;
                     }
-
-                    $total = (float) $rincian->sum('nominal');
-                    $tagihan = Tagihan::create([
-                        'id_mahasiswa' => $mahasiswa->id,
-                        'id_semester' => $validated['id_periode'],
-                        'no_tagihan' => $this->generateNoTagihan(),
-                        'total' => $total,
-                        'tahap' => (int) $tahap,
-                        'status' => 'unpaid',
-                        'tanggal_tagihan' => $tanggalTagihan,
-                        'tanggal_jatuh_tempo' => $tanggalJatuhTempo,
-                        'keterangan' => $keterangan,
-                    ]);
-
-                    foreach ($rincian as $row) {
-                        TagihanRinci::create([
-                            'id_tagihan' => $tagihan->id,
-                            'id_komponen_biaya' => $row['id_komponen_biaya'],
-                            'nominal' => $row['nominal'],
-                        ]);
-                    }
-
-                    $createdCount++;
                 }
             }
 
             DB::commit();
 
+            $pesan = "Generate selesai. Berhasil: {$createdCount}";
+            if ($updatedCount > 0) {
+                $pesan .= ", Ditambahkan ke tagihan yang sudah ada: {$updatedCount}";
+            }
+            $pesan .= ", Dilewati: {$skippedCount}.";
+
             return response()->json([
-                'message' => "Generate selesai. Berhasil: {$createdCount}, Dilewati: {$skippedCount}.",
+                'message' => $pesan,
                 'created_count' => $createdCount,
+                'updated_count' => $updatedCount,
                 'skipped_count' => $skippedCount,
                 'skipped_detail' => $detailSkipped,
+                'updated_detail' => $detailDitambah,
             ]);
         } catch (\Throwable $e) {
             DB::rollBack();
@@ -840,7 +845,7 @@ class TagihanController extends Controller
         DB::beginTransaction();
         try {
             // Generate nomor tagihan otomatis
-            $noTagihan = $this->generateNoTagihan();
+            $noTagihan = PenomoranDokumen::tagihan();
 
             $tagihan = Tagihan::create([
                 'id_mahasiswa' => $validated['id_mahasiswa'],
@@ -1413,7 +1418,7 @@ class TagihanController extends Controller
                     $rincian,
                     $total
                 ) {
-                    $noTagihan = $this->generateNoTagihan();
+                    $noTagihan = PenomoranDokumen::tagihan();
 
                     $tagihan = Tagihan::create([
                         'id_mahasiswa' => $mahasiswa->id,

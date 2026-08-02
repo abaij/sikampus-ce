@@ -7,8 +7,9 @@ use App\Models\Mahasiswa;
 use App\Models\Pembayaran;
 use App\Models\Tagihan;
 use App\Services\KeringananBiayaKreditService;
+use App\Services\PelakuAksi;
+use App\Services\PenomoranDokumen;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
@@ -189,20 +190,16 @@ class Form extends Component
             return;
         }
 
-        $user = Auth::user();
-        $userName = $user?->name ?? 'admin';
-
-        DB::transaction(function () use ($validated, $tagihan, $userName) {
+        DB::transaction(function () use ($validated, $tagihan) {
             $pembayaran = Pembayaran::create([
                 'id_tagihan' => $validated['id_tagihan'],
-                'no_pembayaran' => $this->generateNoPembayaran(),
+                'no_pembayaran' => PenomoranDokumen::pembayaran(),
                 'nominal' => $validated['nominal'],
                 'tanggal_pembayaran' => $validated['tanggal_pembayaran'] ?: now(),
                 'metode_pembayaran' => $validated['metode_pembayaran'] ?: null,
                 'keterangan' => $validated['keterangan'] ?: null,
                 'approved_at' => now(),
-                'approved_by' => $userName,
-                'created_by' => $userName,
+                'approved_by' => PelakuAksi::sekarang(),
             ]);
 
             if ($tagihan->lunasMenurutPembayaranDisetujui()) {
@@ -236,13 +233,22 @@ class Form extends Component
             return;
         }
 
-        DB::transaction(function () use ($validated, $pembayaran, $tagihan) {
+        // Sama persis dengan PembayaranController::update — nominal yang sudah disetujui tidak
+        // boleh bergeser diam-diam, jadi persetujuannya gugur dan harus di-ACC ulang.
+        $persetujuanDireset = $pembayaran->approved_at !== null
+            && abs((float) $validated['nominal'] - (float) $pembayaran->nominal) > 0.001;
+
+        DB::transaction(function () use ($validated, $pembayaran, $tagihan, $persetujuanDireset) {
             $pembayaran->update([
                 'nominal' => $validated['nominal'],
                 'tanggal_pembayaran' => $validated['tanggal_pembayaran'] ?: null,
                 'metode_pembayaran' => $validated['metode_pembayaran'] ?: null,
                 'keterangan' => $validated['keterangan'] ?: null,
             ]);
+
+            if ($persetujuanDireset) {
+                $pembayaran->update(['approved_at' => null, 'approved_by' => null]);
+            }
 
             if ($tagihan->lunasMenurutPembayaranDisetujui()) {
                 $tagihan->update([
@@ -257,26 +263,11 @@ class Form extends Component
             }
         });
 
-        session()->flash('status', 'Pembayaran berhasil disimpan.');
+        session()->flash('status', $persetujuanDireset
+            ? 'Pembayaran disimpan. Karena nominalnya berubah, persetujuan dicabut dan pembayaran ini perlu di-ACC ulang.'
+            : 'Pembayaran berhasil disimpan.');
 
         return redirect($this->backUrl);
-    }
-
-    /**
-     * Sama persis dengan PembayaranController::generateNoPembayaran.
-     */
-    private function generateNoPembayaran(): string
-    {
-        $date = date('Ymd');
-        $prefix = "PAY-{$date}-";
-
-        $lastPembayaran = Pembayaran::where('no_pembayaran', 'like', "{$prefix}%")
-            ->orderBy('no_pembayaran', 'desc')
-            ->first();
-
-        $newNumber = $lastPembayaran ? ((int) substr($lastPembayaran->no_pembayaran, -4)) + 1 : 1;
-
-        return $prefix.str_pad((string) $newNumber, 4, '0', STR_PAD_LEFT);
     }
 
     public function render()

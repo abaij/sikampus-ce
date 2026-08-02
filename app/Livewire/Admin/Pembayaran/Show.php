@@ -5,6 +5,7 @@ namespace App\Livewire\Admin\Pembayaran;
 use App\Livewire\Admin\Pembayaran\Concerns\ForwardsIndexState;
 use App\Models\Notifikasi;
 use App\Models\Pembayaran;
+use App\Services\PelakuAksi;
 use App\Support\PanelAccess;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -97,8 +98,7 @@ class Show extends Component
         }
 
         $tagihan = $this->pembayaran->tagihan;
-        $user = Auth::user();
-        $approver = $user?->name ?? $user?->email ?? 'admin';
+        $approver = PelakuAksi::sekarang();
 
         DB::transaction(function () use ($tagihan, $approver) {
             $this->pembayaran->update([

@@ -13,7 +13,7 @@ use Livewire\Livewire;
 
 it('renders the generate tagihan page as a full page', function () {
     $admin = adminUser();
-    $periode = Semester::factory()->create(['nama' => 'Periode Uji']);
+    $periode = Semester::factory()->create(['nama' => 'Periode Uji', 'tanggal_mulai' => '2024-09-01']);
     $angkatan = Semester::factory()->create();
     StrukturBiaya::factory()->create(['id_periode' => $periode->id, 'id_angkatan' => $angkatan->id]);
 
@@ -27,7 +27,7 @@ it('groups struktur biaya rows by periode/angkatan/prodi/komponen, collecting al
     $admin = adminUser();
     $prodi = Prodi::factory()->create();
     $angkatan = Semester::factory()->create();
-    $periode = Semester::factory()->create();
+    $periode = Semester::factory()->create(['tanggal_mulai' => '2024-09-01']);
     $komponen = KomponenBiaya::factory()->create();
 
     StrukturBiaya::factory()->create([
@@ -49,7 +49,7 @@ it('groups struktur biaya rows by periode/angkatan/prodi/komponen, collecting al
 it('generates tagihan for every matching mahasiswa across all tahap', function () {
     $admin = adminUser();
     $angkatan = Semester::factory()->create();
-    $periode = Semester::factory()->create();
+    $periode = Semester::factory()->create(['tanggal_mulai' => '2024-09-01']);
     $komponen = KomponenBiaya::factory()->create();
 
     StrukturBiaya::factory()->create([
@@ -79,16 +79,17 @@ it('generates tagihan for every matching mahasiswa across all tahap', function (
     expect(Tagihan::where('id_mahasiswa', $mahasiswaB->id)->count())->toBe(2);
     expect(Tagihan::count())->toBe(4);
 
-    $tahap1 = Tagihan::where('id_mahasiswa', $mahasiswaA->id)->where('keterangan', 'like', '%[TAHAP:1]%')->first();
+    // Tahap dibaca dari kolomnya, bukan dari penanda teks di keterangan.
+    $tahap1 = Tagihan::where('id_mahasiswa', $mahasiswaA->id)->where('tahap', 1)->first();
     expect((float) $tahap1->total)->toBe(1000000.0);
-    $tahap2 = Tagihan::where('id_mahasiswa', $mahasiswaA->id)->where('keterangan', 'like', '%[TAHAP:2]%')->first();
+    $tahap2 = Tagihan::where('id_mahasiswa', $mahasiswaA->id)->where('tahap', 2)->first();
     expect((float) $tahap2->total)->toBe(500000.0);
 });
 
 it('only generates the selected tahap when opsi tahap is specific', function () {
     $admin = adminUser();
     $angkatan = Semester::factory()->create();
-    $periode = Semester::factory()->create();
+    $periode = Semester::factory()->create(['tanggal_mulai' => '2024-09-01']);
     $komponen = KomponenBiaya::factory()->create();
 
     StrukturBiaya::factory()->create([
@@ -113,13 +114,13 @@ it('only generates the selected tahap when opsi tahap is specific', function () 
         ->assertHasNoErrors();
 
     expect(Tagihan::where('id_mahasiswa', $mahasiswa->id)->count())->toBe(1);
-    expect(Tagihan::where('id_mahasiswa', $mahasiswa->id)->first()->keterangan)->toContain('[TAHAP:2]');
+    expect(Tagihan::where('id_mahasiswa', $mahasiswa->id)->first()->tahap)->toBe(2);
 });
 
 it('requires a tahap to be selected when opsi tahap is specific', function () {
     $admin = adminUser();
     $angkatan = Semester::factory()->create();
-    $periode = Semester::factory()->create();
+    $periode = Semester::factory()->create(['tanggal_mulai' => '2024-09-01']);
     StrukturBiaya::factory()->create([
         'id_prodi' => null, 'id_angkatan' => $angkatan->id, 'id_periode' => $periode->id,
         'id_komponen_biaya' => null, 'tahap' => 1,
@@ -140,7 +141,7 @@ it('requires a tahap to be selected when opsi tahap is specific', function () {
 it('skips mahasiswa whose active kategori biaya does not match a kategori-specific struktur biaya', function () {
     $admin = adminUser();
     $angkatan = Semester::factory()->create();
-    $periode = Semester::factory()->create();
+    $periode = Semester::factory()->create(['tanggal_mulai' => '2024-09-01']);
     $komponen = KomponenBiaya::factory()->create();
     $kategoriA = KategoriBiaya::factory()->create();
     $kategoriB = KategoriBiaya::factory()->create();
@@ -167,7 +168,7 @@ it('skips mahasiswa whose active kategori biaya does not match a kategori-specif
 it('skips a mahasiswa/tahap combination that already has a generated tagihan', function () {
     $admin = adminUser();
     $angkatan = Semester::factory()->create();
-    $periode = Semester::factory()->create();
+    $periode = Semester::factory()->create(['tanggal_mulai' => '2024-09-01']);
     $komponen = KomponenBiaya::factory()->create();
 
     StrukturBiaya::factory()->create([
@@ -194,7 +195,7 @@ it('admin dengan scope prodi hanya melihat grup struktur biaya milik prodinya', 
     scopeAdminToProdi($admin, $prodiA->id);
 
     $angkatan = Semester::factory()->create();
-    $periode = Semester::factory()->create();
+    $periode = Semester::factory()->create(['tanggal_mulai' => '2024-09-01']);
     StrukturBiaya::factory()->create(['id_prodi' => $prodiA->id, 'id_angkatan' => $angkatan->id, 'id_periode' => $periode->id]);
     StrukturBiaya::factory()->create(['id_prodi' => $prodiB->id, 'id_angkatan' => $angkatan->id, 'id_periode' => $periode->id]);
     // Grup lintas-prodi (id_prodi null) juga tidak boleh terlihat oleh admin yang di-scope.

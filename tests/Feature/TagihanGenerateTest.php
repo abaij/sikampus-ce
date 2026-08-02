@@ -12,7 +12,7 @@ use App\Models\User;
 
 it('generate tagihan dari struktur biaya menjumlahkan seluruh komponen dalam satu tahap', function () {
     $admin = adminUser('admin_keuangan');
-    $periode = Semester::factory()->create();
+    $periode = Semester::factory()->create(['tanggal_mulai' => '2024-09-01']);
     $angkatan = Semester::factory()->create();
     $mahasiswa = Mahasiswa::factory()->create(['id_semester_masuk' => $angkatan->id]);
 
@@ -44,7 +44,7 @@ it('generate tagihan dari struktur biaya menjumlahkan seluruh komponen dalam sat
 
 it('hanya menagih mahasiswa dengan kategori biaya yang cocok saat struktur biaya dibatasi per kategori', function () {
     $admin = adminUser('admin_keuangan');
-    $periode = Semester::factory()->create();
+    $periode = Semester::factory()->create(['tanggal_mulai' => '2024-09-01']);
     $angkatan = Semester::factory()->create();
 
     $kategoriReguler = KategoriBiaya::factory()->create(['nama' => 'Reguler']);
@@ -77,7 +77,7 @@ it('hanya menagih mahasiswa dengan kategori biaya yang cocok saat struktur biaya
 
 it('tidak membuat tagihan duplikat kalau tahap yang sama sudah pernah di-generate untuk periode itu', function () {
     $admin = adminUser('admin_keuangan');
-    $periode = Semester::factory()->create();
+    $periode = Semester::factory()->create(['tanggal_mulai' => '2024-09-01']);
     $angkatan = Semester::factory()->create();
     Mahasiswa::factory()->create(['id_semester_masuk' => $angkatan->id]);
 
@@ -101,7 +101,7 @@ it('tidak membuat tagihan duplikat kalau tahap yang sama sudah pernah di-generat
 
 it('menandai tahap pada kolom, bukan lagi sebagai penanda teks di keterangan', function () {
     $admin = adminUser('admin_keuangan');
-    $periode = Semester::factory()->create();
+    $periode = Semester::factory()->create(['tanggal_mulai' => '2024-09-01']);
     $angkatan = Semester::factory()->create();
     $mahasiswa = Mahasiswa::factory()->create(['id_semester_masuk' => $angkatan->id]);
 
@@ -131,7 +131,7 @@ it('menandai tahap pada kolom, bukan lagi sebagai penanda teks di keterangan', f
  */
 it('tetap melewati tahap yang sudah ada walau keterangannya sudah diedit manual', function () {
     $admin = adminUser('admin_keuangan');
-    $periode = Semester::factory()->create();
+    $periode = Semester::factory()->create(['tanggal_mulai' => '2024-09-01']);
     $angkatan = Semester::factory()->create();
     Mahasiswa::factory()->create(['id_semester_masuk' => $angkatan->id]);
 
@@ -154,7 +154,7 @@ it('tetap melewati tahap yang sudah ada walau keterangannya sudah diedit manual'
 
 it('menolak generate tagihan oleh user yang bukan admin keuangan', function () {
     $mahasiswaUser = User::factory()->create(['role' => 'mahasiswa']);
-    $periode = Semester::factory()->create();
+    $periode = Semester::factory()->create(['tanggal_mulai' => '2024-09-01']);
     $angkatan = Semester::factory()->create();
 
     $this->actingAs($mahasiswaUser)->postJson('/api/tagihan/generate', [

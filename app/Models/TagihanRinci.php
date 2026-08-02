@@ -2,17 +2,21 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
+use App\Models\Concerns\MencatatPelaku;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class TagihanRinci extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, MencatatPelaku, SoftDeletes;
 
     protected $table = 'tagihan_rinci';
+
     protected $fillable = ['id_tagihan', 'id_komponen_biaya', 'nominal'];
+
     protected $hidden = ['created_at', 'updated_at', 'deleted_at'];
+
     protected $casts = [
         'id_tagihan' => 'integer',
         'id_komponen_biaya' => 'integer',

@@ -9,6 +9,7 @@ use App\Models\Semester;
 use App\Models\StrukturBiaya;
 use App\Models\Tagihan;
 use App\Models\TagihanRinci;
+use App\Services\PenomoranDokumen;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -329,7 +330,7 @@ class Form extends Component
                 $tagihan = Tagihan::create([
                     'id_mahasiswa' => $validated['id_mahasiswa'],
                     'id_semester' => $validated['id_semester'],
-                    'no_tagihan' => $this->generateNoTagihan(),
+                    'no_tagihan' => PenomoranDokumen::tagihan(),
                     'total' => $total,
                     'tahap' => $tahap,
                     'status' => $validated['status'] ?: 'unpaid',
@@ -354,23 +355,6 @@ class Form extends Component
         session()->flash('status', 'Tagihan berhasil disimpan.');
 
         return redirect($this->backUrl);
-    }
-
-    /**
-     * Sama persis dengan TagihanController::generateNoTagihan.
-     */
-    private function generateNoTagihan(): string
-    {
-        $date = date('Ymd');
-        $prefix = "INV-{$date}-";
-
-        $lastTagihan = Tagihan::where('no_tagihan', 'like', "{$prefix}%")
-            ->orderBy('no_tagihan', 'desc')
-            ->first();
-
-        $newNumber = $lastTagihan ? ((int) substr($lastTagihan->no_tagihan, -4)) + 1 : 1;
-
-        return $prefix.str_pad((string) $newNumber, 4, '0', STR_PAD_LEFT);
     }
 
     public function render()

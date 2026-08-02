@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\MencatatPelaku;
 use App\Services\StatusPembayaranTagihan;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -9,7 +10,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Tagihan extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, MencatatPelaku, SoftDeletes;
 
     protected $table = 'tagihan';
 

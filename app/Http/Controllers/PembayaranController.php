@@ -9,6 +9,8 @@ use App\Models\Prodi;
 use App\Models\Semester;
 use App\Models\Tagihan;
 use App\Services\KeringananBiayaKreditService;
+use App\Services\PelakuAksi;
+use App\Services\PenomoranDokumen;
 use App\Services\StatusPembayaranTagihan;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
@@ -26,33 +28,6 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class PembayaranController extends Controller
 {
-    /**
-     * Generate nomor pembayaran otomatis
-     * Format: PAY-YYYYMMDD-XXXX
-     * Contoh: PAY-20260116-0001
-     */
-    private function generateNoPembayaran(): string
-    {
-        $date = date('Ymd');
-        $prefix = "PAY-{$date}-";
-
-        // Get the last pembayaran number for today
-        $lastPembayaran = Pembayaran::where('no_pembayaran', 'like', "{$prefix}%")
-            ->orderBy('no_pembayaran', 'desc')
-            ->first();
-
-        if ($lastPembayaran) {
-            // Extract the number part and increment
-            $lastNumber = (int) substr($lastPembayaran->no_pembayaran, -4);
-            $newNumber = $lastNumber + 1;
-        } else {
-            // First pembayaran of the day
-            $newNumber = 1;
-        }
-
-        return $prefix.str_pad($newNumber, 4, '0', STR_PAD_LEFT);
-    }
-
     /**
      * Query daftar pembayaran (sama untuk index & ekspor Excel).
      */
@@ -513,7 +488,7 @@ class PembayaranController extends Controller
         DB::beginTransaction();
         try {
             // Generate nomor pembayaran
-            $noPembayaran = $this->generateNoPembayaran();
+            $noPembayaran = PenomoranDokumen::pembayaran();
 
             // Create pembayaran
             $pembayaran = Pembayaran::create([
@@ -524,8 +499,7 @@ class PembayaranController extends Controller
                 'metode_pembayaran' => $validated['metode_pembayaran'] ?? null,
                 'keterangan' => $validated['keterangan'] ?? null,
                 'approved_at' => now(),
-                'approved_by' => $request->user()->name ?? 'admin',
-                'created_by' => $request->user()->name ?? 'admin',
+                'approved_by' => PelakuAksi::sekarang(),
             ]);
 
             // Update status tagihan jika sudah lunas
@@ -577,7 +551,7 @@ class PembayaranController extends Controller
         }
 
         $tagihan = $pembayaran->tagihan;
-        $approver = $request->user()->name ?? $request->user()->email ?? 'admin';
+        $approver = PelakuAksi::sekarang();
 
         DB::beginTransaction();
         try {
@@ -658,6 +632,12 @@ class PembayaranController extends Controller
             }
         }
 
+        // Nominal yang sudah disetujui tidak boleh bergeser diam-diam: begitu diubah,
+        // persetujuannya gugur dan pembayaran wajib di-ACC ulang oleh yang berwenang.
+        $nominalBerubah = isset($validated['nominal'])
+            && abs((float) $validated['nominal'] - (float) $pembayaran->nominal) > 0.001;
+        $persetujuanDireset = $nominalBerubah && $pembayaran->approved_at !== null;
+
         DB::beginTransaction();
         try {
             // Update pembayaran
@@ -667,6 +647,10 @@ class PembayaranController extends Controller
                 'metode_pembayaran' => $validated['metode_pembayaran'] ?? $pembayaran->metode_pembayaran,
                 'keterangan' => $validated['keterangan'] ?? $pembayaran->keterangan,
             ]);
+
+            if ($persetujuanDireset) {
+                $pembayaran->update(['approved_at' => null, 'approved_by' => null]);
+            }
 
             if ($tagihan->lunasMenurutPembayaranDisetujui()) {
                 $tagihan->update([
@@ -683,7 +667,13 @@ class PembayaranController extends Controller
             DB::commit();
             $pembayaran->load(['tagihan.mahasiswa.prodi', 'tagihan.semester']);
 
-            return response()->json($pembayaran);
+            $payload = $pembayaran->toArray();
+            $payload['persetujuan_direset'] = $persetujuanDireset;
+            if ($persetujuanDireset) {
+                $payload['message'] = 'Nominal berubah, sehingga persetujuan dicabut. Pembayaran ini perlu di-ACC ulang.';
+            }
+
+            return response()->json($payload);
         } catch (\Exception $e) {
             DB::rollBack();
 
@@ -836,7 +826,7 @@ class PembayaranController extends Controller
         $lastNumber = $lastPembayaran ? (int) substr($lastPembayaran->no_pembayaran, -4) : 0;
         $pembayaranCounter = 0;
 
-        $importApprover = $request->user()->name ?? $request->user()->email ?? 'import';
+        $importApprover = PelakuAksi::sekarang();
 
         DB::beginTransaction();
         try {
@@ -1029,7 +1019,7 @@ class PembayaranController extends Controller
             $filename = 'bukti_tagihan_'.$tagihan->id.'_'.time().'_'.uniqid('', true).'.'.$file->getClientOriginalExtension();
             $path = $file->storeAs('pembayaran/bukti', $filename, 'public');
 
-            $noPembayaran = $this->generateNoPembayaran();
+            $noPembayaran = PenomoranDokumen::pembayaran();
             $pembayaran = Pembayaran::create([
                 'id_tagihan' => $tagihan->id,
                 'no_pembayaran' => $noPembayaran,
@@ -1040,7 +1030,6 @@ class PembayaranController extends Controller
                 'keterangan' => null,
                 'approved_at' => null,
                 'approved_by' => null,
-                'created_by' => $mahasiswa->nama,
             ]);
 
             DB::commit();

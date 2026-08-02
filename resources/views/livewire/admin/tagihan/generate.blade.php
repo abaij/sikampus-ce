@@ -137,6 +137,32 @@
                         @error('selectedTahap') <p class="mt-1.5 text-sm text-red-600">{{ $message }}</p> @enderror
                     </div>
 
+                    {{-- Tanggal ini dulu divalidasi di API lalu dibuang; sekarang benar-benar
+                         dipakai, dan kalau dikosongkan diambil dari tanggal mulai periode. --}}
+                    <div class="grid gap-3 sm:grid-cols-2">
+                        <div>
+                            <label class="mb-1.5 block text-sm font-medium text-neutral-700">Tanggal Tagihan (tahap 1)</label>
+                            <input
+                                type="date"
+                                wire:model.live="tanggalTagihan"
+                                class="w-full rounded-lg px-3 py-2.5 text-sm outline-none focus:border-neutral-900 focus:ring-2 focus:ring-neutral-900/10 @error('tanggalTagihan') ring-2 ring-red-500 @enderror shadow-border"
+                            />
+                        </div>
+                        <div>
+                            <label class="mb-1.5 block text-sm font-medium text-neutral-700">Jatuh Tempo (tahap 1)</label>
+                            <input
+                                type="date"
+                                wire:model.live="tanggalJatuhTempo"
+                                class="w-full rounded-lg px-3 py-2.5 text-sm outline-none focus:border-neutral-900 focus:ring-2 focus:ring-neutral-900/10 @error('tanggalJatuhTempo') ring-2 ring-red-500 @enderror shadow-border"
+                            />
+                        </div>
+                    </div>
+                    <p class="-mt-2 text-xs text-neutral-500">
+                        Kosongkan untuk memakai tanggal mulai periode yang ditagih. Tahap berikutnya digeser satu bulan per tahap.
+                    </p>
+                    @error('tanggalTagihan') <p class="-mt-2 text-sm text-red-600">{{ $message }}</p> @enderror
+                    @error('tanggalJatuhTempo') <p class="-mt-2 text-sm text-red-600">{{ $message }}</p> @enderror
+
                     <div class="rounded-lg border border-neutral-200 bg-neutral-50 p-3">
                         <div class="text-sm font-semibold text-neutral-700">Jadwal Tagihan</div>
                         <div class="mt-1 text-sm text-neutral-600">{{ $this->jadwalPreview() }}</div>
