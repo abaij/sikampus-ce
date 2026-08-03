@@ -12,8 +12,9 @@ use Illuminate\Support\Str;
 
 /**
  * Orkestrasi install plugin: simpan ZIP upload -> extract ke scratch dir (aman
- * dari zip-slip/zip-bomb) -> validasi manifest -> pindahkan ke plugins/<slug> ->
- * catat di tabel `plugins` dengan enabled=false (install tidak otomatis aktif).
+ * dari zip-slip/zip-bomb) -> validasi manifest -> pindahkan ke
+ * config('plugins.install_path')/<slug> -> catat di tabel `plugins` dengan
+ * enabled=false (install tidak otomatis aktif).
  */
 class PluginInstaller
 {
@@ -49,9 +50,17 @@ class PluginInstaller
             $installPath = config('plugins.install_path');
             $targetDir = $installPath.DIRECTORY_SEPARATOR.$manifest->slug;
 
+            // install_path bisa dikonfigurasi ke lokasi mana pun (default:
+            // storage/app/plugins, sudah writable di hampir semua deployment
+            // Laravel tanpa chmod manual) — source_path & migrations_relative_path
+            // disimpan relatif terhadap base_path() karena itu yang dipakai
+            // Plugin::sourceAbsolutePath()/migrationsAbsolutePath() dan
+            // PluginBootManager saat runtime.
+            $sourcePath = trim(Str::after($installPath, base_path()), DIRECTORY_SEPARATOR).'/'.$manifest->slug;
+
             if (File::exists($targetDir)) {
                 throw new PluginInstallException(
-                    "Direktori plugins/{$manifest->slug} sudah ada di disk (kemungkinan sisa instalasi sebelumnya yang gagal). Hapus direktori tersebut secara manual sebelum instal ulang."
+                    "Direktori {$sourcePath} sudah ada di disk (kemungkinan sisa instalasi sebelumnya yang gagal). Hapus direktori tersebut secara manual sebelum instal ulang."
                 );
             }
 
@@ -59,7 +68,7 @@ class PluginInstaller
             File::moveDirectory($scratchDir, $targetDir);
 
             $migrationsRelativePath = $manifest->hasMigrations
-                ? 'plugins/'.$manifest->slug.'/database/migrations'
+                ? $sourcePath.'/database/migrations'
                 : null;
 
             $plugin = Plugin::create([
@@ -68,7 +77,7 @@ class PluginInstaller
                 'version' => $manifest->version,
                 'description' => $manifest->description,
                 'provider_class' => $manifest->providerClass,
-                'source_path' => 'plugins/'.$manifest->slug,
+                'source_path' => $sourcePath,
                 'has_web_routes' => $manifest->hasWebRoutes,
                 'has_api_routes' => $manifest->hasApiRoutes,
                 'migrations_relative_path' => $migrationsRelativePath,

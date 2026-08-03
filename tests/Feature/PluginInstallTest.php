@@ -101,8 +101,19 @@ function pluginUploadedFile(string $zipPath): UploadedFile
     return new UploadedFile($zipPath, 'plugin.zip', 'application/zip', null, true);
 }
 
+/**
+ * source_path plugin disimpan relatif terhadap base_path() (lihat
+ * Plugin::sourceAbsolutePath()), sedangkan config('plugins.install_path')
+ * berupa path absolut (default: storage/app/plugins) — helper ini
+ * menerjemahkan slug ke path relatif itu supaya test tidak hardcode lokasi.
+ */
+function pluginSourcePath(string $slug): string
+{
+    return trim(str_replace(base_path(), '', config('plugins.install_path')), '/').'/'.$slug;
+}
+
 afterEach(function () {
-    File::deleteDirectory(base_path('plugins'));
+    File::deleteDirectory(config('plugins.install_path'));
     File::deleteDirectory(storage_path('app/private/plugin-fixtures'));
 
     // Test migrate action sengaja memakai migration DML-only (bukan CREATE TABLE)
@@ -130,7 +141,7 @@ it('installs a valid plugin zip and keeps it disabled by default', function () {
     expect($plugin)->not->toBeNull();
     expect($plugin->enabled)->toBeFalse();
     expect($plugin->provider_class)->toBe('Plugins\\TestPlugin\\TestPluginServiceProvider');
-    expect(File::isDirectory(base_path('plugins/test-plugin')))->toBeTrue();
+    expect(File::isDirectory(config('plugins.install_path').'/test-plugin'))->toBeTrue();
 });
 
 it('rejects a zip-slip attempt and does not write files outside plugins/', function () {
@@ -150,7 +161,7 @@ it('rejects a zip-slip attempt and does not write files outside plugins/', funct
 
     expect(Plugin::count())->toBe(0);
     expect(File::exists(base_path('evil.php')))->toBeFalse();
-    expect(File::isDirectory(base_path('plugins/zip-slip-plugin')))->toBeFalse();
+    expect(File::isDirectory(config('plugins.install_path').'/zip-slip-plugin'))->toBeFalse();
 });
 
 it('rejects a zip exceeding the configured max extracted size', function () {
@@ -171,7 +182,7 @@ it('rejects a zip exceeding the configured max extracted size', function () {
     $response->assertSessionHas('error');
 
     expect(Plugin::count())->toBe(0);
-    expect(File::isDirectory(base_path('plugins/oversized-plugin')))->toBeFalse();
+    expect(File::isDirectory(config('plugins.install_path').'/oversized-plugin'))->toBeFalse();
 });
 
 it('makes an enabled plugin route reachable and a disabled one 404', function () {
@@ -187,8 +198,8 @@ it('makes an enabled plugin route reachable and a disabled one 404', function ()
     (new PluginZipExtractor)->extract($zipPath, $extractDir, 102400);
     $manifest = (new PluginManifestReader)->read($extractDir);
 
-    File::ensureDirectoryExists(base_path('plugins'));
-    File::copyDirectory($extractDir, base_path('plugins/'.$slug));
+    File::ensureDirectoryExists(config('plugins.install_path'));
+    File::copyDirectory($extractDir, config('plugins.install_path').'/'.$slug);
 
     $plugin = Plugin::create([
         'name' => $manifest->name,
@@ -196,10 +207,10 @@ it('makes an enabled plugin route reachable and a disabled one 404', function ()
         'version' => $manifest->version,
         'description' => $manifest->description,
         'provider_class' => $manifest->providerClass,
-        'source_path' => 'plugins/'.$slug,
+        'source_path' => pluginSourcePath($slug),
         'has_web_routes' => true,
         'has_api_routes' => false,
-        'migrations_relative_path' => 'plugins/'.$slug.'/database/migrations',
+        'migrations_relative_path' => pluginSourcePath($slug).'/database/migrations',
         'enabled' => false,
     ]);
 
@@ -269,7 +280,7 @@ it('blocks non-superadmin users from the plugin management routes', function () 
         'slug' => 'dummy-plugin',
         'version' => '1.0.0',
         'provider_class' => 'Plugins\\DummyPlugin\\DummyPluginServiceProvider',
-        'source_path' => 'plugins/dummy-plugin',
+        'source_path' => pluginSourcePath('dummy-plugin'),
         'enabled' => false,
     ]);
 
