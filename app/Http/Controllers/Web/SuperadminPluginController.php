@@ -6,8 +6,10 @@ use App\Exceptions\Plugins\PluginInstallException;
 use App\Http\Controllers\Controller;
 use App\Models\Plugin;
 use App\Services\Plugins\PluginInstaller;
+use Illuminate\Contracts\Foundation\CachesRoutes;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\File;
 use Illuminate\View\View;
@@ -67,13 +69,30 @@ class SuperadminPluginController extends Controller
 
     public function enable(Plugin $plugin): RedirectResponse
     {
+        // Dicek SEBELUM clearCaches() (yang memanggil route:clear) supaya
+        // pesannya mencerminkan kondisi nyata yang tadi mencegah route plugin
+        // ini terdaftar — loadRoutesFrom() di provider plugin no-op kalau
+        // route sedang di-cache (lihat PluginBootManager).
+        $app = App::getFacadeRoot();
+        $hadCachedRoutes = ($plugin->has_web_routes || $plugin->has_api_routes)
+            && $app instanceof CachesRoutes
+            && $app->routesAreCached();
+
         $plugin->update(['enabled' => true, 'disabled_at' => null]);
 
         $this->clearCaches();
 
+        $status = "Plugin \"{$plugin->name}\" diaktifkan.";
+
+        if ($hadCachedRoutes) {
+            $status .= ' Catatan: routes sempat ter-cache saat plugin ini diaktifkan (sudah dibersihkan otomatis) — '
+                .'pastikan proses deploy aplikasi TIDAK menjalankan `route:cache`/`artisan optimize`, karena itu akan '
+                .'membuat route plugin berhenti terdaftar lagi sampai `route:clear` dijalankan ulang.';
+        }
+
         return redirect()
             ->route('superadmin.plugins')
-            ->with('status', "Plugin \"{$plugin->name}\" diaktifkan.");
+            ->with('status', $status);
     }
 
     public function disable(Plugin $plugin): RedirectResponse
