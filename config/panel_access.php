@@ -136,6 +136,7 @@ return [
         // dijaga langsung di App\Livewire\Admin\Nilai\Show.
         'akademik.nilai' => 'view nilai',
         'akademik.nilai.edit' => 'update nilai',
+        'akademik.nilai.import' => 'update nilai', // import mengubah data (insert/update massal) — bukan sekadar 'view'.
 
         // Aksi Hapus tidak lewat rute sendiri (method Livewire di halaman index), dijaga
         // langsung di App\Livewire\Admin\StrukturBiaya\Index.

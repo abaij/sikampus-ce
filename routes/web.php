@@ -2,7 +2,11 @@
 
 use App\Http\Controllers\DosenController;
 use App\Http\Controllers\DosenWaliController;
+use App\Http\Controllers\KelasController;
+use App\Http\Controllers\KrsController;
 use App\Http\Controllers\MahasiswaController;
+use App\Http\Controllers\MatkulController;
+use App\Http\Controllers\NilaiController;
 use App\Http\Controllers\SurveyController;
 use App\Http\Controllers\Web\AdminWebLoginController;
 use App\Http\Controllers\Web\DosenBimbinganExportController;
@@ -48,6 +52,7 @@ use App\Livewire\Admin\KategoriBiaya\Form as KategoriBiayaForm;
 use App\Livewire\Admin\KategoriBiaya\Index as KategoriBiayaIndex;
 use App\Livewire\Admin\KategoriBiaya\Show as KategoriBiayaShow;
 use App\Livewire\Admin\Kelas\Form as KelasForm;
+use App\Livewire\Admin\Kelas\Import as KelasImport;
 use App\Livewire\Admin\Kelas\Index as KelasIndex;
 use App\Livewire\Admin\Kelas\Show as KelasShow;
 use App\Livewire\Admin\KelompokKelas\Form as KelompokKelasForm;
@@ -60,6 +65,7 @@ use App\Livewire\Admin\KonversiNilai\Form as KonversiNilaiForm;
 use App\Livewire\Admin\KonversiNilai\Index as KonversiNilaiIndex;
 use App\Livewire\Admin\KonversiNilai\Show as KonversiNilaiShow;
 use App\Livewire\Admin\Krs\Form as KrsForm;
+use App\Livewire\Admin\Krs\Import as KrsImport;
 use App\Livewire\Admin\Krs\Index as KrsIndex;
 use App\Livewire\Admin\Krs\Show as KrsShow;
 use App\Livewire\Admin\Ktm\Form as KtmForm;
@@ -72,9 +78,11 @@ use App\Livewire\Admin\Mahasiswa\Import as MahasiswaImport;
 use App\Livewire\Admin\Mahasiswa\Index as MahasiswaIndex;
 use App\Livewire\Admin\Mahasiswa\Show as MahasiswaShow;
 use App\Livewire\Admin\Matkul\Form as MatkulForm;
+use App\Livewire\Admin\Matkul\Import as MatkulImport;
 use App\Livewire\Admin\Matkul\Index as MatkulIndex;
 use App\Livewire\Admin\Matkul\Show as MatkulShow;
 use App\Livewire\Admin\Nilai\Form as NilaiForm;
+use App\Livewire\Admin\Nilai\Import as NilaiImport;
 use App\Livewire\Admin\Nilai\Index as NilaiIndex;
 use App\Livewire\Admin\Nilai\Show as NilaiShow;
 use App\Livewire\Admin\Pembayaran\Form as PembayaranForm;
@@ -364,6 +372,10 @@ Route::prefix('admin')->name('admin.')->group(function (): void {
         // Menu Akademik
         Route::livewire('akademik/matkul', MatkulIndex::class)->name('akademik.matkul');
         Route::livewire('akademik/matkul/create', MatkulForm::class)->name('akademik.matkul.create');
+        // Rute literal (template/import) harus didaftarkan sebelum 'akademik/matkul/{id}' supaya
+        // tidak tertangkap sebagai id (lihat catatan di skill siak-livewire-module).
+        Route::get('akademik/matkul/template/download', [MatkulController::class, 'downloadTemplate'])->name('akademik.matkul.template');
+        Route::livewire('akademik/matkul/import', MatkulImport::class)->name('akademik.matkul.import');
         Route::livewire('akademik/matkul/{id}/edit', MatkulForm::class)->name('akademik.matkul.edit');
         Route::livewire('akademik/matkul/{id}', MatkulShow::class)->name('akademik.matkul.show');
 
@@ -378,11 +390,19 @@ Route::prefix('admin')->name('admin.')->group(function (): void {
 
         Route::livewire('akademik/krs', KrsIndex::class)->name('akademik.krs');
         Route::livewire('akademik/krs/create', KrsForm::class)->name('akademik.krs.create');
+        // Rute literal (template/import) harus didaftarkan sebelum 'akademik/krs/{id}' supaya
+        // tidak tertangkap sebagai id (lihat catatan di skill siak-livewire-module).
+        Route::get('akademik/krs/template/download', [KrsController::class, 'downloadTemplate'])->name('akademik.krs.template');
+        Route::livewire('akademik/krs/import', KrsImport::class)->name('akademik.krs.import');
         Route::livewire('akademik/krs/{id}/edit', KrsForm::class)->name('akademik.krs.edit');
         Route::get('akademik/krs/{id}/cetak', [KrsCetakController::class, 'show'])->name('akademik.krs.cetak');
         Route::livewire('akademik/krs/{id}', KrsShow::class)->name('akademik.krs.show');
 
+        // Rute literal (template/import) harus didaftarkan sebelum 'akademik/nilai/{id}' supaya
+        // tidak tertangkap sebagai id (lihat catatan di skill siak-livewire-module).
         Route::livewire('akademik/nilai', NilaiIndex::class)->name('akademik.nilai');
+        Route::get('akademik/nilai/template/download', [NilaiController::class, 'downloadTemplate'])->name('akademik.nilai.template');
+        Route::livewire('akademik/nilai/import', NilaiImport::class)->name('akademik.nilai.import');
         Route::get('akademik/nilai/{id}/export', [NilaiExportController::class, 'excel'])->name('akademik.nilai.export');
         Route::get('akademik/nilai/{id}/cetak', [NilaiExportController::class, 'pdf'])->name('akademik.nilai.cetak');
         Route::livewire('akademik/nilai/{id}/{idKrs}/edit', NilaiForm::class)->name('akademik.nilai.edit');
@@ -396,10 +416,12 @@ Route::prefix('admin')->name('admin.')->group(function (): void {
         Route::livewire('akademik/konversi-nilai/create', KonversiNilaiForm::class)->name('akademik.konversi-nilai.create');
         Route::livewire('akademik/konversi-nilai/{id}', KonversiNilaiShow::class)->name('akademik.konversi-nilai.show');
 
-        // Rute literal (create) harus didaftarkan sebelum 'akademik/kelas/{id}' supaya tidak
-        // tertangkap sebagai id (lihat catatan di skill siak-livewire-module).
+        // Rute literal (create/template/import) harus didaftarkan sebelum 'akademik/kelas/{id}'
+        // supaya tidak tertangkap sebagai id (lihat catatan di skill siak-livewire-module).
         Route::livewire('akademik/kelas', KelasIndex::class)->name('akademik.kelas');
         Route::livewire('akademik/kelas/create', KelasForm::class)->name('akademik.kelas.create');
+        Route::get('akademik/kelas/template/download', [KelasController::class, 'downloadTemplate'])->name('akademik.kelas.template');
+        Route::livewire('akademik/kelas/import', KelasImport::class)->name('akademik.kelas.import');
         Route::livewire('akademik/kelas/{id}/edit', KelasForm::class)->name('akademik.kelas.edit');
         Route::livewire('akademik/kelas/{id}', KelasShow::class)->name('akademik.kelas.show');
 
