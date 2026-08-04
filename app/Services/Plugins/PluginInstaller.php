@@ -81,6 +81,7 @@ class PluginInstaller
                 'has_web_routes' => $manifest->hasWebRoutes,
                 'has_api_routes' => $manifest->hasApiRoutes,
                 'migrations_relative_path' => $migrationsRelativePath,
+                'settings_route' => $manifest->settingsRoute,
                 'checksum' => $checksum,
                 'enabled' => false,
                 'id_user' => $installedBy?->id,

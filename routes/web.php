@@ -17,7 +17,6 @@ use App\Http\Controllers\Web\MahasiswaDashboardController;
 use App\Http\Controllers\Web\MahasiswaExportController;
 use App\Http\Controllers\Web\NilaiExportController;
 use App\Http\Controllers\Web\SuperadminEnvConfigController;
-use App\Http\Controllers\Web\SuperadminPluginController;
 use App\Http\Controllers\Web\SuperadminTestUploadController;
 use App\Http\Controllers\Web\SuperadminWebLoginController;
 use App\Livewire\Admin\AturanAksesKeuangan\Form as AturanAksesKeuanganForm;
@@ -113,6 +112,7 @@ use App\Livewire\Admin\Semester\Form as SemesterForm;
 use App\Livewire\Admin\Semester\Index as SemesterIndex;
 use App\Livewire\Admin\Sistem\Lisensi as SistemLisensi;
 use App\Livewire\Admin\Sistem\Pengaturan as SistemPengaturan;
+use App\Livewire\Admin\Sistem\Plugin as SistemPlugin;
 use App\Livewire\Admin\StatusAkademik\Form as StatusAkademikForm;
 use App\Livewire\Admin\StatusAkademik\Index as StatusAkademikIndex;
 use App\Livewire\Admin\StrukturBiaya\Form as StrukturBiayaForm;
@@ -226,13 +226,6 @@ Route::middleware(['auth', 'superadmin.web'])->group(function (): void {
     Route::view('/migrasi', 'superadmin.migrasi')->name('superadmin.migrasi');
     Route::get('/test-upload', [SuperadminTestUploadController::class, 'create'])->name('superadmin.test-upload');
     Route::post('/test-upload', [SuperadminTestUploadController::class, 'store'])->name('superadmin.test-upload.store');
-
-    Route::get('/plugins', [SuperadminPluginController::class, 'index'])->name('superadmin.plugins');
-    Route::post('/plugins', [SuperadminPluginController::class, 'store'])->name('superadmin.plugins.store');
-    Route::post('/plugins/{plugin:slug}/migrate', [SuperadminPluginController::class, 'migrate'])->name('superadmin.plugins.migrate');
-    Route::patch('/plugins/{plugin:slug}/enable', [SuperadminPluginController::class, 'enable'])->name('superadmin.plugins.enable');
-    Route::patch('/plugins/{plugin:slug}/disable', [SuperadminPluginController::class, 'disable'])->name('superadmin.plugins.disable');
-    Route::delete('/plugins/{plugin:slug}', [SuperadminPluginController::class, 'destroy'])->name('superadmin.plugins.destroy');
 });
 
 // Area dosen (sidebar, lihat resources/views/layouts/dosen.blade.php + dosen/partials/sidebar).
@@ -609,6 +602,7 @@ Route::prefix('admin')->name('admin.')->group(function (): void {
         Route::middleware('role.admin.superadmin')->group(function (): void {
             Route::livewire('sistem/pengaturan', SistemPengaturan::class)->name('sistem.pengaturan');
             Route::livewire('sistem/lisensi', SistemLisensi::class)->name('sistem.lisensi');
+            Route::livewire('sistem/plugin', SistemPlugin::class)->name('sistem.plugin');
         });
 
         Route::livewire('profil', AdminProfil::class)->name('profil');

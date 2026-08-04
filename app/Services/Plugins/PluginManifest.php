@@ -17,5 +17,6 @@ class PluginManifest
         public readonly bool $hasWebRoutes,
         public readonly bool $hasApiRoutes,
         public readonly bool $hasMigrations,
+        public readonly ?string $settingsRoute = null,
     ) {}
 }

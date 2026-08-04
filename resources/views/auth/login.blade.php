@@ -4,7 +4,7 @@
 
 @section('content')
 <div class="flex min-h-screen flex-col items-center justify-center px-4 py-12">
-    <div class="flex w-full max-w-4xl flex-col items-center gap-10 md:flex-row md:items-center md:justify-center md:gap-16">
+    <div class="flex w-full max-w-4xl flex-col items-center gap-10 md:flex-row md:items-center md:justify-center md:gap-16 bg-white p-8 rounded-lg">
         <div class="flex flex-col items-center text-center md:w-2/5 md:items-center md:text-center">
             @if ($logoPerguruanTinggiSrc)
                 <img

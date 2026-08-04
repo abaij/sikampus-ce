@@ -90,6 +90,7 @@
                 ['label' => 'Sistem', 'children' => [
                     ['route' => 'admin.sistem.pengaturan', 'label' => 'SMTP'],
                     ['route' => 'admin.sistem.lisensi', 'label' => 'License Key'],
+                    ['route' => 'admin.sistem.plugin', 'label' => 'Plugin'],
                 ]]
             ],
         ],

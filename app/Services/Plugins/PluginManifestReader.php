@@ -56,6 +56,8 @@ class PluginManifestReader
             throw new PluginInstallException("Berkas class provider tidak ditemukan: src/{$relativeClassPath}.php");
         }
 
+        $settingsRoute = $this->readSettingsRoute($data, $slug);
+
         return new PluginManifest(
             name: $data['name'],
             slug: $slug,
@@ -65,6 +67,39 @@ class PluginManifestReader
             hasWebRoutes: File::exists($pluginDir.DIRECTORY_SEPARATOR.'routes'.DIRECTORY_SEPARATOR.'web.php'),
             hasApiRoutes: File::exists($pluginDir.DIRECTORY_SEPARATOR.'routes'.DIRECTORY_SEPARATOR.'api.php'),
             hasMigrations: File::isDirectory($pluginDir.DIRECTORY_SEPARATOR.'database'.DIRECTORY_SEPARATOR.'migrations'),
+            settingsRoute: $settingsRoute,
         );
+    }
+
+    /**
+     * settings_route itu opsional — kalau plugin menyediakan halaman
+     * setting/pemakaian sendiri, field ini adalah nama route-nya, dipakai
+     * panel manajemen plugin untuk menampilkan tombol "Pengaturan". Kalau
+     * diisi, wajib diawali "plugins.{slug}." — sama semangatnya dengan
+     * validasi namespace provider di atas: mencegah plugin mengklaim/spoof
+     * nama route milik plugin lain atau bagian lain aplikasi. Ini bukan batas
+     * keamanan keras (plugin sudah dipercaya penuh mengeksekusi kode PHP),
+     * cuma jaring konsistensi.
+     */
+    private function readSettingsRoute(array $data, string $slug): ?string
+    {
+        if (! isset($data['settings_route'])) {
+            return null;
+        }
+
+        if (! is_string($data['settings_route']) || trim($data['settings_route']) === '') {
+            throw new PluginInstallException('Field "settings_route" di plugin.json harus berupa string tidak kosong jika diisi.');
+        }
+
+        $settingsRoute = $data['settings_route'];
+        $expectedPrefix = "plugins.{$slug}.";
+
+        if (! str_starts_with($settingsRoute, $expectedPrefix)) {
+            throw new PluginInstallException(
+                "Field \"settings_route\" harus diawali \"{$expectedPrefix}\" sesuai konvensi nama route plugin."
+            );
+        }
+
+        return $settingsRoute;
     }
 }

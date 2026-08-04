@@ -1,5 +1,6 @@
 <?php
 
+use App\Livewire\Admin\Sistem\Plugin as PluginComponent;
 use App\Models\Plugin;
 use App\Services\Plugins\PluginManifestReader;
 use App\Services\Plugins\PluginZipExtractor;
@@ -7,6 +8,8 @@ use App\Support\Plugins\PluginBootManager;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Route;
+use Livewire\Livewire;
 
 /**
  * Bangun ZIP fixture plugin yang valid di $zipPath. $extraEntries dipakai untuk
@@ -15,20 +18,37 @@ use Illuminate\Support\Facades\File;
  * menggantikan isi default migration fixture (dipakai test migrate action agar
  * TIDAK menjalankan DDL asli — CREATE TABLE di MySQL melakukan implicit commit
  * yang merusak transaksi RefreshDatabase untuk sisa test suite berjalan).
+ * $settingsRoute, kalau diisi, menambahkan field settings_route ke manifest
+ * DAN mendaftarkan route bernama itu di routes/web.php fixture-nya.
  */
-function buildPluginZip(string $zipPath, string $slug = 'test-plugin', array $extraEntries = [], ?string $migrationBody = null): void
-{
+function buildPluginZip(
+    string $zipPath,
+    string $slug = 'test-plugin',
+    array $extraEntries = [],
+    ?string $migrationBody = null,
+    ?string $settingsRoute = null,
+): void {
     $studly = str_replace(' ', '', ucwords(str_replace('-', ' ', $slug)));
     $tableSlug = str_replace('-', '_', $slug);
 
+    $manifest = [
+        'name' => 'Test Plugin',
+        'slug' => $slug,
+        'version' => '1.0.0',
+        'description' => 'Plugin fixture untuk test.',
+        'provider' => "Plugins\\{$studly}\\{$studly}ServiceProvider",
+    ];
+
+    if ($settingsRoute) {
+        $manifest['settings_route'] = $settingsRoute;
+    }
+
+    $settingsRouteLine = $settingsRoute
+        ? "Route::get('/plugins/{$slug}/settings', fn () => 'settings page')->name('{$settingsRoute}');\n"
+        : '';
+
     $entries = [
-        'plugin.json' => json_encode([
-            'name' => 'Test Plugin',
-            'slug' => $slug,
-            'version' => '1.0.0',
-            'description' => 'Plugin fixture untuk test.',
-            'provider' => "Plugins\\{$studly}\\{$studly}ServiceProvider",
-        ]),
+        'plugin.json' => json_encode($manifest),
         "src/{$studly}ServiceProvider.php" => <<<PHP
 <?php
 
@@ -54,7 +74,7 @@ use Illuminate\\Support\\Facades\\Route;
 Route::get('/plugins/{$slug}/ping', function () {
     return response('pong');
 });
-
+{$settingsRouteLine}
 PHP,
         "database/migrations/2026_01_01_000000_{$tableSlug}_create_dummy_table.php" => $migrationBody ?? <<<PHP
 <?php
@@ -96,9 +116,18 @@ PHP,
     $zip->close();
 }
 
+/**
+ * Livewire::test()->set() untuk properti WithFileUploads butuh instance
+ * Illuminate\Http\Testing\File (hasil UploadedFile::fake()), bukan
+ * Illuminate\Http\UploadedFile biasa — internal testing harness Livewire
+ * mengakses properti public $name yang cuma ada di kelas fake itu. Dibangun
+ * dari createWithContent() (bukan create() yang isinya sampah acak) supaya
+ * isi zip fixture yang sesungguhnya tetap terbawa dan bisa diekstrak/divalidasi
+ * sungguhan oleh PluginInstaller.
+ */
 function pluginUploadedFile(string $zipPath): UploadedFile
 {
-    return new UploadedFile($zipPath, 'plugin.zip', 'application/zip', null, true);
+    return UploadedFile::fake()->createWithContent(basename($zipPath), File::get($zipPath));
 }
 
 /**
@@ -129,12 +158,10 @@ it('installs a valid plugin zip and keeps it disabled by default', function () {
     $zipPath = storage_path('app/private/plugin-fixtures/valid.zip');
     buildPluginZip($zipPath);
 
-    $response = $this->actingAs($admin)->post(route('superadmin.plugins.store'), [
-        'plugin_zip' => pluginUploadedFile($zipPath),
-    ]);
-
-    $response->assertRedirect(route('superadmin.plugins'));
-    $response->assertSessionHas('status');
+    Livewire::actingAs($admin)->test(PluginComponent::class)
+        ->set('pluginZip', pluginUploadedFile($zipPath))
+        ->call('install')
+        ->assertHasNoErrors();
 
     $plugin = Plugin::where('slug', 'test-plugin')->first();
 
@@ -152,12 +179,9 @@ it('rejects a zip-slip attempt and does not write files outside plugins/', funct
         '../../evil.php' => '<?php echo "pwned"; ?>',
     ]);
 
-    $response = $this->actingAs($admin)->post(route('superadmin.plugins.store'), [
-        'plugin_zip' => pluginUploadedFile($zipPath),
-    ]);
-
-    $response->assertRedirect(route('superadmin.plugins'));
-    $response->assertSessionHas('error');
+    Livewire::actingAs($admin)->test(PluginComponent::class)
+        ->set('pluginZip', pluginUploadedFile($zipPath))
+        ->call('install');
 
     expect(Plugin::count())->toBe(0);
     expect(File::exists(base_path('evil.php')))->toBeFalse();
@@ -174,12 +198,9 @@ it('rejects a zip exceeding the configured max extracted size', function () {
         'src/filler.bin' => str_repeat('A', 5 * 1024),
     ]);
 
-    $response = $this->actingAs($admin)->post(route('superadmin.plugins.store'), [
-        'plugin_zip' => pluginUploadedFile($zipPath),
-    ]);
-
-    $response->assertRedirect(route('superadmin.plugins'));
-    $response->assertSessionHas('error');
+    Livewire::actingAs($admin)->test(PluginComponent::class)
+        ->set('pluginZip', pluginUploadedFile($zipPath))
+        ->call('install');
 
     expect(Plugin::count())->toBe(0);
     expect(File::isDirectory(config('plugins.install_path').'/oversized-plugin'))->toBeFalse();
@@ -258,41 +279,109 @@ PHP;
     $zipPath = storage_path('app/private/plugin-fixtures/migrate.zip');
     buildPluginZip($zipPath, migrationBody: $dmlOnlyMigration);
 
-    $this->actingAs($admin)->post(route('superadmin.plugins.store'), [
-        'plugin_zip' => pluginUploadedFile($zipPath),
-    ]);
+    Livewire::actingAs($admin)->test(PluginComponent::class)
+        ->set('pluginZip', pluginUploadedFile($zipPath))
+        ->call('install');
 
     $plugin = Plugin::where('slug', 'test-plugin')->firstOrFail();
 
     expect(DB::table('settings')->where('key', 'plugin_test_plugin_migrated_marker')->exists())->toBeFalse();
 
-    $response = $this->actingAs($admin)->post(route('superadmin.plugins.migrate', $plugin));
+    Livewire::actingAs($admin)->test(PluginComponent::class)
+        ->call('migrate', $plugin->slug);
 
-    $response->assertRedirect(route('superadmin.plugins'));
     expect(DB::table('settings')->where('key', 'plugin_test_plugin_migrated_marker')->exists())->toBeTrue();
     expect($plugin->fresh()->last_migrated_at)->not->toBeNull();
 });
 
-it('blocks non-superadmin users from the plugin management routes', function () {
+it('blocks non-superadmin users from the plugin management page', function () {
     $nonSuperadmin = adminUser('admin_akademik');
-    $plugin = Plugin::create([
-        'name' => 'Dummy',
-        'slug' => 'dummy-plugin',
+
+    $this->actingAs($nonSuperadmin)->get(route('admin.sistem.plugin'))
+        ->assertForbidden();
+});
+
+it('redirects unauthenticated users to login', function () {
+    $this->get(route('admin.sistem.plugin'))
+        ->assertRedirect(route('login'));
+});
+
+it('shows a working Pengaturan link when a plugin is enabled and declares a valid settings_route', function () {
+    $admin = adminUser();
+    $slug = 'with-settings';
+    $settingsRouteName = "plugins.{$slug}.edit";
+    $zipPath = storage_path('app/private/plugin-fixtures/with-settings.zip');
+    buildPluginZip($zipPath, $slug, settingsRoute: $settingsRouteName);
+
+    Livewire::actingAs($admin)->test(PluginComponent::class)
+        ->set('pluginZip', pluginUploadedFile($zipPath))
+        ->call('install');
+
+    $plugin = Plugin::where('slug', $slug)->firstOrFail();
+    expect($plugin->settings_route)->toBe($settingsRouteName);
+    // Belum enabled -> settingsUrl() harus null meski settings_route terisi,
+    // karena route-nya belum tentu terdaftar (provider belum di-boot).
+    expect($plugin->settingsUrl())->toBeNull();
+
+    $plugin->update(['enabled' => true]);
+    PluginBootManager::bootEnabledPlugins($this->app);
+
+    // PluginBootManager dipanggil manual di tengah proses test yang sudah
+    // full-boot (bukan lewat siklus booting() alami) — beda dari request asli,
+    // di sini index nama route (dipakai Route::has()/route()) tidak otomatis
+    // di-refresh sampai kita minta eksplisit. Di request produksi sungguhan
+    // ini terjadi otomatis sebagai bagian akhir siklus boot (sudah diverifikasi
+    // manual lewat browser sebelumnya untuk storage-monitor).
+    Route::getRoutes()->refreshNameLookups();
+
+    expect($plugin->settingsUrl())->not->toBeNull();
+    expect($plugin->settingsUrl())->toContain('plugins/'.$slug.'/settings');
+
+    Livewire::actingAs($admin)->test(PluginComponent::class)
+        ->assertSee('plugins/'.$slug.'/settings', false);
+});
+
+it('hides the Pengaturan link for a disabled plugin even if settings_route is declared', function () {
+    $slug = 'disabled-with-settings';
+
+    Plugin::create([
+        'name' => 'Disabled With Settings',
+        'slug' => $slug,
         'version' => '1.0.0',
-        'provider_class' => 'Plugins\\DummyPlugin\\DummyPluginServiceProvider',
-        'source_path' => pluginSourcePath('dummy-plugin'),
+        'provider_class' => 'Plugins\\DisabledWithSettings\\DisabledWithSettingsServiceProvider',
+        'source_path' => pluginSourcePath($slug),
+        'settings_route' => "plugins.{$slug}.edit",
         'enabled' => false,
     ]);
 
-    $this->actingAs($nonSuperadmin)->get(route('superadmin.plugins'))
-        ->assertRedirect(route('login'));
+    $plugin = Plugin::where('slug', $slug)->firstOrFail();
 
-    $this->actingAs($nonSuperadmin)->post(route('superadmin.plugins.store'))
-        ->assertRedirect(route('login'));
+    expect($plugin->settingsUrl())->toBeNull();
+});
 
-    $this->actingAs($nonSuperadmin)->patch(route('superadmin.plugins.enable', $plugin))
-        ->assertRedirect(route('login'));
+it('does not crash when a declared settings_route is not actually registered', function () {
+    $admin = adminUser();
+    $slug = 'broken-settings';
 
-    $this->actingAs($nonSuperadmin)->delete(route('superadmin.plugins.destroy', $plugin))
-        ->assertRedirect(route('login'));
+    // settings_route diisi manual di DB (bukan lewat manifest reader, yang
+    // memvalidasi format-nya) untuk mensimulasikan plugin yang provider-nya
+    // gagal mendaftarkan route yang dijanjikan di manifest-nya.
+    Plugin::create([
+        'name' => 'Broken Settings',
+        'slug' => $slug,
+        'version' => '1.0.0',
+        'provider_class' => 'Plugins\\BrokenSettings\\BrokenSettingsServiceProvider',
+        'source_path' => pluginSourcePath($slug),
+        'settings_route' => 'plugins.broken-settings.does-not-exist',
+        'enabled' => true,
+    ]);
+
+    $plugin = Plugin::where('slug', $slug)->firstOrFail();
+    expect($plugin->settingsUrl())->toBeNull();
+
+    // Halaman manajemen tetap harus render normal (tidak 500) walau ada baris
+    // plugin dengan settings_route yang rutenya tidak pernah terdaftar.
+    Livewire::actingAs($admin)->test(PluginComponent::class)
+        ->assertOk()
+        ->assertDontSee('does-not-exist');
 });
