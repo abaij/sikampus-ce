@@ -78,6 +78,42 @@ class PluginBootManager
         }
     }
 
+    /**
+     * Boot SATU plugin di luar siklus request normal — dipakai saat sebuah
+     * plugin baru saja di-enable lewat halaman manajemen (Livewire), di
+     * tengah request yang SAMA. bootEnabledPlugins() di atas hanya jalan
+     * sekali di awal tiap request (lewat AppServiceProvider::register()),
+     * jadi plugin yang baru saja enabled belum pernah punya kesempatan
+     * register()/boot() sama sekali pada request ini — tanpa ini, route
+     * (termasuk settings_route) yang route()/Route::has()-nya dipanggil pada
+     * request yang sama akan selalu terlihat "belum terdaftar" sampai
+     * request berikutnya (reload).
+     *
+     * $app sudah isBooted() di titik ini, jadi $app->booted($callback) di
+     * dalam registerAndBoot() akan langsung memanggil callback-nya (bukan
+     * menjadwalkan) — provider ini register() DAN boot() secara sinkron di
+     * sini juga.
+     */
+    public static function bootPlugin(Application $app, string $slug): void
+    {
+        try {
+            if (! Schema::hasTable('plugins')) {
+                return;
+            }
+
+            $plugin = DB::table('plugins')->where('slug', $slug)->where('enabled', true)->first();
+        } catch (Throwable $e) {
+            return;
+        }
+
+        if (! $plugin) {
+            return;
+        }
+
+        self::registerAutoloader($plugin);
+        self::registerAndBoot($app, $plugin);
+    }
+
     private static function registerAndBoot(Application $app, object $plugin): void
     {
         $providerClass = $plugin->provider_class;

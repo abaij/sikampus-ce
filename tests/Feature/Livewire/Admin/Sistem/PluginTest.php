@@ -294,6 +294,62 @@ PHP;
     expect($plugin->fresh()->last_migrated_at)->not->toBeNull();
 });
 
+it('deletes a plugin when the confirmation slug matches exactly', function () {
+    $admin = adminUser();
+    $zipPath = storage_path('app/private/plugin-fixtures/to-delete.zip');
+    buildPluginZip($zipPath, 'to-delete-plugin');
+
+    Livewire::actingAs($admin)->test(PluginComponent::class)
+        ->set('pluginZip', pluginUploadedFile($zipPath))
+        ->call('install');
+
+    expect(Plugin::where('slug', 'to-delete-plugin')->exists())->toBeTrue();
+    expect(File::isDirectory(config('plugins.install_path').'/to-delete-plugin'))->toBeTrue();
+
+    Livewire::actingAs($admin)->test(PluginComponent::class)
+        ->call('confirmDelete', 'to-delete-plugin')
+        ->set('confirmSlugInput', 'to-delete-plugin')
+        ->call('destroy');
+
+    expect(Plugin::where('slug', 'to-delete-plugin')->exists())->toBeFalse();
+    expect(File::isDirectory(config('plugins.install_path').'/to-delete-plugin'))->toBeFalse();
+});
+
+it('tolerates leading/trailing whitespace in the confirmation slug (autofill/mobile keyboard artifacts)', function () {
+    $admin = adminUser();
+    $zipPath = storage_path('app/private/plugin-fixtures/to-delete-trim.zip');
+    buildPluginZip($zipPath, 'to-delete-trim-plugin');
+
+    Livewire::actingAs($admin)->test(PluginComponent::class)
+        ->set('pluginZip', pluginUploadedFile($zipPath))
+        ->call('install');
+
+    Livewire::actingAs($admin)->test(PluginComponent::class)
+        ->call('confirmDelete', 'to-delete-trim-plugin')
+        ->set('confirmSlugInput', '  to-delete-trim-plugin  ')
+        ->call('destroy');
+
+    expect(Plugin::where('slug', 'to-delete-trim-plugin')->exists())->toBeFalse();
+});
+
+it('refuses to delete a plugin when the confirmation slug does not match', function () {
+    $admin = adminUser();
+    $zipPath = storage_path('app/private/plugin-fixtures/keep.zip');
+    buildPluginZip($zipPath, 'keep-plugin');
+
+    Livewire::actingAs($admin)->test(PluginComponent::class)
+        ->set('pluginZip', pluginUploadedFile($zipPath))
+        ->call('install');
+
+    Livewire::actingAs($admin)->test(PluginComponent::class)
+        ->call('confirmDelete', 'keep-plugin')
+        ->set('confirmSlugInput', 'wrong-slug')
+        ->call('destroy');
+
+    expect(Plugin::where('slug', 'keep-plugin')->exists())->toBeTrue();
+    expect(File::isDirectory(config('plugins.install_path').'/keep-plugin'))->toBeTrue();
+});
+
 it('blocks non-superadmin users from the plugin management page', function () {
     $nonSuperadmin = adminUser('admin_akademik');
 
@@ -339,6 +395,28 @@ it('shows a working Pengaturan link when a plugin is enabled and declares a vali
 
     Livewire::actingAs($admin)->test(PluginComponent::class)
         ->assertSee('plugins/'.$slug.'/settings', false);
+});
+
+it('shows the Pengaturan link immediately after clicking Aktifkan, without a page reload', function () {
+    $admin = adminUser();
+    $slug = 'live-enable-settings';
+    $settingsRouteName = "plugins.{$slug}.edit";
+    $zipPath = storage_path('app/private/plugin-fixtures/live-enable-settings.zip');
+    buildPluginZip($zipPath, $slug, settingsRoute: $settingsRouteName);
+
+    $component = Livewire::actingAs($admin)->test(PluginComponent::class)
+        ->set('pluginZip', pluginUploadedFile($zipPath))
+        ->call('install');
+
+    // enable() jalan lewat method Livewire yang sesungguhnya (bukan
+    // PluginBootManager::bootEnabledPlugins() manual seperti test lain di
+    // atas) — reproduksi persis apa yang terjadi saat user klik "Aktifkan"
+    // di browser, dalam SATU request yang sama (tanpa reload halaman).
+    $component->call('enable', $slug)
+        ->assertSee('plugins/'.$slug.'/settings', false);
+
+    expect(Plugin::where('slug', $slug)->firstOrFail()->settingsUrl())
+        ->toContain('plugins/'.$slug.'/settings');
 });
 
 it('hides the Pengaturan link for a disabled plugin even if settings_route is declared', function () {

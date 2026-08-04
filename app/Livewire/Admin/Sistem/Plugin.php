@@ -8,10 +8,12 @@ use App\Exceptions\Plugins\PluginInstallException;
 // dipakai di dalam file ini sendiri.
 use App\Models\Plugin as PluginModel;
 use App\Services\Plugins\PluginInstaller;
+use App\Support\Plugins\PluginBootManager;
 use Illuminate\Contracts\Foundation\CachesRoutes;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Route;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
 use Livewire\WithFileUploads;
@@ -96,6 +98,17 @@ class Plugin extends Component
 
         $plugin->update(['enabled' => true, 'disabled_at' => null]);
         $this->clearCaches();
+
+        // PluginBootManager::bootEnabledPlugins() cuma jalan sekali di awal
+        // REQUEST INI (sebelum plugin ini di-enable), jadi provider plugin
+        // ini belum pernah register()/boot() sama sekali sejauh ini — tanpa
+        // baris ini, tombol "Pengaturan" (settingsUrl() -> Route::has())
+        // baru muncul setelah user reload halaman. refreshNameLookups()
+        // dipanggil manual karena RouteServiceProvider bawaan Laravel cuma
+        // melakukannya sekali di awal request, sebelum plugin ini enabled.
+        PluginBootManager::bootPlugin(App::getFacadeRoot(), $plugin->slug);
+        Route::getRoutes()->refreshNameLookups();
+
         unset($this->plugins);
 
         $status = "Plugin \"{$plugin->name}\" diaktifkan.";
@@ -140,7 +153,9 @@ class Plugin extends Component
 
         $plugin = PluginModel::where('slug', $this->slugToDelete)->firstOrFail();
 
-        if ($this->confirmSlugInput !== $plugin->slug) {
+        // trim() jaga-jaga terhadap spasi tersisa dari autofill/autocomplete
+        // browser atau saran keyboard mobile — bukan dari perilaku disengaja.
+        if (trim($this->confirmSlugInput) !== $plugin->slug) {
             session()->flash('error', 'Slug konfirmasi tidak cocok. Plugin tidak dihapus.');
 
             return;

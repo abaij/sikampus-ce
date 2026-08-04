@@ -191,6 +191,10 @@
                     type="text"
                     wire:model="confirmSlugInput"
                     placeholder="{{ $slugToDelete }}"
+                    autocomplete="off"
+                    autocapitalize="off"
+                    autocorrect="off"
+                    spellcheck="false"
                     class="mt-4 block w-full rounded-lg bg-neutral-50 px-3 py-2.5 text-sm text-neutral-900 shadow-border outline-none focus:ring-2 focus:ring-red-500"
                 >
                 <div class="mt-6 flex justify-end gap-2">
