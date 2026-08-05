@@ -4,6 +4,7 @@ use App\Livewire\Admin\Sistem\Plugin as PluginComponent;
 use App\Models\Plugin;
 use App\Services\Plugins\PluginManifestReader;
 use App\Services\Plugins\PluginZipExtractor;
+use App\Support\Plugins\AdminNavRegistry;
 use App\Support\Plugins\PluginBootManager;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -20,6 +21,10 @@ use Livewire\Livewire;
  * yang merusak transaksi RefreshDatabase untuk sisa test suite berjalan).
  * $settingsRoute, kalau diisi, menambahkan field settings_route ke manifest
  * DAN mendaftarkan route bernama itu di routes/web.php fixture-nya.
+ * $navGroup, kalau diisi (bentuk ['label' => string, 'route' => string]),
+ * menyisipkan pemanggilan AdminNavRegistry::push() di boot() provider
+ * fixture DAN mendaftarkan route bernama itu di routes/web.php fixture-nya
+ * — mensimulasikan plugin yang inject grup menu navbar baru.
  */
 function buildPluginZip(
     string $zipPath,
@@ -27,6 +32,7 @@ function buildPluginZip(
     array $extraEntries = [],
     ?string $migrationBody = null,
     ?string $settingsRoute = null,
+    ?array $navGroup = null,
 ): void {
     $studly = str_replace(' ', '', ucwords(str_replace('-', ' ', $slug)));
     $tableSlug = str_replace('-', '_', $slug);
@@ -47,6 +53,24 @@ function buildPluginZip(
         ? "Route::get('/plugins/{$slug}/settings', fn () => 'settings page')->name('{$settingsRoute}');\n"
         : '';
 
+    $navRouteLine = $navGroup
+        ? "Route::get('/plugins/{$slug}/nav-target', fn () => 'nav target page')->name('{$navGroup['route']}');\n"
+        : '';
+
+    $navRegistryUse = $navGroup ? "use App\\Support\\Plugins\\AdminNavRegistry;\n" : '';
+    $navBootParam = $navGroup ? 'AdminNavRegistry $nav' : '';
+    $navPushCall = $navGroup
+        ? <<<PHP
+
+        \$nav->push([
+            'label' => '{$navGroup['label']}',
+            'items' => [
+                ['route' => '{$navGroup['route']}', 'label' => '{$navGroup['label']}'],
+            ],
+        ]);
+PHP
+        : '';
+
     $entries = [
         'plugin.json' => json_encode($manifest),
         "src/{$studly}ServiceProvider.php" => <<<PHP
@@ -54,14 +78,15 @@ function buildPluginZip(
 
 namespace Plugins\\{$studly};
 
-use Illuminate\\Support\\ServiceProvider;
+{$navRegistryUse}use Illuminate\\Support\\ServiceProvider;
 
 class {$studly}ServiceProvider extends ServiceProvider
 {
-    public function boot(): void
+    public function boot({$navBootParam}): void
     {
         \$this->loadRoutesFrom(__DIR__.'/../routes/web.php');
         \$this->loadMigrationsFrom(__DIR__.'/../database/migrations');
+{$navPushCall}
     }
 }
 
@@ -74,7 +99,7 @@ use Illuminate\\Support\\Facades\\Route;
 Route::get('/plugins/{$slug}/ping', function () {
     return response('pong');
 });
-{$settingsRouteLine}
+{$settingsRouteLine}{$navRouteLine}
 PHP,
         "database/migrations/2026_01_01_000000_{$tableSlug}_create_dummy_table.php" => $migrationBody ?? <<<PHP
 <?php
@@ -462,4 +487,104 @@ it('does not crash when a declared settings_route is not actually registered', f
     Livewire::actingAs($admin)->test(PluginComponent::class)
         ->assertOk()
         ->assertDontSee('does-not-exist');
+});
+
+it('shows a plugin-injected navbar group for a superadmin once the plugin is enabled', function () {
+    $admin = adminUser();
+    $slug = 'nav-plugin';
+    $navGroup = ['label' => 'Presensi QR', 'route' => "plugins.{$slug}.rekap"];
+    $zipPath = storage_path('app/private/plugin-fixtures/nav-group.zip');
+    buildPluginZip($zipPath, $slug, navGroup: $navGroup);
+
+    Livewire::actingAs($admin)->test(PluginComponent::class)
+        ->set('pluginZip', pluginUploadedFile($zipPath))
+        ->call('install');
+
+    Plugin::where('slug', $slug)->firstOrFail()->update(['enabled' => true]);
+    PluginBootManager::bootEnabledPlugins($this->app);
+
+    // PluginBootManager dipanggil manual di tengah proses test yang sudah
+    // full-boot — beda dari request asli, index nama route tidak otomatis
+    // di-refresh sampai diminta eksplisit (pola sama dengan test settings_route
+    // di atas).
+    Route::getRoutes()->refreshNameLookups();
+
+    $this->actingAs($admin)->get(route('admin.dashboard'))
+        ->assertOk()
+        ->assertSee('Presensi QR');
+});
+
+it('hides a plugin-injected navbar group from a non-superadmin admin', function () {
+    $superadmin = adminUser();
+    $nonSuperadmin = adminUser('admin_akademik');
+    $slug = 'nav-plugin-hidden';
+    $navGroup = ['label' => 'Presensi QR Hidden', 'route' => "plugins.{$slug}.rekap"];
+    $zipPath = storage_path('app/private/plugin-fixtures/nav-group-hidden.zip');
+    buildPluginZip($zipPath, $slug, navGroup: $navGroup);
+
+    Livewire::actingAs($superadmin)->test(PluginComponent::class)
+        ->set('pluginZip', pluginUploadedFile($zipPath))
+        ->call('install');
+
+    Plugin::where('slug', $slug)->firstOrFail()->update(['enabled' => true]);
+    PluginBootManager::bootEnabledPlugins($this->app);
+    Route::getRoutes()->refreshNameLookups();
+
+    $this->actingAs($nonSuperadmin)->get(route('admin.dashboard'))
+        ->assertOk()
+        ->assertDontSee('Presensi QR Hidden');
+});
+
+it('drops a plugin navbar group entirely when its only route is unresolvable', function () {
+    $nav = app(AdminNavRegistry::class);
+    $nav->push([
+        'label' => 'Broken Nav',
+        'items' => [
+            ['route' => 'plugins.broken-nav.does-not-exist', 'label' => 'Ghost Page'],
+        ],
+    ]);
+
+    expect($nav->all())->toBe([]);
+});
+
+it('drops only the invalid child of a plugin navbar submenu, keeping the valid sibling', function () {
+    Route::get('/plugins/partial-nav/real', fn () => 'ok')->name('plugins.partial-nav.real');
+    Route::getRoutes()->refreshNameLookups();
+
+    $nav = app(AdminNavRegistry::class);
+    $nav->push([
+        'label' => 'Partial Nav',
+        'items' => [
+            ['label' => 'Sub', 'children' => [
+                ['route' => 'plugins.partial-nav.real', 'label' => 'Real'],
+                ['route' => 'plugins.partial-nav.ghost', 'label' => 'Ghost'],
+            ]],
+        ],
+    ]);
+
+    $groups = $nav->all();
+
+    expect($groups)->toHaveCount(1);
+    expect($groups[0]['items'][0]['children'])->toHaveCount(1);
+    expect($groups[0]['items'][0]['children'][0]['route'])->toBe('plugins.partial-nav.real');
+});
+
+it('never shows a navbar group for a disabled plugin, since its provider never boots', function () {
+    $admin = adminUser();
+    $slug = 'disabled-nav-plugin';
+    $navGroup = ['label' => 'Disabled Nav', 'route' => "plugins.{$slug}.rekap"];
+    $zipPath = storage_path('app/private/plugin-fixtures/disabled-nav-group.zip');
+    buildPluginZip($zipPath, $slug, navGroup: $navGroup);
+
+    Livewire::actingAs($admin)->test(PluginComponent::class)
+        ->set('pluginZip', pluginUploadedFile($zipPath))
+        ->call('install');
+
+    // Sengaja dibiarkan disabled (default install() — lihat test "installs a
+    // valid plugin zip and keeps it disabled by default").
+    PluginBootManager::bootEnabledPlugins($this->app);
+
+    $this->actingAs($admin)->get(route('admin.dashboard'))
+        ->assertOk()
+        ->assertDontSee('Disabled Nav');
 });

@@ -7,6 +7,7 @@ use App\Models\Mahasiswa;
 use App\Models\Prodi;
 use App\Models\Semester;
 use App\Models\Setting;
+use App\Support\Plugins\AdminNavRegistry;
 use App\Support\Plugins\DashboardWidgetRegistry;
 use App\Support\Plugins\PluginBootManager;
 use Illuminate\Auth\Notifications\ResetPassword;
@@ -30,6 +31,14 @@ class AppServiceProvider extends ServiceProvider
         // View::composer('dashboard', ...) di boot() di bawah membacanya sekali
         // saat halaman dashboard dirender.
         $this->app->singleton(DashboardWidgetRegistry::class);
+
+        // Registry grup navbar top-level yang di-push plugin (lihat AdminNavRegistry)
+        // — singleton dengan alasan sama seperti di atas: semua plugin push() ke
+        // instance yang sama, dan resources/views/admin/partials/nav.blade.php
+        // membacanya sendiri lewat app() saat navbar dirender (bukan lewat
+        // View::composer, karena partial ini di-@include langsung oleh banyak view
+        // admin, bukan satu layout tunggal).
+        $this->app->singleton(AdminNavRegistry::class);
 
         // Daftarkan service provider tiap plugin yang enabled (lihat tabel `plugins`
         // dan app/Support/Plugins/PluginBootManager) lewat callback booting(), BUKAN

@@ -99,6 +99,21 @@
     // Sembunyikan menu yang rutenya memang akan ditolak middleware panel.permission, memakai
     // peta yang sama (config/panel_access.php) supaya tampilan dan fungsi tidak pernah beda.
     $navUser = auth()->user();
+
+    // Grup navbar dari plugin (lihat app/Support/Plugins/AdminNavRegistry.php).
+    // HANYA di-merge untuk superadmin, dan SEBELUM filter PanelAccess di bawah
+    // — PanelAccess menganggap route tanpa entri di config/panel_access.php
+    // sebagai "boleh diakses semua admin", dan route plugin (nama
+    // "plugins.{slug}.*") memang sengaja tidak pernah punya entri di situ.
+    // Gate isSuperadmin() di sini SATU-SATUNYA lapisan otorisasi untuk grup
+    // nav plugin (keputusan produk: superadmin-only, tanpa override).
+    if ($navUser && $navUser->isSuperadmin()) {
+        $adminNavGroups = array_merge(
+            $adminNavGroups,
+            app(\App\Support\Plugins\AdminNavRegistry::class)->all()
+        );
+    }
+
     $adminNavGroups = collect($adminNavGroups)
         ->map(function (array $group) use ($navUser) {
             $group['items'] = collect($group['items'])
