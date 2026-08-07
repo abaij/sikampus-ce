@@ -72,8 +72,8 @@ Cakupan domain yang didukung antara lain:
 ### Langkah instalasi
 
 ```bash
-git clone https://github.com/abaij/sikampus-opensource.git
-cd sikampus-opensource
+git clone https://github.com/abaij/sikampus-pub.git
+cd sikampus-pub
 ```
 
 ```bash
@@ -110,13 +110,13 @@ Aplikasi backend akan berjalan di `http://localhost:8000` (default `php artisan 
 
 Jika tidak menggunakan `git clone`, unduh source code secara manual dari GitHub:
 
-1. Buka halaman repository [sikampus-opensource](https://github.com/abaij/sikampus-opensource).
+1. Buka halaman repository [sikampus-opensource](https://github.com/abaij/sikampus-pub).
 2. Klik tombol **Code** → **Download ZIP**.
 3. Ekstrak file ZIP tersebut ke direktori kerja pilihan Anda.
 4. Buka terminal, arahkan ke folder hasil ekstrak, misalnya:
 
 ```bash
-cd path/ke/folder/sikampus-opensource-main
+cd path/ke/folder/sikampus-pub-main
 ```
 
 5. Lanjutkan dengan langkah instalasi yang sama seperti instalasi melalui GitHub (poin 3 di atas),
